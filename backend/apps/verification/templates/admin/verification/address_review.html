@@ -1,0 +1,45 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Justificatif</h2>
+  <figure style="margin:10px 0;max-width:560px">
+    <a href="{{ photo_url }}" target="_blank" rel="noopener"><img src="{{ photo_url }}" alt="Justificatif de domicile" style="width:100%;border:1px solid #ccc"></a>
+  </figure>
+  {% for text in flag_texts %}
+    <p class="errornote" style="margin:10px 0">Signalement : {{ text }}</p>
+  {% endfor %}
+  <h2>À comparer</h2>
+  <p>Identité confirmée : {% if identity_name %}<strong>{{ identity_name }}</strong>{% else %}<strong>Identité non confirmée</strong>{% endif %}</p>
+  <p>Adresse déclarée : <strong>{{ original.commune }}</strong>, <strong>{{ original.quartier }}</strong></p>
+  {% if position %}
+    <p>Position du domicile : {{ position.lat }}, {{ position.lng }} (précision {{ position.accuracy_m }} m) —
+      <a href="{{ position.map_url }}" target="_blank" rel="noopener noreferrer">Voir sur la carte</a></p>
+    {% if position.mock %}<p class="errornote">Position simulée détectée : le téléphone utilisait une application de fausse position.</p>{% endif %}
+  {% else %}
+    <p><strong>Position non enregistrée</strong> : la personne n'a pas encore fait cette étape.</p>
+  {% endif %}
+</div>
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  {% if undecided %}
+    <form method="post" action="{% url 'admin:verification_address_confirm' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <p><label>Nom du titulaire<br><input type="text" name="holder_name" size="50" required autocomplete="off"></label></p>
+      <p><label>Numéro client ou référence<br><input type="text" name="reference_number" size="30" required autocomplete="off"></label></p>
+      <p><label>Date d'émission<br><input type="date" name="issued_on" required></label></p>
+      <p><label><input type="checkbox" name="name_matches"> Le nom correspond à l'identité confirmée</label></p>
+      <p><label><input type="checkbox" name="address_consistent"> L'adresse correspond à la commune, au quartier et à la position</label></p>
+      <input type="submit" class="default" value="Confirmer" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:verification_address_refuse' original.pk %}" style="margin:20px 0 10px">
+      {% csrf_token %}
+      <p><label>Motif (la personne le verra)<br><input type="text" name="reason" placeholder="Motif" size="60" required></label></p>
+      <p><label><input type="checkbox" name="refuse_location"> Refuser aussi la position du domicile</label></p>
+      <input type="submit" value="Refuser">
+    </form>
+  {% else %}
+    <p>Aucune action possible : ce justificatif a déjà été traité.</p>
+  {% endif %}
+</div>
+{% endblock %}

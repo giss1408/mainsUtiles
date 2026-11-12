@@ -1,0 +1,39 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Photos</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;margin:10px 0">
+    {% for label, url in photos %}
+      <figure style="margin:0;flex:1 1 280px;max-width:420px">
+        <a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="{{ label }}" style="width:100%;border:1px solid #ccc"></a>
+        <figcaption>{{ label }}</figcaption>
+      </figure>
+    {% endfor %}
+  </div>
+  {% for text in flag_texts %}
+    <p class="errornote" style="margin:10px 0">Signalement : {{ text }}</p>
+  {% endfor %}
+</div>
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  {% if undecided %}
+    <p>Recopiez ce qui est écrit sur le document, puis comparez le visage avec la photo du document.</p>
+    <form method="post" action="{% url 'admin:verification_identity_confirm' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <p><label>Nom complet<br><input type="text" name="full_name" size="50" required autocomplete="off"></label></p>
+      <p><label>Date de naissance<br><input type="date" name="date_of_birth" required></label></p>
+      <p><label>Numéro du document<br><input type="text" name="document_number" size="30" required autocomplete="off"></label></p>
+      <p><label>Date d'expiration<br><input type="date" name="document_expires_on" required></label></p>
+      <input type="submit" class="default" value="Confirmer" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:verification_identity_refuse' original.pk %}" style="margin:20px 0 10px">
+      {% csrf_token %}
+      <p><label>Motif (la personne le verra)<br><input type="text" name="reason" placeholder="Motif" size="60" required></label></p>
+      <input type="submit" value="Refuser">
+    </form>
+  {% else %}
+    <p>Aucune action possible : cette vérification a déjà été traitée.</p>
+  {% endif %}
+</div>
+{% endblock %}

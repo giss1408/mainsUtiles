@@ -188,3 +188,12 @@ def verifier(db):
     user = User.objects.create_user(username="verifier", password="pw", role="staff", is_staff=True)
     user.groups.add(Group.objects.get(name="verification_agent"))
     return user
+
+
+@pytest.fixture
+def verifier_client(verifier):
+    from django.test import Client
+
+    client = Client()
+    client.force_login(verifier)
+    return client
