@@ -15,7 +15,10 @@ abstract final class OfferCopy {
   static const myOffersTitle = 'Mes offres';
   static const verifiedRow = 'Compte vérifié';
   static const createOffer = 'Créer une offre';
+  static const myOffersSubtitle = 'Publiez une offre et suivez son état ici.';
   static const emptyMine = "Vous n'avez pas encore d'offre.";
+  static const emptyMineBody =
+      'Décrivez le service dont vous avez besoin : cela prend deux minutes.';
   static const notVerifiedHint = 'Faites vérifier votre compte pour publier une offre.';
   static const draftFallback = 'Offre en préparation';
 
@@ -69,6 +72,8 @@ abstract final class OfferCopy {
 /// French messages for the jobber app (informal "tu").
 abstract final class JobberCopy {
   static const title = 'Offres';
+  static const subtitle = 'Des missions publiées par des ménages vérifiés.';
+  static const emptyBody = 'Reviens bientôt : de nouvelles offres sont publiées chaque jour.';
   static const communeLabel = 'Commune';
   static const allCommunes = 'Toutes les communes';
   static const empty = 'Aucune offre pour le moment.';

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/spacing.dart';
 import '../../app/theme.dart';
 import '../../widgets/message_banner.dart';
+import '../../widgets/ui_kit.dart';
 import '../offer_copy.dart';
 import '../offer_format.dart';
 import '../offer_models.dart';
@@ -12,9 +13,10 @@ import 'offer_detail_screen.dart';
 
 /// The published offers, for a jobber, with a commune filter.
 class OffersScreen extends ConsumerStatefulWidget {
-  const OffersScreen({super.key, required this.onSignOut});
+  const OffersScreen({super.key, this.onSignOut});
 
-  final VoidCallback onSignOut;
+  /// Shown as a button at the bottom when set; the app shell offers it in the profile instead.
+  final VoidCallback? onSignOut;
 
   @override
   ConsumerState<OffersScreen> createState() => _OffersScreenState();
@@ -53,7 +55,8 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: RefreshIndicator(
@@ -64,8 +67,12 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: Gaps.lg),
                     Text(JobberCopy.title, style: theme.textTheme.headlineMedium),
+                    const SizedBox(height: Gaps.xs),
+                    Text(
+                      JobberCopy.subtitle,
+                      style: theme.textTheme.bodyMedium!.copyWith(color: AppColors.textMuted),
+                    ),
                     const SizedBox(height: Gaps.lg),
                     DropdownButtonFormField<String?>(
                       value: state.commune,
@@ -93,9 +100,10 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
                     if (offers == null)
                       for (var i = 0; i < 3; i++) const _SkeletonCard()
                     else if (offers.isEmpty)
-                      Text(
-                        state.commune == null ? JobberCopy.empty : JobberCopy.emptyInCommune,
-                        style: theme.textTheme.bodyLarge,
+                      EmptyState(
+                        icon: Icons.search_off,
+                        title: state.commune == null ? JobberCopy.empty : JobberCopy.emptyInCommune,
+                        body: JobberCopy.emptyBody,
                       )
                     else
                       for (final offer in offers)
@@ -113,9 +121,13 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
                         child: const Text(JobberCopy.seeMore),
                       ),
                     ],
-                    const SizedBox(height: Gaps.xl),
-                    OutlinedButton(
-                        onPressed: widget.onSignOut, child: const Text(JobberCopy.signOut)),
+                    if (widget.onSignOut != null) ...[
+                      const SizedBox(height: Gaps.xl),
+                      OutlinedButton(
+                        onPressed: widget.onSignOut,
+                        child: const Text(JobberCopy.signOut),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -136,34 +148,37 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gaps.md),
-      child: Material(
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.card),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.card),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(Gaps.lg),
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconTile(icon: categoryIcon(offer.categoryName)),
+          const SizedBox(width: Gaps.md),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(offer.categoryName, style: theme.textTheme.titleMedium),
                 const SizedBox(height: Gaps.xs),
-                Text(formatWhen(offer.startsAt, offer.durationMinutes),
-                    style: theme.textTheme.bodyMedium),
+                Text(
+                  formatXof(offer.payXof),
+                  style: theme.textTheme.titleMedium!.copyWith(color: AppColors.primary),
+                ),
+                const SizedBox(height: Gaps.sm),
+                MetaChip(
+                  icon: Icons.event_outlined,
+                  label: formatWhen(offer.startsAt, offer.durationMinutes),
+                ),
                 const SizedBox(height: Gaps.xs),
-                Text(formatXof(offer.payXof), style: theme.textTheme.bodyMedium),
-                const SizedBox(height: Gaps.xs),
-                Text('${offer.commune} · ${offer.quartier}', style: theme.textTheme.bodyMedium),
+                MetaChip(
+                  icon: Icons.place_outlined,
+                  label: '${offer.commune} · ${offer.quartier}',
+                ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

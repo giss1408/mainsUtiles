@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The petitGombo mark: a tilted star and an orange spark. Drawn in the 108dp adaptive-icon grid. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineJoin="round"
+        android:pathData="M47.21,34.51 L56.67,46.49 L71.91,45.49 L63.44,58.20 L69.10,72.38 L54.40,68.25 L42.66,78.02 L42.04,62.76 L29.12,54.61 L43.45,49.31 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M72,34 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+</vector>

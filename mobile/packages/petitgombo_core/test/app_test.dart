@@ -145,6 +145,9 @@ void main() {
       (tester) async {
     final session = FakeSession(restored: me);
     await pumpApp(tester, AppRole.jobber, session, extra: [offline()]);
+    await settleApp(tester);
+    await tester.tap(find.text('Profil'));
+    await settleApp(tester);
     await tester.ensureVisible(find.text('Se déconnecter'));
     await tester.tap(find.text('Se déconnecter'));
     await tester.pump();

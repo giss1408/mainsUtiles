@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/spacing.dart';
-import '../../app/theme.dart';
 import '../../verification/screens/flow_scaffold.dart';
 import '../../widgets/message_banner.dart';
+import '../../widgets/ui_kit.dart';
 import '../my_offers_controller.dart';
 import '../offer_copy.dart';
 import '../offer_format.dart';
@@ -37,25 +37,50 @@ class MyOfferDetailScreen extends ConsumerWidget {
       title: offerTitle(offer, state.categories),
       banner: state.error == null ? null : MessageBanner(message: state.error!),
       children: [
-        _StatusRow(status: offer.status),
-        if (offer.reason.isNotEmpty) ...[
-          const SizedBox(height: Gaps.md),
-          Text(OfferCopy.reasonLabel, style: Theme.of(context).textTheme.titleMedium),
-          Text(offer.reason, style: Theme.of(context).textTheme.bodyLarge),
-        ],
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StatusPill(
+            icon: statusIcon(offer.status),
+            label: OfferCopy.statusLabel(offer.status),
+            strong: offer.status == OfferStatus.published,
+          ),
+        ),
         const SizedBox(height: Gaps.lg),
-        for (final duty in offer.duties)
-          Text('• $duty', style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: Gaps.md),
-        Text(formatWhen(offer.startsAt, offer.durationMinutes),
-            style: Theme.of(context).textTheme.bodyLarge),
-        Text(formatXof(offer.payXof), style: Theme.of(context).textTheme.bodyLarge),
-        if (offer.commune.isNotEmpty)
-          Text('${offer.commune}, ${offer.quartier}', style: Theme.of(context).textTheme.bodyLarge),
-        if (offer.note.isNotEmpty) ...[
-          const SizedBox(height: Gaps.md),
-          Text(offer.note, style: Theme.of(context).textTheme.bodyLarge),
-        ],
+        if (offer.reason.isNotEmpty)
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(OfferCopy.reasonLabel, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: Gaps.xs),
+                Text(offer.reason, style: Theme.of(context).textTheme.bodyLarge),
+              ],
+            ),
+          ),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MetaChip(
+                icon: Icons.event_outlined,
+                label: formatWhen(offer.startsAt, offer.durationMinutes),
+              ),
+              const SizedBox(height: Gaps.sm),
+              MetaChip(icon: Icons.payments_outlined, label: formatXof(offer.payXof)),
+              if (offer.commune.isNotEmpty) ...[
+                const SizedBox(height: Gaps.sm),
+                MetaChip(icon: Icons.place_outlined, label: '${offer.commune}, ${offer.quartier}'),
+              ],
+              const SizedBox(height: Gaps.lg),
+              for (final duty in offer.duties)
+                Text('• $duty', style: Theme.of(context).textTheme.bodyLarge),
+              if (offer.note.isNotEmpty) ...[
+                const SizedBox(height: Gaps.md),
+                Text(offer.note, style: Theme.of(context).textTheme.bodyLarge),
+              ],
+            ],
+          ),
+        ),
         const SizedBox(height: Gaps.xl),
         ..._actions(context, ref, offer),
       ],
@@ -154,23 +179,5 @@ class MyOfferDetailScreen extends ConsumerWidget {
       ),
     );
     return answer ?? false;
-  }
-}
-
-class _StatusRow extends StatelessWidget {
-  const _StatusRow({required this.status});
-
-  final OfferStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(statusIcon(status), color: AppColors.textMuted),
-        const SizedBox(width: Gaps.sm),
-        Expanded(child: Text(OfferCopy.statusLabel(status), style: theme.textTheme.titleMedium)),
-      ],
-    );
   }
 }

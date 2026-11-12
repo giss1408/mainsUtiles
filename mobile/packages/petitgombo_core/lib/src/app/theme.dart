@@ -13,9 +13,16 @@ abstract final class AppColors {
   static const Color textMuted = Color(0xFF5B6157);
   static const Color border = Color(0xFFD9DDD5);
   static const Color surface = Colors.white;
+
+  /// The page behind the cards: a soft off-white, so white surfaces stand out.
+  static const Color background = Color(0xFFF5F7F3);
+  static const Color primarySoft = Color(0xFFE3F0E1);
+
+  /// The orange of the logo's spark and of rating stars; never a button colour.
+  static const Color spark = Color(0xFFF59E0B);
 }
 
-/// Light theme only. System font, so nothing is downloaded or bundled.
+/// Light theme only. Inter is bundled with the package, so nothing is downloaded.
 ThemeData buildAppTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -46,15 +53,26 @@ ThemeData buildAppTheme() {
 
   return ThemeData(
     useMaterial3: true,
+    fontFamily: 'Inter',
+    package: 'petitgombo_core',
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppColors.surface,
+    scaffoldBackgroundColor: AppColors.background,
     textTheme: textTheme,
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.background,
       foregroundColor: AppColors.text,
       elevation: 0,
       scrolledUnderElevation: 0,
+      centerTitle: false,
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.surface,
+      indicatorColor: AppColors.primarySoft,
+      elevation: 0,
+      labelTextStyle: WidgetStatePropertyAll(textTheme.bodySmall!.copyWith(color: AppColors.text)),
+    ),
+    dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1, space: 1),
+    listTileTheme: const ListTileThemeData(iconColor: AppColors.textMuted),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(minTouchTarget),
@@ -69,6 +87,7 @@ ThemeData buildAppTheme() {
         padding: const EdgeInsets.symmetric(horizontal: Gaps.lg, vertical: Gaps.md),
         textStyle: textTheme.labelLarge,
         side: const BorderSide(color: AppColors.border),
+        backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Radii.field)),
       ),
     ),
@@ -79,6 +98,8 @@ ThemeData buildAppTheme() {
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: Gaps.lg, vertical: Gaps.lg),
       border: border(AppColors.border),
       enabledBorder: border(AppColors.border),

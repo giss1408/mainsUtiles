@@ -6,6 +6,7 @@ import '../../widgets/message_banner.dart';
 import '../capture.dart';
 import '../verification_controller.dart';
 import '../verification_copy.dart';
+import '../../widgets/ui_kit.dart';
 import 'flow_scaffold.dart';
 
 /// Home position step: one button, pressed at home.
@@ -38,6 +39,10 @@ class HomeLocationScreen extends ConsumerWidget {
         Text(VerificationCopy.homeIntro, style: theme.textTheme.titleMedium),
         const SizedBox(height: Gaps.sm),
         Text(VerificationCopy.homeBody, style: theme.textTheme.bodyLarge),
+        const SizedBox(height: Gaps.lg),
+        const PrivacyNote(
+          "La position sert à confirmer votre adresse. Elle n'est jamais montrée aux mini-jobbers.",
+        ),
         const SizedBox(height: Gaps.xl),
         BusyButton(label: VerificationCopy.recordPosition, onPressed: record, busy: state.sending),
       ],

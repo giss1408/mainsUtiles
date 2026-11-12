@@ -198,6 +198,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
 
   Widget _categoryStep(List<OfferCategory> categories) => FlowScaffold(
         title: OfferCopy.categoryTitle,
+        step: 1,
+        steps: 6,
         children: [
           if (categories.isEmpty) const Text(OfferCopy.noCategory),
           for (final category in categories)
@@ -207,6 +209,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
 
   Widget _dutiesStep(OfferCategory category) => FlowScaffold(
         title: OfferCopy.dutiesTitle,
+        step: 2,
+        steps: 6,
         children: [
           for (final duty in category.duties)
             CheckboxListTile(
@@ -240,6 +244,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
     final ready = date != null && time != null && duration != null && problem == null;
     return FlowScaffold(
       title: OfferCopy.whenTitle,
+      step: 3,
+      steps: 6,
       children: [
         Text(OfferCopy.dateLabel, style: theme.textTheme.titleMedium),
         const SizedBox(height: Gaps.sm),
@@ -289,6 +295,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
     final problem = payMessage(limits, _pay);
     return FlowScaffold(
       title: OfferCopy.payTitle,
+      step: 4,
+      steps: 6,
       children: [
         TextField(
           key: const Key('offer-pay'),
@@ -316,6 +324,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
 
   Widget _noteStep(OfferLimits limits) => FlowScaffold(
         title: OfferCopy.noteTitle,
+        step: 5,
+        steps: 6,
         children: [
           TextField(
             key: const Key('offer-note'),
@@ -342,6 +352,8 @@ class _OfferFormFlowState extends ConsumerState<OfferFormFlow> {
     final note = _noteController.text.trim();
     return FlowScaffold(
       title: OfferCopy.summaryTitle,
+      step: 6,
+      steps: 6,
       banner: state.error == null ? null : MessageBanner(message: state.error!),
       children: [
         Text(category.name, style: theme.textTheme.titleMedium),

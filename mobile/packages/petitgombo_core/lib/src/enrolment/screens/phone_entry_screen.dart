@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/spacing.dart';
+import '../../info/info_screens.dart';
 import '../../widgets/screen_scaffold.dart';
+import '../../widgets/ui_kit.dart';
 import '../enrolment_copy.dart';
 
 class PhoneEntryScreen extends StatefulWidget {
@@ -73,6 +75,13 @@ class _PhoneEntryScreenState extends State<PhoneEntryScreen> {
                 )
               : const Text(EnrolmentCopy.continueLabel),
         ),
+        const SizedBox(height: Gaps.xl),
+        const PrivacyNote(
+          'Le numéro sert à la connexion et aux échanges liés aux missions. '
+          'Continuer vaut acceptation de la politique de confidentialité.',
+        ),
+        const SizedBox(height: Gaps.md),
+        const LegalFooter(),
       ],
     );
   }

@@ -7,7 +7,18 @@ const double flowMaxWidth = 720;
 
 /// One step of a flow: a back arrow, a title, scrolling content.
 class FlowScaffold extends StatelessWidget {
-  const FlowScaffold({super.key, required this.title, required this.children, this.banner});
+  const FlowScaffold({
+    super.key,
+    required this.title,
+    required this.children,
+    this.banner,
+    this.step,
+    this.steps,
+  });
+
+  /// The position in a flow, from 1, and its length; both set to show progress.
+  final int? step;
+  final int? steps;
 
   final String title;
   final List<Widget> children;
@@ -19,7 +30,8 @@ class FlowScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: flowMaxWidth),
             child: SingleChildScrollView(
@@ -27,6 +39,15 @@ class FlowScaffold extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (step != null && steps != null) ...[
+                    Text('Étape $step sur $steps', style: theme.textTheme.bodySmall),
+                    const SizedBox(height: Gaps.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(Gaps.xs),
+                      child: LinearProgressIndicator(value: step! / steps!, minHeight: Gaps.xs),
+                    ),
+                    const SizedBox(height: Gaps.lg),
+                  ],
                   if (banner != null) ...[banner!, const SizedBox(height: Gaps.lg)],
                   Text(title, style: theme.textTheme.headlineMedium),
                   const SizedBox(height: Gaps.lg),

@@ -15,6 +15,7 @@ import '../widgets/message_banner.dart';
 import '../widgets/screen_scaffold.dart';
 import 'app_role.dart';
 import 'device_description.dart';
+import 'home_shell.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -154,9 +155,12 @@ class _AppRootState extends ConsumerState<_AppRoot> with WidgetsBindingObserver 
         ),
       _Stage.enrolment => const EnrolmentFlow(),
       // A householder is taken through verification first; offers come after it.
-      _Stage.signedIn => ref.watch(appRoleProvider) == AppRole.householder
-          ? _householderHome()
-          : OffersScreen(onSignOut: _signOut),
+      _Stage.signedIn => HomeShell(
+          onSignOut: _signOut,
+          home: ref.watch(appRoleProvider) == AppRole.householder
+              ? _householderHome()
+              : const OffersScreen(),
+        ),
       _Stage.signedOut => ScreenScaffold(
           title: 'petitGombo',
           icon: Icons.lock_outline,

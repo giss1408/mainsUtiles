@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/spacing.dart';
 import '../../app/theme.dart';
 import '../../verification/screens/flow_scaffold.dart';
+import '../../widgets/ui_kit.dart';
 import '../offer_copy.dart';
 import '../offer_format.dart';
 import '../offer_models.dart';
@@ -19,64 +20,72 @@ class OfferDetailScreen extends StatelessWidget {
     return FlowScaffold(
       title: offer.categoryName,
       children: [
-        _Section(label: JobberCopy.tasks, children: [
-          for (final duty in offer.duties) Text('• $duty', style: theme.textTheme.bodyLarge),
-        ]),
-        _Section(label: JobberCopy.whenLabel, children: [
-          Text(formatWhen(offer.startsAt, offer.durationMinutes), style: theme.textTheme.bodyLarge),
-        ]),
-        _Section(label: JobberCopy.payLabel, children: [
-          Text(formatXof(offer.payXof), style: theme.textTheme.bodyLarge),
-        ]),
-        _Section(label: JobberCopy.placeLabel, children: [
-          Text('${offer.commune} · ${offer.quartier}', style: theme.textTheme.bodyLarge),
-        ]),
-        if (offer.note.isNotEmpty)
-          _Section(label: JobberCopy.noteLabel, children: [
-            Text(offer.note, style: theme.textTheme.bodyLarge),
-          ]),
-        Container(
-          padding: const EdgeInsets.all(Gaps.md),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(Radii.card),
-          ),
+        AppCard(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.lock_outline, color: AppColors.textMuted),
-              const SizedBox(width: Gaps.sm),
-              Expanded(child: Text(JobberCopy.addressNotice, style: theme.textTheme.bodyMedium)),
+              IconTile(icon: categoryIcon(offer.categoryName), size: 56),
+              const SizedBox(width: Gaps.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(JobberCopy.payLabel, style: theme.textTheme.bodySmall),
+                    Text(
+                      formatXof(offer.payXof),
+                      style: theme.textTheme.headlineMedium!.copyWith(color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(JobberCopy.whenLabel, style: theme.textTheme.titleMedium),
+              const SizedBox(height: Gaps.sm),
+              MetaChip(
+                icon: Icons.event_outlined,
+                label: formatWhen(offer.startsAt, offer.durationMinutes),
+              ),
+              const SizedBox(height: Gaps.xs),
+              MetaChip(
+                icon: Icons.timelapse,
+                label: '${JobberCopy.durationLabel} : ${formatDuration(offer.durationMinutes)}',
+              ),
+              const SizedBox(height: Gaps.lg),
+              Text(JobberCopy.placeLabel, style: theme.textTheme.titleMedium),
+              const SizedBox(height: Gaps.sm),
+              MetaChip(icon: Icons.place_outlined, label: '${offer.commune} · ${offer.quartier}'),
+            ],
+          ),
+        ),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(JobberCopy.tasks, style: theme.textTheme.titleMedium),
+              const SizedBox(height: Gaps.sm),
+              for (final duty in offer.duties) Text('• $duty', style: theme.textTheme.bodyLarge),
+              if (offer.note.isNotEmpty) ...[
+                const SizedBox(height: Gaps.lg),
+                Text(JobberCopy.noteLabel, style: theme.textTheme.titleMedium),
+                const SizedBox(height: Gaps.sm),
+                Text(offer.note, style: theme.textTheme.bodyLarge),
+              ],
+            ],
+          ),
+        ),
+        const PrivacyNote(JobberCopy.addressNotice),
         const SizedBox(height: Gaps.md),
-        Text(JobberCopy.comingSoon, style: theme.textTheme.bodyMedium),
+        Text(
+          JobberCopy.comingSoon,
+          style: theme.textTheme.bodyMedium!.copyWith(color: AppColors.textMuted),
+          textAlign: TextAlign.center,
+        ),
       ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.label, required this.children});
-
-  final String label;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gaps.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.titleMedium),
-          const SizedBox(height: Gaps.xs),
-          ...children,
-        ],
-      ),
     );
   }
 }

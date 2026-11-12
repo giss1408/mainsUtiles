@@ -6,6 +6,7 @@ import '../../widgets/message_banner.dart';
 import '../capture.dart';
 import '../verification_controller.dart';
 import '../verification_copy.dart';
+import '../../widgets/ui_kit.dart';
 import 'flow_scaffold.dart';
 import 'photo_step.dart';
 
@@ -64,6 +65,11 @@ class _IdentityFlowState extends ConsumerState<IdentityFlow> {
         children: [
           for (final entry in VerificationCopy.identityTypes.entries)
             ChoiceCard(label: entry.value, onTap: () => setState(() => _documentType = entry.key)),
+          const SizedBox(height: Gaps.lg),
+          const PrivacyNote(
+            'Vos photos sont chiffrées et vues seulement par notre équipe de vérification. '
+            'Chaque consultation est enregistrée.',
+          ),
         ],
       );
     }

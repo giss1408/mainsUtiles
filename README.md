@@ -49,6 +49,12 @@ These are not settled by the code and must be supplied by the business:
 - Data-protection registration (ARTCI), biometric processing and hosting location.
 - Lawful basis for holding identity photos and selfies ourselves. Until an identity provider is
   contracted they are stored by the backend, encrypted. This must be settled before launch.
+- The in-app privacy notice ("Confidentialité et données") is a draft. The data controller, the
+  contact address and the retention periods are placeholders in `LegalConfig`
+  (`mobile/packages/petitgombo_core/lib/src/info/info_screens.dart`); the full terms of use are not
+  written. Fill them in, have the notice reviewed by a lawyer, then set `LegalConfig.reviewed`.
+- Ratings and reviews: the star and review components exist, but no rating is stored or shown until
+  missions can be booked and completed.
 - Labour status of mini-jobbers, insurance cover.
 - Safety desk staffing and hours, incident protocol, police contact, emergency numbers.
 - Trademark, domain and store availability of the name "petitGombo".

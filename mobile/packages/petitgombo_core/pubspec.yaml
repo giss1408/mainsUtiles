@@ -24,3 +24,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter-400.ttf
+          weight: 400
+        - asset: fonts/Inter-500.ttf
+          weight: 500
+        - asset: fonts/Inter-600.ttf
+          weight: 600
+        - asset: fonts/Inter-700.ttf
+          weight: 700

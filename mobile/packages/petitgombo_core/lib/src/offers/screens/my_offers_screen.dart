@@ -5,6 +5,7 @@ import '../../app/spacing.dart';
 import '../../app/theme.dart';
 import '../../verification/screens/checklist_screen.dart';
 import '../../widgets/message_banner.dart';
+import '../../widgets/ui_kit.dart';
 import '../my_offers_controller.dart';
 import '../offer_copy.dart';
 import '../offer_format.dart';
@@ -32,9 +33,10 @@ IconData statusIcon(OfferStatus status) => switch (status) {
 
 /// The householder's own offers, with the means to create one.
 class MyOffersScreen extends ConsumerStatefulWidget {
-  const MyOffersScreen({super.key, required this.onSignOut});
+  const MyOffersScreen({super.key, this.onSignOut});
 
-  final VoidCallback onSignOut;
+  /// Shown as a button at the bottom when set; the app shell offers it in the profile instead.
+  final VoidCallback? onSignOut;
 
   @override
   ConsumerState<MyOffersScreen> createState() => _MyOffersScreenState();
@@ -70,13 +72,16 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> with WidgetsBin
   }
 
   void _openChecklist() {
+    final signOut = widget.onSignOut;
     _open(
       ChecklistScreen(
         onBack: () => Navigator.of(context).pop(),
-        onSignOut: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          widget.onSignOut();
-        },
+        onSignOut: signOut == null
+            ? null
+            : () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                signOut();
+              },
       ),
     );
   }
@@ -90,7 +95,8 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> with WidgetsBin
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: RefreshIndicator(
@@ -101,13 +107,24 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> with WidgetsBin
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: Gaps.lg),
                     Text(OfferCopy.myOffersTitle, style: theme.textTheme.headlineMedium),
-                    const SizedBox(height: Gaps.sm),
-                    TextButton.icon(
-                      onPressed: _openChecklist,
-                      icon: Icon(Icons.verified_user, color: theme.colorScheme.primary),
-                      label: const Text(OfferCopy.verifiedRow),
+                    const SizedBox(height: Gaps.xs),
+                    Text(
+                      OfferCopy.myOffersSubtitle,
+                      style: theme.textTheme.bodyMedium!.copyWith(color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: Gaps.md),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(Gaps.xl),
+                        onTap: _openChecklist,
+                        child: const StatusPill(
+                          icon: Icons.verified_user,
+                          label: OfferCopy.verifiedRow,
+                          strong: true,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: Gaps.lg),
                     if (state.error != null && onTop) ...[
@@ -122,15 +139,20 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> with WidgetsBin
                       for (var i = 0; i < 3; i++) const _SkeletonCard()
                     else ...[
                       if (data.canPublish)
-                        FilledButton(
+                        FilledButton.icon(
                           onPressed: () => _open(const OfferFormFlow()),
-                          child: const Text(OfferCopy.createOffer),
+                          icon: const Icon(Icons.add),
+                          label: const Text(OfferCopy.createOffer),
                         )
                       else
-                        Text(OfferCopy.notVerifiedHint, style: theme.textTheme.bodyLarge),
+                        const PrivacyNote(OfferCopy.notVerifiedHint),
                       const SizedBox(height: Gaps.lg),
                       if (data.offers.isEmpty)
-                        Text(OfferCopy.emptyMine, style: theme.textTheme.bodyLarge)
+                        const EmptyState(
+                          icon: Icons.assignment_outlined,
+                          title: OfferCopy.emptyMine,
+                          body: OfferCopy.emptyMineBody,
+                        )
                       else
                         for (final offer in data.offers)
                           _OfferCard(
@@ -139,11 +161,13 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> with WidgetsBin
                             onTap: () => _open(MyOfferDetailScreen(offerId: offer.id)),
                           ),
                     ],
-                    const SizedBox(height: Gaps.xl),
-                    OutlinedButton(
-                      onPressed: widget.onSignOut,
-                      child: const Text(OfferCopy.signOut),
-                    ),
+                    if (widget.onSignOut != null) ...[
+                      const SizedBox(height: Gaps.xl),
+                      OutlinedButton(
+                        onPressed: widget.onSignOut,
+                        child: const Text(OfferCopy.signOut),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -165,45 +189,35 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Gaps.md),
-      child: Material(
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.card),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Radii.card),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(Gaps.lg),
+    return AppCard(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconTile(icon: categoryIcon(title)),
+          const SizedBox(width: Gaps.md),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: theme.textTheme.titleMedium),
-                const SizedBox(height: Gaps.xs),
-                Text(formatWhen(offer.startsAt, offer.durationMinutes),
-                    style: theme.textTheme.bodyMedium),
-                const SizedBox(height: Gaps.xs),
-                Text(formatXof(offer.payXof), style: theme.textTheme.bodyMedium),
                 const SizedBox(height: Gaps.sm),
-                Row(
-                  children: [
-                    Icon(statusIcon(offer.status), size: Gaps.lg, color: AppColors.textMuted),
-                    const SizedBox(width: Gaps.xs),
-                    Expanded(
-                      child: Text(
-                        OfferCopy.statusLabel(offer.status),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
-                  ],
+                MetaChip(
+                  icon: Icons.event_outlined,
+                  label: formatWhen(offer.startsAt, offer.durationMinutes),
+                ),
+                const SizedBox(height: Gaps.xs),
+                MetaChip(icon: Icons.payments_outlined, label: formatXof(offer.payXof)),
+                const SizedBox(height: Gaps.md),
+                StatusPill(
+                  icon: statusIcon(offer.status),
+                  label: OfferCopy.statusLabel(offer.status),
+                  strong: offer.status == OfferStatus.published,
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
