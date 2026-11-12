@@ -25,6 +25,9 @@ none of them makes harm impossible.
 | Harassment | Both | In-app chat with contact filtering (7); block and report; human review (8) | planned | |
 | Data breach | Both | Field-level encryption for addresses and identity data (9); no secrets or codes in logs; hashes only for codes and tokens | planned | |
 | Insider misuse | Both | Role permissions; append-only audit of staff actions; no bulk export; second approval for sensitive actions (9) | planned | |
+| Stolen staff password | Both | Staff sign in with a password and a phone activated by an administrator; one active phone per staff member; lock after 5 wrong passwords; 10-minute access tokens; staff phones revocable from the console | tested | `test_staff_api.py` (all) |
+| Leak of numbers from a staff phone | Both | Staff app blocks screenshots and screen recording; the WhatsApp link with the confirmation number is opened and dropped, never shown, stored or logged; tokens in memory only | built | `screens_test.dart` (WhatsApp send), `staff_controller_test.dart` (nothing written to storage); screenshot blocking not checked on a phone |
+| Dodging enrolment limits with a forged network address | Both | Client address taken from the reverse proxy's own `X-Forwarded-For` entry, only when `TRUST_PROXY_HEADERS=1`; application port not published | tested | `test_production_settings.py` |
 
 ## Safety rules and their tests
 

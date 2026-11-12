@@ -56,6 +56,9 @@ class SignedInSession extends StaffSession {
   String? get access => signedOut ? null : 'acc';
 
   @override
+  Future<bool> refresh() async => false;
+
+  @override
   void signOut() => signedOut = true;
 }
 

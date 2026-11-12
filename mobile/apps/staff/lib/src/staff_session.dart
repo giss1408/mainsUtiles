@@ -13,6 +13,7 @@ class StaffSession {
   final String platform;
 
   TokenPair? _tokens;
+  Future<bool>? _refreshing;
 
   /// The current access token, or null when signed out.
   String? get access => _tokens?.access;
@@ -43,6 +44,25 @@ class StaffSession {
     final me = await _api.me(tokens.access);
     _tokens = tokens;
     return me;
+  }
+
+  /// Renews the access token (it lasts ten minutes). Returns false when the
+  /// server ends the session; a network failure is rethrown as [ApiError].
+  /// Calls made at the same moment share one request, because a refresh token
+  /// presented twice makes the server revoke the phone's tokens.
+  Future<bool> refresh() => _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+
+  Future<bool> _refresh() async {
+    final current = _tokens;
+    if (current == null) return false;
+    try {
+      _tokens = await _api.refresh(current.refresh);
+      return true;
+    } on ApiError catch (e) {
+      if (e.isNetwork) rethrow;
+      signOut();
+      return false;
+    }
   }
 
   void signOut() => _tokens = null;

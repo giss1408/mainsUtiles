@@ -109,6 +109,6 @@ A staff member signs in with a username, a password and a phone that an administ
    "Révoquer" cuts a phone off immediately; a revoked phone registers again as a new device.
 4. The staff member signs in again and reaches the queue.
 
-The session lasts 12 hours at most and is kept in memory only: closing the app signs out. After 5
+The session is kept in memory only: closing the app signs out, and so do 12 hours without use. After 5
 wrong passwords the account is locked for 15 minutes (`STAFF_LOGIN_MAX_FAILURES`,
 `STAFF_LOGIN_LOCK_MINUTES`).

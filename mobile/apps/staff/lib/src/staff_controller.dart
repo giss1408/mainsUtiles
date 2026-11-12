@@ -161,26 +161,34 @@ class StaffController extends StateNotifier<StaffState> {
     );
   }
 
-  /// Runs an authenticated call. A rejected token returns to the login screen;
-  /// any other failure is reported through [onError]. Returns null on failure.
+  /// Runs an authenticated call. An expired access token is renewed once and
+  /// the call retried; if the session cannot be renewed the app returns to the
+  /// login screen. Any other failure is reported through [onError]. Returns
+  /// null on failure.
   Future<T?> _guard<T>(
     Future<T> Function(String access) call, {
     required void Function(String message) onError,
   }) async {
-    final access = _session.access;
-    if (access == null) {
-      signOut(message: StaffCopy.sessionExpired);
-      return null;
-    }
-    try {
-      return await call(access);
-    } on ApiError catch (e) {
-      if (e.status == 401) {
-        signOut(message: StaffCopy.sessionExpired);
-      } else {
-        onError(StaffCopy.actionError(e));
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final access = _session.access;
+      if (access == null) break;
+      try {
+        return await call(access);
+      } on ApiError catch (e) {
+        if (e.status != 401) {
+          onError(StaffCopy.actionError(e));
+          return null;
+        }
       }
-      return null;
+      if (attempt > 0) break;
+      try {
+        if (!await _session.refresh()) break;
+      } on ApiError catch (e) {
+        onError(StaffCopy.actionError(e));
+        return null;
+      }
     }
+    signOut(message: StaffCopy.sessionExpired);
+    return null;
   }
 }

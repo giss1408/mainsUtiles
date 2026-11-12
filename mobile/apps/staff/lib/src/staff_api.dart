@@ -142,6 +142,13 @@ class StaffApi {
         return TokenPair.fromJson(_json(response));
       });
 
+  /// Exchanges the refresh token for a new pair. Each refresh token works once.
+  Future<TokenPair> refresh(String refreshToken) => guardApi(() async {
+        final response =
+            await _dio.post<dynamic>('$_base/auth/refresh', data: {'refresh': refreshToken});
+        return TokenPair.fromJson(_json(response));
+      });
+
   Future<StaffMe> me(String access) => guardApi(() async {
         final response = await _dio.get<dynamic>('$_base/staff/me', options: _bearer(access));
         return StaffMe.fromJson(_json(response));

@@ -113,13 +113,70 @@ void main() {
     h.adapter.reply(200, itemJson());
     await h.controller.open(h.controller.state.items!.first);
 
-    h.adapter.reply(401, {'error': 'token_invalid'});
+    h.adapter
+      ..reply(401, {'error': 'token_invalid'})
+      ..reply(401, {'error': 'refresh_invalid'});
     await h.controller.approve();
 
+    expect(h.adapter.requests.last.path, '/api/v1/auth/refresh');
+    expect(h.adapter.requests.last.data, {'refresh': 'ref'});
     expect(h.controller.state.stage, StaffStage.login);
     expect(h.controller.state.selected, isNull);
     expect(h.controller.state.error, StaffCopy.sessionExpired);
     expect(h.session.access, isNull);
+  });
+
+  test('an expired access token is renewed once and the action is retried', () async {
+    h.queueSignIn(pending: [itemJson()]);
+    await h.controller.signIn('agent', 'pw');
+    h.adapter.reply(200, itemJson());
+    await h.controller.open(h.controller.state.items!.first);
+    final before = h.adapter.requests.length;
+
+    h.adapter
+      ..reply(401, {'error': 'token_invalid'})
+      ..reply(200, {'access': 'acc2', 'refresh': 'ref2'})
+      ..reply(200, itemJson(status: 'approved'));
+    await h.controller.approve();
+
+    final paths = h.adapter.requests.skip(before).map((r) => r.path).toList();
+    expect(paths, [
+      '/api/v1/staff/enrolments/a1/approve',
+      '/api/v1/auth/refresh',
+      '/api/v1/staff/enrolments/a1/approve',
+    ]);
+    expect(h.adapter.requests.last.headers['Authorization'], 'Bearer acc2');
+    expect(h.controller.state.stage, StaffStage.queue);
+    expect(h.controller.state.selected!.status, 'approved');
+    expect(h.session.access, 'acc2');
+    expect(h.store.values.values, isNot(contains('ref2')));
+  });
+
+  test('two calls that expire together renew the token only once', () async {
+    h.queueSignIn();
+    await h.controller.signIn('agent', 'pw');
+    final before = h.adapter.requests.length;
+
+    // A refresh token presented twice makes the server revoke the phone's tokens.
+    h.adapter.reply(200, {'access': 'acc2', 'refresh': 'ref2'});
+    final results = await Future.wait([h.session.refresh(), h.session.refresh()]);
+    expect(results, [true, true]);
+    expect(h.adapter.requests.skip(before).map((r) => r.path), ['/api/v1/auth/refresh']);
+  });
+
+  test('a network failure while renewing keeps the session', () async {
+    h.queueSignIn(pending: [itemJson()]);
+    await h.controller.signIn('agent', 'pw');
+    h.adapter.reply(200, itemJson());
+    await h.controller.open(h.controller.state.items!.first);
+
+    h.adapter.reply(401, {'error': 'token_invalid'});
+    h.adapter.offlineAfterReplies = true;
+    await h.controller.approve();
+
+    expect(h.controller.state.stage, StaffStage.queue);
+    expect(h.controller.state.error, StaffCopy.offline);
+    expect(h.session.access, 'acc');
   });
 
   test('changing tab loads that status', () async {
