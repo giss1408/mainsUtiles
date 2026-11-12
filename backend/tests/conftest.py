@@ -163,3 +163,16 @@ def jpeg():
         return b"\xff\xd8\xff\xe0" + bytes([seed % 256]) * size + b"\xff\xd9"
 
     return _make
+
+
+@pytest.fixture
+def bearer_for(db):
+    """A real access token for a device, as an Authorization header value."""
+    from apps.accounts.services.device_auth import issue_tokens
+
+    return lambda device: f"Bearer {issue_tokens(device).access}"
+
+
+@pytest.fixture
+def householder_bearer(householder_key, bearer_for):
+    return bearer_for(householder_key.device)
