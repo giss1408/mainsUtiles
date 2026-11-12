@@ -38,3 +38,38 @@ def make_device(db):
         return Device.objects.create(**values)
 
     return _make
+
+
+@pytest.fixture
+def api_client():
+    from rest_framework.test import APIClient
+
+    return APIClient()
+
+
+@pytest.fixture
+def device_key():
+    from tests.helpers import DeviceKey
+
+    return DeviceKey()
+
+
+@pytest.fixture
+def payload(device_key):
+    return {
+        "phone": "07 08 09 10 11",
+        "role": "jobber",
+        "device_id": device_key.device_id,
+        "device_model": "Tecno Spark",
+        "platform": "android",
+        "public_key": device_key.public_key,
+        "client_token": "tok",
+    }
+
+
+@pytest.fixture
+def created(db, api_client, payload):
+    """An application created through the API. Returns its JSON body."""
+    response = api_client.post("/api/v1/enrolment/applications", payload, format="json")
+    assert response.status_code == 201, response.content
+    return response.json()
