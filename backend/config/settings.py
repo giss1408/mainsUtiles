@@ -81,7 +81,12 @@ CACHES = {
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_TIMEZONE = "Africa/Abidjan"
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    "expire-stale-enrolments": {
+        "task": "apps.accounts.tasks.expire_stale_enrolments",
+        "schedule": 3600.0,
+    },
+}
 
 LANGUAGE_CODE = "fr"
 TIME_ZONE = "Africa/Abidjan"
@@ -111,3 +116,12 @@ MAP_PROVIDER = env.str("MAP_PROVIDER", default="apps.providers.mocks.MockMap")
 
 # Phone numbers
 ALLOWED_PHONE_REGIONS = env.list("ALLOWED_PHONE_REGIONS", default=["CI"])
+
+# Device enrolment
+ENROLMENT_CODE_TTL_MINUTES = env.int("ENROLMENT_CODE_TTL_MINUTES", default=60)
+ENROLMENT_CODE_MAX_ATTEMPTS = env.int("ENROLMENT_CODE_MAX_ATTEMPTS", default=5)
+ENROLMENT_MAX_PER_PHONE_PER_DAY = env.int("ENROLMENT_MAX_PER_PHONE_PER_DAY", default=3)
+ENROLMENT_MAX_PER_DEVICE_PER_DAY = env.int("ENROLMENT_MAX_PER_DEVICE_PER_DAY", default=3)
+ENROLMENT_MAX_PER_IP_PER_DAY = env.int("ENROLMENT_MAX_PER_IP_PER_DAY", default=10)
+ENROLMENT_APPLICATION_TTL_DAYS = env.int("ENROLMENT_APPLICATION_TTL_DAYS", default=7)
+ENROLMENT_RESPONSE_HOURS = env.int("ENROLMENT_RESPONSE_HOURS", default=24)
