@@ -54,6 +54,9 @@ Two volumes hold data that cannot be rebuilt: `pgdata` (the database) and `verif
    | `FIELD_ENCRYPTION_KEY` | Output of `python3 -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"`. Protects identity photos and sensitive fields. The backend refuses to start without it |
    | `OFFICIAL_WHATSAPP_NUMBER` | The WhatsApp Business number staff send confirmations from |
 
+   The job-offer limits (`OFFER_*`) and the verification limits have defaults; set them only if the
+   product owner changes them (see `.env.example`).
+
    **Keep a copy of `FIELD_ENCRYPTION_KEY` somewhere other than the server.** If it is lost, every
    identity photo and every encrypted field (names, document numbers, home positions) becomes
    unreadable, and nothing can recover them. Never change it once data exists: key rotation is not

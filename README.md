@@ -151,3 +151,45 @@ Not built yet: the route for a bill in someone else's name, the mobile-money nam
 document and liveness checks, and jobber verification. Whether identity photos may lawfully be held
 is an open decision (see "Open decisions").
 
+## Job offers
+
+A verified householder (tier H1, with a confirmed proof of address) creates a mini-job offer in the
+householder app: a category, the duties ticked from its list, a date and start time, a duration, a
+pay, and an optional note. The offer takes place at the householder's confirmed address, which is
+copied into the offer when it is sent; no address is typed in it.
+
+Statuses: `draft` (saved, editable, visible to its author), `in_review` (waiting for staff),
+`published` (visible to mini-jobbers, who see the commune and quartier only), `refused` (with a
+reason), `withdrawn` (taken down by the householder), `closed` (its start has passed). A householder
+may hold at most three offers in review or published (`OFFER_MAX_OPEN_PER_HOUSEHOLDER`).
+
+An offer goes to staff when it has a signal: a pay above twice the category maximum or below its
+minimum, a phone number or e-mail address in the note, or a term of a kind listed in the console
+(appearance, travel, empty home, contact outside the app). The householder's first offer always goes
+to staff. Otherwise it is published at once.
+
+Staff work in the web console:
+
+- **"Offres"**: the moderation queue, by default the offers in review. Each shows its flags in plain
+  French and the householder's phone. "Publier" needs the permission `listings.moderate_offer`;
+  "Refuser" needs a reason. Offers are never edited through the generic form. The group
+  `offer_moderator` holds this permission.
+- **"Catégories d'offres"**: name, duties (one per line), durations in minutes (one per line),
+  suggested pay minimum and maximum, active, and position. An inactive category cannot be chosen for
+  a new offer; existing offers keep the name and duties they were sent with. The group
+  `catalogue_manager` holds the rights to edit it.
+- **"Termes de modération"**: a text and a kind (`appearance`, `travel`, `empty_home`,
+  `off_platform`). Matching ignores case and accents.
+
+The categories, pay ranges and moderation terms created by the migration
+(`0002_seed_catalogue_and_groups`) are **placeholders**: replace them in the console before the
+service opens. The limits (hours, pay bounds, days ahead, note length) are settings; see
+`.env.example` under "Job offers".
+
+A periodic task (`tidy-offers`, every 15 minutes) closes offers whose start has passed and withdraws
+the offers of a householder who has fallen back to H0. Jobbers never see past or unpublished offers,
+even before the task runs.
+
+Jobbers see published offers in the jobber app ("Offres"), filtered by commune. The detail screen
+states that the exact address is given only after a confirmed booking. Applying and booking are not
+built yet.
