@@ -167,3 +167,12 @@ class RefreshToken(models.Model):
     rotated_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class StaffDevice(Device):
+    """Staff phones, shown on their own console page for activation by an administrator."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "appareil du personnel"
+        verbose_name_plural = "appareils du personnel"

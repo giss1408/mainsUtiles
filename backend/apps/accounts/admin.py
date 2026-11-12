@@ -1,9 +1,10 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.urls import path
 
 from . import console_views
-from .models import DeviceEnrolmentRequest, User
+from .models import DeviceEnrolmentRequest, StaffDevice, User
+from .services import staff_auth
 
 admin.site.site_header = "petitGombo — console"
 admin.site.site_title = "petitGombo"
@@ -79,3 +80,53 @@ class UserAdmin(DjangoUserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("username", "password1", "password2", "role", "is_staff")}),
     )
+
+
+@admin.register(StaffDevice)
+class StaffDeviceAdmin(admin.ModelAdmin):
+    """Staff phones waiting for activation. Administrators only; changes go through the service."""
+
+    list_display = ("user", "model", "platform", "status", "enrolled_at", "revoked_at")
+    list_filter = ("status",)
+    search_fields = ("user__username",)
+    ordering = ("-enrolled_at",)
+    fields = ("user", "model", "platform", "status", "enrolled_at", "revoked_at")
+    readonly_fields = fields
+    actions = ("activate", "revoke")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(user__role="staff").select_related("user")
+
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def _apply(self, request, queryset, service_function, done_message):
+        for device in queryset:
+            try:
+                service_function(device, admin=request.user)
+            except staff_auth.AuthError:
+                self.message_user(
+                    request, f"{device.user} — {device} : action impossible dans cet état.", messages.ERROR
+                )
+            else:
+                self.message_user(request, f"{device.user} — {device.model} : {done_message}")
+
+    @admin.action(description="Activer")
+    def activate(self, request, queryset):
+        self._apply(request, queryset, staff_auth.activate_device, "appareil activé.")
+
+    @admin.action(description="Révoquer")
+    def revoke(self, request, queryset):
+        self._apply(request, queryset, staff_auth.revoke_device, "appareil révoqué.")

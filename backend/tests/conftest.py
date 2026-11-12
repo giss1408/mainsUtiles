@@ -4,6 +4,8 @@ import pytest
 @pytest.fixture(autouse=True)
 def _local_cache(settings):
     settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    # Real password hashing is deliberately slow; tests sign in many times.
+    settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     from django.core.cache import cache
 
     cache.clear()
