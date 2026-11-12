@@ -10,9 +10,12 @@ dependencies = [
     "psycopg[binary]",
     "redis",
     "celery",
+    "packaging",  # imported by celery's Redis transport but not declared by it
     "phonenumbers",
     "PyJWT",
     "cryptography",
+    "gunicorn",
+    "whitenoise",
 ]
 
 [project.optional-dependencies]

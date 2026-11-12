@@ -9,6 +9,7 @@ implementation plans are in [docs/superpowers/plans](docs/superpowers/plans).
 - `mobile/packages/petitgombo_core` — shared Flutter code.
 - `mobile/apps/householder`, `mobile/apps/jobber`, `mobile/apps/staff` — the three apps.
 - `docs/threat-model.md` — threats, controls and their test status.
+- `docs/deployment.md` — running the backend in production with Docker.
 
 ## Prerequisites
 

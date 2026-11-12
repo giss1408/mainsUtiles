@@ -29,6 +29,8 @@ jobs:
       - run: ruff check backend
       - run: pytest
         working-directory: backend
+      - run: docker build -t petitgombo-backend backend
+      - run: docker compose -f docker-compose.prod.yml --env-file .env.prod.example config --quiet
 
   mobile:
     runs-on: ubuntu-latest

@@ -1,0 +1,5 @@
+# Public entry point. Caddy obtains and renews the HTTPS certificate for SITE_DOMAIN by itself.
+{$SITE_DOMAIN} {
+	encode gzip
+	reverse_proxy web:8000
+}

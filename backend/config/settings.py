@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,6 +15,9 @@ DEV_SECRET_KEY = "dev-insecure-change-me-before-any-real-use"
 DEBUG = env.bool("DEBUG", default=True)
 SECRET_KEY = env.str("SECRET_KEY", default=DEV_SECRET_KEY)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "10.0.2.2", "testserver"])
+
+if not DEBUG and SECRET_KEY in ("", DEV_SECRET_KEY):
+    raise ImproperlyConfigured("SECRET_KEY must be set to a private random value when DEBUG is off.")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -95,6 +99,26 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Production (DEBUG off): HTTPS everywhere behind the reverse proxy, static files from the app itself.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
+# The container healthcheck calls /healthz over plain HTTP from inside the private network.
+SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+
+# Read the client address from X-Forwarded-For. Only behind a reverse proxy that sets it,
+# with the application port closed to everything else.
+TRUST_PROXY_HEADERS = env.bool("TRUST_PROXY_HEADERS", default=False)
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
