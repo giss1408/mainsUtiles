@@ -65,3 +65,24 @@ abstract final class OfferCopy {
   static const copyAction = 'Créer une offre semblable';
   static const reasonLabel = 'Motif';
 }
+
+/// French messages for the jobber app (informal "tu").
+abstract final class JobberCopy {
+  static const title = 'Offres';
+  static const communeLabel = 'Commune';
+  static const allCommunes = 'Toutes les communes';
+  static const empty = 'Aucune offre pour le moment.';
+  static const emptyInCommune = 'Aucune offre dans cette commune pour le moment.';
+  static const seeMore = 'Voir plus';
+  static const retry = 'Réessayer';
+  static const signOut = 'Se déconnecter';
+  static const tasks = 'Tâches';
+  static const whenLabel = 'Quand';
+  static const durationLabel = 'Durée';
+  static const payLabel = 'Rémunération';
+  static const placeLabel = 'Lieu';
+  static const noteLabel = 'Précision';
+  static const addressNotice =
+      "L'adresse exacte est communiquée seulement après une réservation confirmée.";
+  static const comingSoon = 'Tu pourras bientôt postuler aux offres.';
+}

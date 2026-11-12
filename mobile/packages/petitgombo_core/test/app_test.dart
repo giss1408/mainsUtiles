@@ -37,6 +37,15 @@ class FakeSession implements Session {
 
 const me = Me(id: 'u-1', phone: '+2250708091011', role: 'jobber');
 
+Future<void> settleApp(WidgetTester tester) async {
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 60));
+  }
+}
+
+/// The offers list asks the server on load; here the server is unreachable.
+Override offline() => dioProvider.overrideWithValue(dioWith(FakeAdapter()..offline = true));
+
 Future<void> pumpApp(
   WidgetTester tester,
   AppRole role,
@@ -63,10 +72,10 @@ void main() {
     expect(find.text('Ton numéro de téléphone'), findsOneWidget);
   });
 
-  testWidgets('a restored session opens the home placeholder with the role label', (tester) async {
-    await pumpApp(tester, AppRole.jobber, FakeSession(restored: me));
-    expect(find.text('Bienvenue'), findsOneWidget);
-    expect(find.text('Mini-jobber'), findsOneWidget);
+  testWidgets('a restored session opens the offers list', (tester) async {
+    await pumpApp(tester, AppRole.jobber, FakeSession(restored: me), extra: [offline()]);
+    await settleApp(tester);
+    expect(find.text('Offres'), findsOneWidget);
   });
 
   testWidgets('a signed-in householder lands on the verification checklist', (tester) async {
@@ -135,19 +144,19 @@ void main() {
   testWidgets('signing out shows the reconnect screen, and reconnecting returns home',
       (tester) async {
     final session = FakeSession(restored: me);
-    await pumpApp(tester, AppRole.jobber, session);
+    await pumpApp(tester, AppRole.jobber, session, extra: [offline()]);
+    await tester.ensureVisible(find.text('Se déconnecter'));
     await tester.tap(find.text('Se déconnecter'));
     await tester.pump();
     await tester.pump();
     expect(session.signOuts, 1);
     expect(find.text('Se reconnecter'), findsOneWidget);
-    expect(find.text('Bienvenue'), findsNothing);
+    expect(find.text('Offres'), findsNothing);
 
     await tester.tap(find.text('Se reconnecter'));
-    await tester.pump();
-    await tester.pump();
+    await settleApp(tester);
     expect(session.signIns, 1);
-    expect(find.text('Bienvenue'), findsOneWidget);
+    expect(find.text('Offres'), findsOneWidget);
   });
 
   testWidgets('no connection at start shows a retry screen', (tester) async {
