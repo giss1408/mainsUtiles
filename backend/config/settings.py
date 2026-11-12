@@ -97,6 +97,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.accounts.tasks.expire_stale_enrolments",
         "schedule": 3600.0,
     },
+    "expire-address-proofs": {
+        "task": "apps.verification.tasks.expire_address_proofs",
+        "schedule": 3600.0,
+    },
 }
 
 LANGUAGE_CODE = "fr"

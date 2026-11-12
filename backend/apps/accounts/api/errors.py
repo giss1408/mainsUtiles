@@ -39,6 +39,17 @@ MESSAGES = {
     "location_inaccurate": (
         "Position trop imprécise. Rapprochez-vous d'une fenêtre ou sortez, puis réessayez."
     ),
+    # Shown to staff in the console when a verification decision breaks a rule.
+    "under_age": "La personne a moins de 18 ans. La vérification ne peut pas être confirmée.",
+    "document_expired": "Le document d'identité est expiré.",
+    "duplicate_document": "Ce numéro de document est déjà utilisé par un autre compte.",
+    "identity_not_confirmed": "Confirmez d'abord l'identité de cette personne.",
+    "location_missing": "La personne n'a pas encore enregistré la position de son domicile.",
+    "proof_too_old": "Le justificatif est trop ancien ou sa date est dans le futur.",
+    "duplicate_reference": "Ce justificatif est déjà utilisé par un autre compte.",
+    "checks_required": "Cochez les deux vérifications avant de confirmer.",
+    "reason_required": "Le motif est obligatoire.",
+    "field_required": "Remplissez tous les champs.",
 }
 
 

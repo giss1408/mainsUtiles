@@ -176,3 +176,15 @@ def bearer_for(db):
 @pytest.fixture
 def householder_bearer(householder_key, bearer_for):
     return bearer_for(householder_key.device)
+
+
+@pytest.fixture
+def verifier(db):
+    """A staff member allowed to review verifications and see their photos."""
+    from django.contrib.auth.models import Group
+
+    from apps.accounts.models import User
+
+    user = User.objects.create_user(username="verifier", password="pw", role="staff", is_staff=True)
+    user.groups.add(Group.objects.get(name="verification_agent"))
+    return user
