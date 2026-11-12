@@ -19,6 +19,16 @@ STATUS = {
     "commune_invalid": 400,
     "quartier_required": 400,
     "location_inaccurate": 422,
+    # Job offers
+    "verification_required": 403,
+    "category_invalid": 400,
+    "duties_invalid": 400,
+    "time_invalid": 400,
+    "duration_invalid": 400,
+    "pay_invalid": 400,
+    "note_too_long": 400,
+    "too_many_offers": 409,
+    "reason_required": 400,
 }
 
 MESSAGES = {
