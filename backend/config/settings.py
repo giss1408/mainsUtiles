@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.accounts",
     "apps.verification",
+    "apps.listings",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -224,6 +225,18 @@ IDENTITY_DOCUMENT_TYPES = env.list(
 ADDRESS_PROOF_TYPES = env.list(
     "ADDRESS_PROOF_TYPES", default=["facture_eau", "facture_electricite", "certificat_residence"]
 )
+
+# Job offers. Categories and moderation terms are edited in the console, not here.
+OFFER_EARLIEST_START = env.str("OFFER_EARLIEST_START", default="06:00")
+OFFER_LATEST_END = env.str("OFFER_LATEST_END", default="19:00")
+OFFER_MIN_PAY_XOF = env.int("OFFER_MIN_PAY_XOF", default=1000)
+OFFER_MAX_PAY_XOF = env.int("OFFER_MAX_PAY_XOF", default=100000)
+# Pay above this many times the category's suggested maximum is looked at by staff.
+OFFER_PAY_FLAG_FACTOR = env.float("OFFER_PAY_FLAG_FACTOR", default=2)
+OFFER_MAX_DAYS_AHEAD = env.int("OFFER_MAX_DAYS_AHEAD", default=30)
+OFFER_MAX_OPEN_PER_HOUSEHOLDER = env.int("OFFER_MAX_OPEN_PER_HOUSEHOLDER", default=3)
+OFFER_NOTE_MAX_LENGTH = env.int("OFFER_NOTE_MAX_LENGTH", default=300)
+OFFER_REVIEW_HOURS = env.int("OFFER_REVIEW_HOURS", default=24)
 
 # Staff console
 OFFICIAL_WHATSAPP_NUMBER = env.str("OFFICIAL_WHATSAPP_NUMBER", default="")
