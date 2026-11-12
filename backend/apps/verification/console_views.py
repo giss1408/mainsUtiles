@@ -31,15 +31,22 @@ def _run(request, record, action, success_message):
             raise PermissionDenied from exc
         text = ALREADY_DECIDED if exc.code == "invalid_state" else MESSAGES.get(exc.code, exc.code)
         messages.error(request, text)
-    except ValueError:
+    except _InvalidDate:
         messages.error(request, INVALID_DATE)
     else:
         messages.success(request, success_message)
     return _back(record)
 
 
+class _InvalidDate(Exception):
+    pass
+
+
 def _date(request, name: str) -> date:
-    return date.fromisoformat(request.POST.get(name, "").strip())
+    try:
+        return date.fromisoformat(request.POST.get(name, "").strip())
+    except ValueError as exc:
+        raise _InvalidDate from exc
 
 
 @require_POST
@@ -85,6 +92,7 @@ def confirm_address(request, pk):
             issued_on=_date(request, "issued_on"),
             name_matches=request.POST.get("name_matches") == "on",
             address_consistent=request.POST.get("address_consistent") == "on",
+            location_id=request.POST.get("location_id", ""),
         ),
         "Justificatif confirmé.",
     )

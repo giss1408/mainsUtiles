@@ -197,3 +197,31 @@ def test_one_householder_never_sees_anothers_status(
     assert body["identity"] == {"status": "not_started", "reason": ""}
     mine = api_client.get(BASE, HTTP_AUTHORIZATION=householder_bearer).json()
     assert mine["identity"] == {"status": "refused", "reason": "Photo floue"}
+
+
+def test_photos_are_never_spooled_to_disk_in_plain_text(settings):
+    assert settings.FILE_UPLOAD_HANDLERS == ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
+    assert settings.FILE_UPLOAD_MAX_MEMORY_SIZE >= 3 * settings.VERIFICATION_PHOTO_MAX_BYTES
+
+
+def test_a_photo_just_under_the_limit_is_accepted_and_a_huge_request_is_refused(
+    api_client, householder_bearer, jpeg
+):
+    big = jpeg(1, size=2_700_000)
+    r = api_client.post(
+        f"{BASE}/address",
+        address_body(jpeg, photo=upload(big)),
+        format="multipart",
+        HTTP_AUTHORIZATION=householder_bearer,
+    )
+    assert r.status_code == 201, r.content
+
+    huge = jpeg(2, size=13_000_000)
+    r = api_client.post(
+        f"{BASE}/identity",
+        identity_body(jpeg, front=upload(huge)),
+        format="multipart",
+        HTTP_AUTHORIZATION=householder_bearer,
+    )
+    assert r.status_code in (400, 413)
+    assert not IdentityVerification.objects.exists()

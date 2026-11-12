@@ -45,6 +45,7 @@ MESSAGES = {
     "duplicate_document": "Ce numéro de document est déjà utilisé par un autre compte.",
     "identity_not_confirmed": "Confirmez d'abord l'identité de cette personne.",
     "location_missing": "La personne n'a pas encore enregistré la position de son domicile.",
+    "location_changed": "La position du domicile a changé. Revérifiez avant de confirmer.",
     "proof_too_old": "Le justificatif est trop ancien ou sa date est dans le futur.",
     "duplicate_reference": "Ce justificatif est déjà utilisé par un autre compte.",
     "checks_required": "Cochez les deux vérifications avant de confirmer.",

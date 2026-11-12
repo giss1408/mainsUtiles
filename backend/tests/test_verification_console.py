@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from apps.audit.models import AdminAction
@@ -25,6 +27,12 @@ ADDRESS_FORM = {
     "name_matches": "on",
     "address_consistent": "on",
 }
+
+
+def shown_location_id(client, proof):
+    """The id of the position printed in the review page's confirm form."""
+    html = client.get(f"{ADDRESSES}/{proof.pk}/change/").content.decode()
+    return re.search(r'name="location_id" value="([0-9a-f-]+)"', html).group(1)
 
 
 def recent():
@@ -164,15 +172,22 @@ def test_confirm_address_through_the_form_makes_h1(verifier_client, verifier, ho
     send_location(householder)
     proof = send_address(householder, jpeg)
 
-    unticked = ADDRESS_FORM | {"issued_on": recent()}
+    location_id = shown_location_id(verifier_client, proof)
+    unticked = ADDRESS_FORM | {"issued_on": recent(), "location_id": location_id}
     del unticked["address_consistent"]
     r = verifier_client.post(f"{ADDRESSES}/{proof.pk}/confirm/", unticked, follow=True)
     assert "Cochez les deux vérifications avant de confirmer." in r.content.decode()
     assert householder_tier(householder) == "H0"
 
-    r = verifier_client.post(
-        f"{ADDRESSES}/{proof.pk}/confirm/", ADDRESS_FORM | {"issued_on": recent()}, follow=True
-    )
+    # The householder records a new position after the page was loaded: the old form is refused.
+    send_location(householder, lat=6.8, lng=-5.2)
+    stale = ADDRESS_FORM | {"issued_on": recent(), "location_id": location_id}
+    r = verifier_client.post(f"{ADDRESSES}/{proof.pk}/confirm/", stale, follow=True)
+    assert "La position du domicile a changé" in r.content.decode()
+    assert householder_tier(householder) == "H0"
+
+    fresh = ADDRESS_FORM | {"issued_on": recent(), "location_id": shown_location_id(verifier_client, proof)}
+    r = verifier_client.post(f"{ADDRESSES}/{proof.pk}/confirm/", fresh, follow=True)
     assert "Justificatif confirmé." in r.content.decode()
     assert householder_tier(householder) == "H1"
 
@@ -214,3 +229,24 @@ def test_records_cannot_be_added_changed_or_deleted_in_admin(verifier_client, ho
 def test_address_values_helper_matches_form(householder):
     # Guards the two helpers against drifting apart.
     assert set(address_values()) - {"issued_on"} == set(ADDRESS_FORM) - {"issued_on"}
+
+
+def test_every_opening_of_a_review_page_is_audited(verifier_client, verifier, householder, jpeg):
+    record = send_identity(householder, jpeg)
+    review.confirm_identity(record, staff=verifier, **identity_values())
+    proof = send_address(householder, jpeg)
+    send_location(householder)
+
+    for _ in range(2):
+        assert "Kouassi Aya" in verifier_client.get(f"{ADDRESSES}/{proof.pk}/change/").content.decode()
+        verifier_client.get(f"{IDENTITIES}/{record.pk}/change/")
+    address_views = AdminAction.objects.filter(action="verification.address.view")
+    assert address_views.count() == 2 and all(v.target_id == str(proof.pk) for v in address_views)
+    assert AdminAction.objects.filter(action="verification.identity.view").count() == 2
+
+
+def test_coordinates_are_shown_with_decimal_points(verifier_client, householder, jpeg):
+    send_location(householder)
+    proof = send_address(householder, jpeg)
+    html = verifier_client.get(f"{ADDRESSES}/{proof.pk}/change/").content.decode()
+    assert "5.3599, -3.9871" in html and "5,3599" not in html

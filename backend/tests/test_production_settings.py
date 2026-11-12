@@ -103,3 +103,17 @@ def test_forwarded_ip_is_used_only_when_proxy_is_trusted(settings):
 def test_trusted_proxy_without_the_header_falls_back_to_the_peer(settings):
     settings.TRUST_PROXY_HEADERS = True
     assert client_ip(RequestFactory().get("/", REMOTE_ADDR="172.18.0.5")) == "172.18.0.5"
+
+
+@pytest.mark.parametrize("key", ["replace-with-a-generated-fernet-key", "build-step-only", "too-short"])
+def test_a_key_that_cannot_encrypt_is_refused_in_production(monkeypatch, key):
+    with pytest.raises(ImproperlyConfigured, match="FIELD_ENCRYPTION_KEY"):
+        load_settings(
+            monkeypatch, DEBUG="0", SECRET_KEY="a-long-random-production-secret", FIELD_ENCRYPTION_KEY=key
+        )
+
+
+def test_empty_values_copied_from_env_example_fall_back_to_the_defaults(monkeypatch):
+    dev = load_settings(monkeypatch, DEBUG="1", FIELD_ENCRYPTION_KEY="", VERIFICATION_STORAGE_DIR="")
+    assert dev.FIELD_ENCRYPTION_KEY == dev.DEV_FIELD_ENCRYPTION_KEY
+    assert dev.VERIFICATION_STORAGE_DIR == dev.BASE_DIR / "verification_storage"

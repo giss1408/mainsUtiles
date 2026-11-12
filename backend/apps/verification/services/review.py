@@ -19,6 +19,7 @@ from apps.verification.models import (
 
 from .encryption import encrypt_text, keyed_hash
 from .submissions import VerificationError, read_photo_bytes
+from .tiers import current_record
 
 REVIEW = "verification.review_verification"
 VIEW_PHOTO = "verification.view_verification_photo"
@@ -90,6 +91,12 @@ def open_for_review(record, *, staff) -> None:
     record.refresh_from_db()
 
 
+def record_view(record, *, staff) -> None:
+    """Leave an audit row each time a review page, with its names and position, is shown."""
+    _require(staff, REVIEW)
+    audit(staff, f"verification.{_kind(record)}.view", record)
+
+
 def confirm_identity(
     record: IdentityVerification,
     *,
@@ -154,15 +161,20 @@ def confirm_address(
     issued_on: date,
     name_matches: bool,
     address_consistent: bool,
+    location_id,
 ) -> None:
-    """Confirm a proof of address and, with it, the home position it was judged against."""
+    """Confirm a proof of address and, with it, the home position it was judged against.
+
+    `location_id` is the position the staff member had on screen. The householder may record a
+    new one until the decision, so a position staff never saw must not be confirmed.
+    """
     _require(staff, REVIEW)
     today = timezone.localdate()
     try:
         with transaction.atomic():
             row = _locked(record)
             _require_undecided(row)
-            identity = IdentityVerification.objects.filter(user=row.user).order_by("-created_at").first()
+            identity = current_record(IdentityVerification, row.user)
             if identity is None or identity.status != Status.CONFIRMED:
                 raise VerificationError("identity_not_confirmed")
             location = (
@@ -170,6 +182,8 @@ def confirm_address(
             )
             if location is None:
                 raise VerificationError("location_missing")
+            if str(location.pk) != str(location_id):
+                raise VerificationError("location_changed")
             holder_name, reference_number = _text(holder_name), _text(reference_number)
             oldest = _shift_months(today, -settings.ADDRESS_PROOF_MAX_AGE_MONTHS)
             if issued_on > today or issued_on < oldest:
@@ -177,9 +191,12 @@ def confirm_address(
             if not (name_matches and address_consistent):
                 raise VerificationError("checks_required")
             reference_hash = keyed_hash(reference_number)
-            # One bill or certificate backs one householder.
+            # One bill or certificate backs one householder. An expired proof still holds its
+            # number: customer numbers do not change, and the owner will renew with the same one.
             if (
-                AddressProof.objects.filter(status=Status.CONFIRMED, reference_hash=reference_hash)
+                AddressProof.objects.filter(
+                    status__in=(Status.CONFIRMED, Status.EXPIRED), reference_hash=reference_hash
+                )
                 .exclude(user=row.user)
                 .exists()
             ):

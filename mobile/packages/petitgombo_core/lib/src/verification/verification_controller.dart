@@ -143,7 +143,20 @@ class VerificationController extends StateNotifier<VerificationState> {
       state = state.copyWith(checklist: checklist, sending: false);
       return true;
     } on ApiError catch (e) {
+      if (e.code == 'invalid_state' && await _alreadySent()) return true;
       state = state.copyWith(sending: false, error: _message(e, offline));
+      return false;
+    }
+  }
+
+  /// The server says the step is already sent. That happens when an earlier
+  /// attempt arrived but its answer was lost: reload and carry on.
+  Future<bool> _alreadySent() async {
+    try {
+      final checklist = await _session.authorized(_api.checklist);
+      state = state.copyWith(checklist: checklist, sending: false, error: null);
+      return true;
+    } on ApiError {
       return false;
     }
   }

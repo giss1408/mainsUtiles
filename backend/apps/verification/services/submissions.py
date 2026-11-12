@@ -8,6 +8,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from apps.providers import registry
 from apps.verification.models import (
@@ -100,6 +101,23 @@ def _reused(user, photos: list[VerificationPhoto]) -> list[str]:
     return [FLAG_PHOTO_REUSED] if seen_elsewhere else []
 
 
+def expire_overdue(user=None) -> int:
+    """Expire confirmed proofs of address past their date, with the home position they backed.
+
+    For one user before they send a new proof, or for everyone from the periodic task.
+    """
+    due = AddressProof.objects.filter(status=Status.CONFIRMED, expires_at__lte=timezone.now())
+    if user is not None:
+        due = due.filter(user=user)
+    with transaction.atomic():
+        rows = list(due.select_for_update().values_list("pk", "user_id"))
+        AddressProof.objects.filter(pk__in=[pk for pk, _ in rows]).update(status=Status.EXPIRED)
+        HomeLocation.objects.filter(user_id__in=[owner for _, owner in rows], status=Status.CONFIRMED).update(
+            status=Status.EXPIRED
+        )
+    return len(rows)
+
+
 def _require_no_open(model, user) -> None:
     if model.objects.filter(user=user, status__in=OPEN).exists():
         raise VerificationError("invalid_state")
@@ -156,6 +174,8 @@ def submit_address_proof(
     quartier = (quartier or "").strip()
     if not quartier:
         raise VerificationError("quartier_required")
+    # The app already shows an overdue proof as expired; do not wait for the hourly task.
+    expire_overdue(user)
     _require_no_open(AddressProof, user)
     with _submission() as written:
         stored = store_photo(user, "address_proof", photo, captured_at, position)
@@ -178,6 +198,7 @@ def record_home_location(
         raise VerificationError("location_inaccurate")
     if accuracy_m > settings.HOME_PIN_MAX_ACCURACY_M:
         raise VerificationError("location_inaccurate")
+    expire_overdue(user)
     with _submission():
         # Once the address is confirmed the position it was judged against is final.
         confirmed = AddressProof.objects.filter(user=user, status=Status.CONFIRMED).exists()

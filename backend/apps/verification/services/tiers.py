@@ -3,11 +3,14 @@
 from django.conf import settings
 from django.utils import timezone
 
-from apps.verification.models import AddressProof, HomeLocation, IdentityVerification, Status
+from apps.verification.models import OPEN, AddressProof, HomeLocation, IdentityVerification, Status
 
 
-def _latest(model, user):
-    return model.objects.filter(user=user).order_by("-created_at").first()
+def current_record(model, user):
+    """The record that counts for this step: the open one if any (there is at most one),
+    otherwise the most recent closed one."""
+    records = model.objects.filter(user=user)
+    return records.filter(status__in=OPEN).first() or records.order_by("-created_at").first()
 
 
 def _status(record) -> str:
@@ -29,19 +32,19 @@ def householder_tier(user) -> str:
     """H1 when identity, proof of address and home position are all confirmed; H0 otherwise."""
     if user.role != "householder":
         return "H0"
-    records = [_latest(model, user) for model in (IdentityVerification, AddressProof, HomeLocation)]
+    records = [current_record(model, user) for model in (IdentityVerification, AddressProof, HomeLocation)]
     return "H1" if all(_status(record) == Status.CONFIRMED for record in records) else "H0"
 
 
 def checklist(user) -> dict:
     """Statuses only. Never the recorded identity fields, photos or coordinates."""
-    address = _latest(AddressProof, user)
+    address = current_record(AddressProof, user)
     address_status = _status(address)
     return {
         "tier": householder_tier(user),
         "review_hours": settings.VERIFICATION_REVIEW_HOURS,
         "communes": list(settings.SERVICE_COMMUNES),
-        "identity": _step(_latest(IdentityVerification, user)),
+        "identity": _step(current_record(IdentityVerification, user)),
         "address": {
             **_step(address),
             "commune": address.commune if address else "",
@@ -52,5 +55,5 @@ def checklist(user) -> dict:
                 else None
             ),
         },
-        "home_location": _step(_latest(HomeLocation, user)),
+        "home_location": _step(current_record(HomeLocation, user)),
     }

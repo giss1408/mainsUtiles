@@ -8,6 +8,7 @@ from .models import UNDECIDED, AddressProof, HomeLocation, IdentityVerification,
 from .services import review
 from .services.encryption import decrypt_text
 from .services.submissions import VerificationError, location_coordinates
+from .services.tiers import current_record
 
 FLAG_TEXT = {"photo_reused": "Cette photo a déjà été envoyée par un autre compte."}
 
@@ -76,6 +77,7 @@ class ReviewAdmin(admin.ModelAdmin):
         if record is not None and request.method == "GET" and self.has_view_permission(request, record):
             try:
                 review.open_for_review(record, staff=request.user)
+                review.record_view(record, staff=request.user)
             except VerificationError as exc:
                 raise PermissionDenied from exc
             context.update(
@@ -147,15 +149,17 @@ class AddressProofAdmin(ReviewAdmin):
         return custom + super().get_urls()
 
     def review_context(self, request, record) -> dict:
-        identity = IdentityVerification.objects.filter(user=record.user).order_by("-created_at").first()
+        identity = current_record(IdentityVerification, record.user)
         confirmed = identity is not None and identity.status == Status.CONFIRMED
-        location = HomeLocation.objects.filter(user=record.user).order_by("-created_at").first()
+        location = current_record(HomeLocation, record.user)
         position = None
         if location is not None and location.status in (*UNDECIDED, Status.CONFIRMED):
             lat, lng = location_coordinates(location)
             position = {
-                "lat": lat,
-                "lng": lng,
+                "id": location.pk if location.status in UNDECIDED else "",
+                # Plain text: the French locale would print decimal commas.
+                "lat": str(lat),
+                "lng": str(lng),
                 "accuracy_m": location.accuracy_m,
                 "mock": location.mock_location,
                 "map_url": f"https://www.openstreetmap.org/?mlat={lat}&mlon={lng}#map=17/{lat}/{lng}",

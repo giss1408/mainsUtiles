@@ -14,6 +14,14 @@ class VerificationApi {
 
   Options _bearer(String access) => Options(headers: {'Authorization': 'Bearer $access'});
 
+  /// Photos on a slow mobile connection need far longer than an ordinary call:
+  /// the default send limit covers the whole upload.
+  Options _upload(String access) => Options(
+        headers: {'Authorization': 'Bearer $access'},
+        sendTimeout: const Duration(minutes: 2),
+        receiveTimeout: const Duration(minutes: 1),
+      );
+
   VerificationChecklist _checklist(Response<dynamic> response) =>
       VerificationChecklist.fromJson(Map<String, dynamic>.from(response.data as Map));
 
@@ -50,7 +58,7 @@ class VerificationApi {
           'selfie': _jpeg(selfie, 'selfie'),
         });
         return _checklist(
-          await _dio.post<dynamic>('$_base/identity', data: form, options: _bearer(access)),
+          await _dio.post<dynamic>('$_base/identity', data: form, options: _upload(access)),
         );
       });
 
@@ -70,7 +78,7 @@ class VerificationApi {
           'photo': _jpeg(photo, 'photo'),
         });
         return _checklist(
-          await _dio.post<dynamic>('$_base/address', data: form, options: _bearer(access)),
+          await _dio.post<dynamic>('$_base/address', data: form, options: _upload(access)),
         );
       });
 

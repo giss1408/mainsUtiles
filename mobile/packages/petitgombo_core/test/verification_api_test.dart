@@ -84,6 +84,9 @@ void main() {
       expect(file.value.contentType.toString(), 'image/jpeg');
     }
     expect(form.files.first.value.length, photo(1).bytes.length);
+    // Three photos on a slow connection take longer than an ordinary call.
+    expect(request.sendTimeout, const Duration(minutes: 2));
+    expect(request.receiveTimeout, const Duration(minutes: 1));
   });
 
   test('submitAddress posts the photo, commune and quartier without a position', () async {
@@ -103,6 +106,7 @@ void main() {
     expect(fields['quartier'], 'Niangon Nord');
     expect(fields.containsKey('lat'), isFalse);
     expect(form.files.single.key, 'photo');
+    expect(adapter.requests.single.sendTimeout, const Duration(minutes: 2));
   });
 
   test('413 becomes ApiError(code: photo_too_large) with the French message', () async {

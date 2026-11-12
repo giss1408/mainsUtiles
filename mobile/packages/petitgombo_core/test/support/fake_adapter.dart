@@ -9,6 +9,9 @@ class FakeAdapter implements HttpClientAdapter {
   final List<(int, Object?)> replies = [];
   bool offline = false;
 
+  /// Behave as offline once the queued replies are used up.
+  bool offlineAfterReplies = false;
+
   void reply(int status, Object? body) => replies.add((status, body));
 
   @override
@@ -18,7 +21,7 @@ class FakeAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
-    if (offline) {
+    if (offline || (offlineAfterReplies && replies.isEmpty)) {
       throw DioException.connectionError(requestOptions: options, reason: 'offline');
     }
     final (status, body) = replies.removeAt(0);

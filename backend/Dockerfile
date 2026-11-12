@@ -14,7 +14,8 @@ RUN pip install .
 COPY . .
 
 # Static files are built into the image. The keys below are used for this step only.
-RUN DEBUG=0 SECRET_KEY=build-step-only FIELD_ENCRYPTION_KEY=build-step-only \
+RUN DEBUG=0 SECRET_KEY=build-step-only \
+    FIELD_ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')" \
     python manage.py collectstatic --noinput
 
 RUN useradd --system --create-home --uid 10001 app \

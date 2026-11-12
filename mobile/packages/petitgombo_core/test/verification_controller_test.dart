@@ -79,7 +79,27 @@ void main() {
   });
 
   test('a server refusal shows the server message', () async {
+    adapter.reply(
+        413, {'error': 'photo_too_large', 'message': 'Photo trop lourde. Reprenez la photo.'});
+    expect(await sendIdentity(), isFalse);
+    expect(controller.state.error, 'Photo trop lourde. Reprenez la photo.');
+  });
+
+  test('a retry after a lost answer finds the step already sent and succeeds', () async {
+    // The first attempt reached the server but its answer was lost; the retry gets 409.
+    adapter
+      ..reply(409, {'error': 'invalid_state', 'message': 'Cette étape est déjà envoyée.'})
+      ..reply(200, checklistJson(identity: {'status': 'submitted', 'reason': ''}));
+    expect(await sendIdentity(), isTrue);
+    expect(adapter.requests.last.path, '/api/v1/verification');
+    expect(controller.state.checklist!.identity.status, StepStatus.submitted);
+    expect(controller.state.error, isNull);
+    expect(controller.state.sending, isFalse);
+  });
+
+  test('already sent, but the checklist cannot be reloaded: the message is shown', () async {
     adapter.reply(409, {'error': 'invalid_state', 'message': 'Cette étape est déjà envoyée.'});
+    adapter.offlineAfterReplies = true;
     expect(await sendIdentity(), isFalse);
     expect(controller.state.error, 'Cette étape est déjà envoyée.');
   });

@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, timedelta
 
 import pytest
@@ -6,7 +7,7 @@ from freezegun import freeze_time
 
 from apps.accounts.models import User
 from apps.audit.models import AdminAction
-from apps.verification.models import AddressProof, HomeLocation, IdentityVerification, Status
+from apps.verification.models import UNDECIDED, AddressProof, HomeLocation, IdentityVerification, Status
 from apps.verification.services import review
 from apps.verification.services.encryption import decrypt_text
 from apps.verification.services.submissions import VerificationError
@@ -52,6 +53,14 @@ def address_values(**overrides):
     }
     values.update(overrides)
     return values
+
+
+def confirm_address(proof, *, staff, **values):
+    """Confirm as a staff member who has the current home position on screen."""
+    if "location_id" not in values:
+        shown = HomeLocation.objects.filter(user=proof.user, status__in=UNDECIDED).first()
+        values["location_id"] = shown.pk if shown else uuid.uuid4()
+    return review.confirm_address(proof, staff=staff, **values)
 
 
 def other_householder(phone="+2250777777777"):
@@ -159,7 +168,7 @@ def test_staff_without_permission_and_non_staff_are_forbidden(householder, jpeg,
             code(lambda a=actor: review.confirm_identity(record, staff=a, **identity_values())) == "forbidden"
         )
         assert code(lambda a=actor: review.refuse_identity(record, staff=a, reason="x")) == "forbidden"
-        assert code(lambda a=actor: review.confirm_address(proof, staff=a, **address_values())) == "forbidden"
+        assert code(lambda a=actor: confirm_address(proof, staff=a, **address_values())) == "forbidden"
         assert code(lambda a=actor: review.refuse_address(proof, staff=a, reason="x")) == "forbidden"
         assert code(lambda a=actor: review.read_photo(record.front, staff=a)) == "forbidden"
         assert code(lambda a=actor: review.open_for_review(record, staff=a)) == "forbidden"
@@ -168,7 +177,7 @@ def test_staff_without_permission_and_non_staff_are_forbidden(householder, jpeg,
 
 def test_confirm_address_requires_confirmed_identity_location_and_both_checks(householder, jpeg, verifier):
     proof = send_address(householder, jpeg)
-    confirm = lambda **kw: review.confirm_address(proof, staff=verifier, **address_values(**kw))  # noqa: E731
+    confirm = lambda **kw: confirm_address(proof, staff=verifier, **address_values(**kw))  # noqa: E731
 
     assert code(confirm) == "identity_not_confirmed"
     confirmed_identity(householder, jpeg, verifier)
@@ -188,7 +197,7 @@ def test_proof_issued_more_than_three_months_ago_or_in_the_future_is_refused(hou
     confirmed_identity(householder, jpeg, verifier)
     send_location(householder)
     proof = send_address(householder, jpeg)
-    confirm = lambda issued: review.confirm_address(  # noqa: E731
+    confirm = lambda issued: confirm_address(  # noqa: E731
         proof, staff=verifier, **address_values(issued_on=issued)
     )
     assert code(lambda: confirm(date(2026, 8, 11))) == "proof_too_old"
@@ -202,7 +211,7 @@ def test_confirm_address_confirms_location_and_account_becomes_h1(householder, j
     proof = send_address(householder, jpeg)
     assert householder_tier(householder) == "H0"
 
-    review.confirm_address(proof, staff=verifier, **address_values())
+    confirm_address(proof, staff=verifier, **address_values())
 
     proof.refresh_from_db()
     location.refresh_from_db()
@@ -219,14 +228,14 @@ def test_confirm_address_confirms_location_and_account_becomes_h1(householder, j
 def test_duplicate_reference_number_is_refused(householder, jpeg, verifier):
     confirmed_identity(householder, jpeg, verifier)
     send_location(householder)
-    review.confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
+    confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
 
     other = other_householder()
     confirmed_identity(other, jpeg, verifier, seed=30, document_number="CI 999")
     send_location(other)
     proof = send_address(other, jpeg, seed=50)
     same = address_values(reference_number="cie 889900")
-    assert code(lambda: review.confirm_address(proof, staff=verifier, **same)) == "duplicate_reference"
+    assert code(lambda: confirm_address(proof, staff=verifier, **same)) == "duplicate_reference"
     assert householder_tier(other) == "H0"
 
 
@@ -250,7 +259,7 @@ def test_location_cannot_be_replaced_after_address_is_confirmed(householder, jpe
     confirmed_identity(householder, jpeg, verifier)
     send_location(householder)
     send_location(householder, lat=5.36)  # allowed while undecided
-    review.confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
+    confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
     assert code(lambda: send_location(householder)) == "invalid_state"
     assert HomeLocation.objects.filter(user=householder, status=Status.CONFIRMED).count() == 1
 
@@ -258,7 +267,7 @@ def test_location_cannot_be_replaced_after_address_is_confirmed(householder, jpe
 def test_expiry_task_returns_account_to_h0_and_step_can_restart(householder, jpeg, verifier):
     confirmed_identity(householder, jpeg, verifier)
     send_location(householder)
-    review.confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
+    confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
 
     with freeze_time("2027-11-12 09:59:00"):
         assert expire_address_proofs() == 0 and householder_tier(householder) == "H1"
@@ -314,3 +323,61 @@ def test_in_review_records_can_still_be_decided(householder, jpeg, verifier):
     review.open_for_review(record, staff=verifier)
     review.refuse_identity(record, staff=verifier, reason="Document coupé")
     assert AddressProof.objects.count() == 0 and checklist(householder)["identity"]["status"] == "refused"
+
+
+def test_confirming_fails_when_the_position_changed_after_staff_saw_it(householder, jpeg, verifier):
+    confirmed_identity(householder, jpeg, verifier)
+    seen = send_location(householder)
+    proof = send_address(householder, jpeg)
+    review.open_for_review(proof, staff=verifier)
+
+    # The householder replaces the position while the page is open in the console.
+    unseen = send_location(householder, lat=6.8, lng=-5.2, mock_location=True)
+    stale = lambda: review.confirm_address(  # noqa: E731
+        proof, staff=verifier, location_id=seen.pk, **address_values()
+    )
+    assert code(stale) == "location_changed"
+    proof.refresh_from_db()
+    unseen.refresh_from_db()
+    assert proof.status == Status.IN_REVIEW and unseen.status == Status.SUBMITTED
+    assert householder_tier(householder) == "H0"
+    assert not AdminAction.objects.filter(action="verification.address.confirm").exists()
+
+    review.confirm_address(proof, staff=verifier, location_id=unseen.pk, **address_values())
+    assert householder_tier(householder) == "H1"
+
+
+def test_expired_proof_can_be_replaced_before_the_hourly_task_runs(householder, jpeg, verifier):
+    confirmed_identity(householder, jpeg, verifier)
+    send_location(householder)
+    old = send_address(householder, jpeg)
+    confirm_address(old, staff=verifier, **address_values())
+
+    with freeze_time("2027-11-12 10:00:01"):
+        assert checklist(householder)["address"]["status"] == "expired"
+        send_location(householder)
+        send_address(householder, jpeg, seed=70)
+        old.refresh_from_db()
+        assert old.status == Status.EXPIRED
+        result = checklist(householder)
+        assert result["address"]["status"] == "submitted" and result["home_location"]["status"] == "submitted"
+
+
+def test_a_customer_number_stays_with_its_account_after_expiry(householder, jpeg, verifier):
+    confirmed_identity(householder, jpeg, verifier)
+    send_location(householder)
+    confirm_address(send_address(householder, jpeg), staff=verifier, **address_values())
+
+    with freeze_time("2027-11-13 10:00:00"):
+        assert expire_address_proofs() == 1
+        other = other_householder()
+        confirmed_identity(other, jpeg, verifier, seed=30, document_number="CI 999")
+        send_location(other)
+        taken = send_address(other, jpeg, seed=50)
+        recent = address_values(issued_on=date(2027, 11, 1))
+        assert code(lambda: confirm_address(taken, staff=verifier, **recent)) == "duplicate_reference"
+
+        # The owner renews with a new bill carrying the same customer number.
+        send_location(householder)
+        confirm_address(send_address(householder, jpeg, seed=71), staff=verifier, **recent)
+        assert householder_tier(householder) == "H1"

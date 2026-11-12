@@ -25,6 +25,8 @@
   {% if undecided %}
     <form method="post" action="{% url 'admin:verification_address_confirm' original.pk %}" style="margin:10px 0">
       {% csrf_token %}
+      {# The position shown above. If the person records another one meanwhile, confirming fails. #}
+      <input type="hidden" name="location_id" value="{{ position.id }}">
       <p><label>Nom du titulaire<br><input type="text" name="holder_name" size="50" required autocomplete="off"></label></p>
       <p><label>Numéro client ou référence<br><input type="text" name="reference_number" size="30" required autocomplete="off"></label></p>
       <p><label>Date d'émission<br><input type="date" name="issued_on" required></label></p>

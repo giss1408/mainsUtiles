@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import environ
+from cryptography.fernet import Fernet
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,9 +22,20 @@ if not DEBUG and SECRET_KEY in ("", DEV_SECRET_KEY):
 
 # Encrypts identity photos and sensitive fields. Losing it makes them unreadable.
 DEV_FIELD_ENCRYPTION_KEY = "ZGV2LW9ubHktcGV0aXRnb21iby1maWVsZC1rZXktMDA="
-FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", default=DEV_FIELD_ENCRYPTION_KEY)
-if not DEBUG and FIELD_ENCRYPTION_KEY in ("", DEV_FIELD_ENCRYPTION_KEY):
-    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY must be set to a private Fernet key when DEBUG is off.")
+# An empty value (a line left blank in .env) means "use the development key".
+FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", default="") or DEV_FIELD_ENCRYPTION_KEY
+if not DEBUG:
+    if FIELD_ENCRYPTION_KEY == DEV_FIELD_ENCRYPTION_KEY:
+        raise ImproperlyConfigured(
+            "FIELD_ENCRYPTION_KEY must be set to a private Fernet key when DEBUG is off."
+        )
+    try:
+        Fernet(FIELD_ENCRYPTION_KEY.encode())
+    except ValueError as exc:
+        # Better to refuse to start than to fail on the first photo a user sends.
+        raise ImproperlyConfigured(
+            "FIELD_ENCRYPTION_KEY is not a valid Fernet key (32 bytes, url-safe base64)."
+        ) from exc
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -182,8 +194,12 @@ HOME_PIN_MAX_ACCURACY_M = env.int("HOME_PIN_MAX_ACCURACY_M", default=50)
 VERIFICATION_PHOTO_MAX_BYTES = env.int("VERIFICATION_PHOTO_MAX_BYTES", default=3_000_000)
 VERIFICATION_REVIEW_HOURS = env.int("VERIFICATION_REVIEW_HOURS", default=24)
 VERIFICATION_STORAGE_DIR = Path(
-    env.str("VERIFICATION_STORAGE_DIR", default=str(BASE_DIR / "verification_storage"))
+    env.str("VERIFICATION_STORAGE_DIR", default="") or BASE_DIR / "verification_storage"
 )
+# Uploaded photos stay in memory until they are encrypted: Django must never spool them to a
+# temporary file in plain text. A request larger than this limit carries no usable file.
+FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
+FILE_UPLOAD_MAX_MEMORY_SIZE = 3 * VERIFICATION_PHOTO_MAX_BYTES + 1_000_000
 SERVICE_COMMUNES = env.list(
     "SERVICE_COMMUNES",
     default=[
