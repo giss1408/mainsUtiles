@@ -47,6 +47,8 @@ These are not settled by the code and must be supplied by the business:
 - Identity verification provider.
 - SMS and call provider; the official WhatsApp Business number.
 - Data-protection registration (ARTCI), biometric processing and hosting location.
+- Lawful basis for holding identity photos and selfies ourselves. Until an identity provider is
+  contracted they are stored by the backend, encrypted. This must be settled before launch.
 - Labour status of mini-jobbers, insurance cover.
 - Safety desk staffing and hours, incident protocol, police contact, emergency numbers.
 - Trademark, domain and store availability of the name "petitGombo".
@@ -112,3 +114,40 @@ A staff member signs in with a username, a password and a phone that an administ
 The session is kept in memory only: closing the app signs out, and so do 12 hours without use. After 5
 wrong passwords the account is locked for 15 minutes (`STAFF_LOGIN_MAX_FAILURES`,
 `STAFF_LOGIN_LOCK_MINUTES`).
+
+## Householder verification
+
+A householder must be verified before publishing offers. After enrolment the householder app shows
+a checklist, "Vérification de votre compte", with three steps:
+
+1. **Pièce d'identité** — photos of the front and back of the document and a selfie, taken with the
+   in-app camera (pictures cannot be picked from the gallery).
+2. **Justificatif de domicile** — a water or electricity bill, or a certificat de résidence, in the
+   householder's own name, with the commune and quartier.
+3. **Position du domicile** — the GPS position, recorded once at home.
+
+Staff review the first two in the web console, under "Vérifications": "Vérifications d'identité" and
+"Justificatifs de domicile". The home position is judged together with the proof of address. When
+all three are confirmed the account becomes tier H1 and the app shows "Compte vérifié".
+
+To let a staff member review verifications, add them to the group `verification_agent` in the web
+console ("Utilisateurs"). It is separate from `enrolment_agent`; superusers have every right.
+
+What staff must know:
+
+- The identity must be confirmed before the proof of address can be.
+- The server refuses anyone under 18, an expired identity document, a document or customer number
+  already used by another account, and a proof of address older than 3 months.
+- A refusal needs a reason; the householder sees it and can start the step again.
+- Every opening of a photo is recorded in the audit log.
+- A confirmed proof of address expires after 12 months; the account then returns to H0 until a new
+  one is confirmed.
+
+Photos and sensitive fields are encrypted with `FIELD_ENCRYPTION_KEY`. In development a built-in key
+is used and photos are written to `backend/verification_storage/` (git-ignored). The limits are
+settings, listed in `.env.example` under "Householder verification".
+
+Not built yet: the route for a bill in someone else's name, the mobile-money name match, automatic
+document and liveness checks, and jobber verification. Whether identity photos may lawfully be held
+is an open decision (see "Open decisions").
+
