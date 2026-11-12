@@ -72,9 +72,10 @@ entry point.
 |-----|--------|------------|
 | petitGombo (householders) | `mobile/apps/householder` | `com.regisse.petitgombo` |
 | petitGombo Jobber | `mobile/apps/jobber` | `com.regisse.petitgombo.jobber` |
+| petitGombo Staff | `mobile/apps/staff` | `com.regisse.petitgombo.staff` |
 
 ```bash
-cd mobile/apps/jobber            # or mobile/apps/householder
+cd mobile/apps/jobber            # or mobile/apps/householder, mobile/apps/staff
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 ```
@@ -83,9 +84,30 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
 omitted). On a real phone use the computer's address on the local network and start the backend with
 `runserver 0.0.0.0:8000`. Debug builds allow plain HTTP for this; release builds must use HTTPS.
 
-Tests and analysis, in each of the three Dart packages:
+Tests and analysis, in each of the four Dart packages (the core package and the three apps):
 
 ```bash
 flutter test
 flutter analyze
 ```
+
+### Staff app
+
+The staff app shows the enrolment queue (approve, refuse, hold, send the confirmation number by
+WhatsApp). It is distributed privately to the operations team, never through a public store, and it
+blocks screenshots and screen recording.
+
+A staff member signs in with a username, a password and a phone that an administrator has activated:
+
+1. In the web console (`/admin/`), a superuser creates the staff account under "Utilisateurs" with the
+   role "Personnel", "Statut équipe" ticked, and the `enrolment_agent` group.
+2. The staff member opens the staff app and signs in. The first attempt registers the phone and shows
+   "Appareil en attente d'activation par un administrateur."
+3. The superuser opens "Appareils du personnel" in the web console, ticks the phone, and runs the
+   action "Activer". A staff member has one active phone: activating a new one revokes the previous.
+   "Révoquer" cuts a phone off immediately; a revoked phone registers again as a new device.
+4. The staff member signs in again and reaches the queue.
+
+The session lasts 12 hours at most and is kept in memory only: closing the app signs out. After 5
+wrong passwords the account is locked for 15 minutes (`STAFF_LOGIN_MAX_FAILURES`,
+`STAFF_LOGIN_LOCK_MINUTES`).
