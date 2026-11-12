@@ -288,3 +288,17 @@ def test_tidy_closes_past_offers_and_withdraws_those_of_unverified_householders(
     assert result == {"closed": 1, "withdrawn": 1}
     assert past.status == "closed" and future.status == "published"
     assert lapsed.status == "withdrawn" and "vérifié" in lapsed.reason
+
+
+def draft_for(author, note=""):
+    """A draft for the next day, Ménage at 3 000 FCFA; used by other test modules."""
+    menage = OfferCategory.objects.get(name="Ménage")
+    return offers.create_draft(
+        author,
+        category_id=menage.pk,
+        duties=["Dépoussiérer"],
+        starts_at=local(1, 9),
+        duration_minutes=180,
+        pay_xof=3000,
+        note=note,
+    )

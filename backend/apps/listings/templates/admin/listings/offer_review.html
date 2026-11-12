@@ -1,0 +1,28 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Signalements</h2>
+  {% if flag_texts %}
+    {% for text in flag_texts %}<p class="errornote" style="margin:6px 0">{{ text }}</p>{% endfor %}
+  {% else %}
+    <p>Aucun signalement : l'offre est publiée dès l'envoi. Ce texte n'apparaît que si l'offre a été retenue.</p>
+  {% endif %}
+</div>
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  {% if reviewable %}
+    <form method="post" action="{% url 'admin:listings_offer_publish' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="submit" class="default" value="Publier" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:listings_offer_refuse' original.pk %}" style="margin:20px 0 10px">
+      {% csrf_token %}
+      <p><label>Motif (le particulier le verra)<br><input type="text" name="reason" placeholder="Motif" size="60" required></label></p>
+      <input type="submit" value="Refuser">
+    </form>
+  {% else %}
+    <p>Aucune action possible : cette offre a déjà été traitée.</p>
+  {% endif %}
+</div>
+{% endblock %}
