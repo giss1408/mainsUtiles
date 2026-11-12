@@ -114,6 +114,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.verification.tasks.expire_address_proofs",
         "schedule": 3600.0,
     },
+    "tidy-offers": {
+        "task": "apps.listings.tasks.tidy_offers",
+        "schedule": 900.0,
+    },
 }
 
 LANGUAGE_CODE = "fr"

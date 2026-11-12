@@ -197,3 +197,69 @@ def verifier_client(verifier):
     client = Client()
     client.force_login(verifier)
     return client
+
+
+def make_verified(user, jpeg):
+    """Take a householder through all three verification steps; staff confirm each one."""
+    from datetime import date
+
+    from django.contrib.auth.models import Group
+    from django.utils import timezone
+
+    from apps.accounts.models import User
+    from apps.verification.models import Status
+    from apps.verification.services import review, submissions
+
+    now = timezone.now()
+    identity = submissions.submit_identity(
+        user, document_type="cni", front=jpeg(0), back=jpeg(1), selfie=jpeg(2), captured_at=now
+    )
+    staff = User.objects.create_user(username=f"verif-{user.pk}", password="pw", role="staff", is_staff=True)
+    staff.groups.add(Group.objects.get(name="verification_agent"))
+    review.confirm_identity(
+        identity,
+        staff=staff,
+        full_name="Kouassi Aya",
+        date_of_birth=date(1990, 5, 17),
+        document_number=f"CI {user.pk.hex[:9]}",
+        document_expires_on=date(2035, 1, 1),
+    )
+    submissions.record_home_location(
+        user, lat=5.3599, lng=-3.9871, accuracy_m=10, mock_location=False, captured_at=now
+    )
+    proof = submissions.submit_address_proof(
+        user,
+        document_type="facture_eau",
+        photo=jpeg(10),
+        commune="Cocody",
+        quartier="Angré",
+        captured_at=now,
+    )
+    review.confirm_address(
+        proof,
+        staff=staff,
+        holder_name="Kouassi Aya",
+        reference_number=f"CIE-{user.pk.hex[:8]}",
+        issued_on=timezone.localdate(),
+        name_matches=True,
+        address_consistent=True,
+        location_id=submissions_location_id(user),
+    )
+    assert proof.status == Status.CONFIRMED
+    return user
+
+
+@pytest.fixture
+def verified_householder(db, settings, jpeg):
+    """A householder at tier H1 with a confirmed address in Cocody, Angré."""
+    from apps.accounts.models import User
+
+    user = User.objects.create_user(phone="+2250505050505", role="householder")
+    return make_verified(user, jpeg)
+
+
+def submissions_location_id(user):
+    """The position the staff member sees before confirming: the undecided one."""
+    from apps.verification.models import UNDECIDED, HomeLocation
+
+    return HomeLocation.objects.get(user=user, status__in=UNDECIDED).pk

@@ -51,6 +51,15 @@ MESSAGES = {
     "checks_required": "Cochez les deux vérifications avant de confirmer.",
     "reason_required": "Le motif est obligatoire.",
     "field_required": "Remplissez tous les champs.",
+    # Job offers
+    "verification_required": "Faites vérifier votre compte pour publier une offre.",
+    "category_invalid": "Cette catégorie n'est plus disponible.",
+    "duties_invalid": "Choisissez au moins une tâche de la liste.",
+    "time_invalid": "Choisissez une date à venir, entre 06:00 et 19:00.",
+    "duration_invalid": "Choisissez une durée proposée.",
+    "pay_invalid": "Indiquez un montant entre 1 000 et 100 000 FCFA.",
+    "note_too_long": "La précision est trop longue.",
+    "too_many_offers": "Vous avez déjà 3 offres en cours. Retirez-en une pour en publier une autre.",
 }
 
 
