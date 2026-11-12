@@ -12,8 +12,7 @@ void main() {
 
   setUp(() {
     adapter = FakeAdapter();
-    controller = MyOffersController(
-        api: OffersApi(dioWith(adapter)), session: _SignedIn());
+    controller = MyOffersController(api: OffersApi(dioWith(adapter)), session: _SignedIn());
   });
 
   test('load fills the offers and the categories', () async {
@@ -66,15 +65,11 @@ void main() {
     expect(controller.state.error, isNull);
   });
 
-  test(
-      'a double tap on publish: invalid_state reloads and returns the offer found there',
+  test('a double tap on publish: invalid_state reloads and returns the offer found there',
       () async {
     // Review Focus 5: the first tap was sent and answered; this one finds it already sent.
     adapter
-      ..reply(409, {
-        'error': 'invalid_state',
-        'message': 'Cette offre a déjà été envoyée.'
-      })
+      ..reply(409, {'error': 'invalid_state', 'message': 'Cette offre a déjà été envoyée.'})
       ..reply(200, {
         'can_publish': true,
         'review_hours': 24,
@@ -132,8 +127,7 @@ void main() {
 
 class _SignedIn implements Session {
   @override
-  Future<T> authorized<T>(Future<T> Function(String access) call) =>
-      call('acc');
+  Future<T> authorized<T>(Future<T> Function(String access) call) => call('acc');
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>

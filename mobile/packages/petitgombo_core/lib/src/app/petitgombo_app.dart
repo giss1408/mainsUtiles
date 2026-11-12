@@ -8,7 +8,9 @@ import '../enrolment/enrolment_copy.dart';
 import '../enrolment/enrolment_flow.dart';
 import '../enrolment/enrolment_state.dart';
 import '../home/home_placeholder_screen.dart';
+import '../offers/screens/my_offers_screen.dart';
 import '../verification/screens/checklist_screen.dart';
+import '../verification/verification_controller.dart';
 import '../widgets/message_banner.dart';
 import '../widgets/screen_scaffold.dart';
 import 'app_role.dart';
@@ -122,6 +124,12 @@ class _AppRootState extends ConsumerState<_AppRoot> with WidgetsBindingObserver 
     }
   }
 
+  /// Until verified the checklist is the home screen; once verified, "Mes offres".
+  Widget _householderHome() {
+    final verified = ref.watch(verificationControllerProvider).checklist?.verified ?? false;
+    return verified ? MyOffersScreen(onSignOut: _signOut) : ChecklistScreen(onSignOut: _signOut);
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = EnrolmentCopy.forRole(ref.watch(appRoleProvider));
@@ -149,7 +157,7 @@ class _AppRootState extends ConsumerState<_AppRoot> with WidgetsBindingObserver 
       _Stage.enrolment => const EnrolmentFlow(),
       // A householder is taken through verification first; offers come after it.
       _Stage.signedIn => ref.watch(appRoleProvider) == AppRole.householder
-          ? ChecklistScreen(onSignOut: _signOut)
+          ? _householderHome()
           : HomePlaceholderScreen(roleLabel: copy.roleLabel, onSignOut: _signOut),
       _Stage.signedOut => ScreenScaffold(
           title: 'petitGombo',

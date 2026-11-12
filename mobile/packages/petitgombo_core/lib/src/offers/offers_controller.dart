@@ -45,9 +45,7 @@ class OffersState {
     Object? error = _keep,
   }) =>
       OffersState(
-        offers: identical(offers, _keep)
-            ? this.offers
-            : offers as List<PublicOffer>?,
+        offers: identical(offers, _keep) ? this.offers : offers as List<PublicOffer>?,
         communes: communes ?? this.communes,
         commune: identical(commune, _keep) ? this.commune : commune as String?,
         page: page ?? this.page,
@@ -71,8 +69,7 @@ class OffersController extends StateNotifier<OffersState> {
   Future<void> load() => _fetch(page: 1, commune: state.commune, append: false);
 
   /// Chooses a commune (null for all) and shows its first page.
-  Future<void> setCommune(String? commune) =>
-      _fetch(page: 1, commune: commune, append: false);
+  Future<void> setCommune(String? commune) => _fetch(page: 1, commune: commune, append: false);
 
   /// Adds the next page to the list, if there is one.
   Future<void> loadMore() {
@@ -80,10 +77,7 @@ class OffersController extends StateNotifier<OffersState> {
     return _fetch(page: state.page + 1, commune: state.commune, append: true);
   }
 
-  Future<void> _fetch(
-      {required int page,
-      required String? commune,
-      required bool append}) async {
+  Future<void> _fetch({required int page, required String? commune, required bool append}) async {
     if (state.loading) return;
     state = state.copyWith(loading: true, error: null);
     try {
@@ -111,8 +105,7 @@ class OffersController extends StateNotifier<OffersState> {
   }
 }
 
-final offersControllerProvider =
-    StateNotifierProvider<OffersController, OffersState>(
+final offersControllerProvider = StateNotifierProvider<OffersController, OffersState>(
   (ref) => OffersController(
     api: ref.watch(offersApiProvider),
     session: ref.watch(sessionProvider),

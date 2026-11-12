@@ -2,15 +2,7 @@
 //
 // Abidjan is at UTC+0 all year, so UTC values are shown as they are.
 
-const _weekdays = [
-  'lundi',
-  'mardi',
-  'mercredi',
-  'jeudi',
-  'vendredi',
-  'samedi',
-  'dimanche'
-];
+const _weekdays = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const _weekdaysShort = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
 const _months = [
   'janvier',
@@ -41,15 +33,18 @@ const _monthsShort = [
   'déc.',
 ];
 
-/// `3500` becomes `3 500 FCFA`.
-String formatXof(int amount) {
+/// `3500` becomes `3 500`.
+String formatAmount(int amount) {
   final digits = amount.abs().toString();
   final groups = <String>[];
   for (var end = digits.length; end > 0; end -= 3) {
     groups.insert(0, digits.substring(end - 3 < 0 ? 0 : end - 3, end));
   }
-  return '${amount < 0 ? '-' : ''}${groups.join(' ')} FCFA';
+  return '${amount < 0 ? '-' : ''}${groups.join(' ')}';
 }
+
+/// `3500` becomes `3 500 FCFA`.
+String formatXof(int amount) => '${formatAmount(amount)} FCFA';
 
 /// `120` becomes `2 h`, `150` becomes `2 h 30`, `45` becomes `45 min`.
 String formatDuration(int minutes) {

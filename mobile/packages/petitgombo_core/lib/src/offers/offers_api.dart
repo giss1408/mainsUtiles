@@ -13,28 +13,23 @@ class OffersApi {
 
   static const _base = '/api/v1';
 
-  Options _bearer(String access) =>
-      Options(headers: {'Authorization': 'Bearer $access'});
+  Options _bearer(String access) => Options(headers: {'Authorization': 'Bearer $access'});
 
   String _mine(String id) => '$_base/my-offers/$id';
 
-  Future<(List<OfferCategory>, OfferLimits)> categories(String access) =>
-      guardApi(() async {
-        final response = await _dio.get<dynamic>('$_base/offer-categories',
-            options: _bearer(access));
+  Future<(List<OfferCategory>, OfferLimits)> categories(String access) => guardApi(() async {
+        final response =
+            await _dio.get<dynamic>('$_base/offer-categories', options: _bearer(access));
         final data = Map<String, dynamic>.from(response.data as Map);
         final categories = (data['categories'] as List)
-            .map((c) =>
-                OfferCategory.fromJson(Map<String, dynamic>.from(c as Map)))
+            .map((c) => OfferCategory.fromJson(Map<String, dynamic>.from(c as Map)))
             .toList();
-        final limits = OfferLimits.fromJson(
-            Map<String, dynamic>.from(data['limits'] as Map));
+        final limits = OfferLimits.fromJson(Map<String, dynamic>.from(data['limits'] as Map));
         return (categories, limits);
       });
 
   Future<MyOffers> myOffers(String access) => guardApi(() async {
-        final response = await _dio.get<dynamic>('$_base/my-offers',
-            options: _bearer(access));
+        final response = await _dio.get<dynamic>('$_base/my-offers', options: _bearer(access));
         final data = Map<String, dynamic>.from(response.data as Map);
         return MyOffers(
           canPublish: data['can_publish'] as bool,
@@ -45,8 +40,7 @@ class OffersApi {
         );
       });
 
-  Future<MyOffer> createDraft(String access, OfferDraft draft) =>
-      guardApi(() async {
+  Future<MyOffer> createDraft(String access, OfferDraft draft) => guardApi(() async {
         final response = await _dio.post<dynamic>(
           '$_base/my-offers',
           data: draft.toJson(),
@@ -55,8 +49,7 @@ class OffersApi {
         return _offer(response.data);
       });
 
-  Future<MyOffer> updateDraft(String access, String id, OfferDraft draft) =>
-      guardApi(() async {
+  Future<MyOffer> updateDraft(String access, String id, OfferDraft draft) => guardApi(() async {
         final response = await _dio.patch<dynamic>(
           _mine(id),
           data: draft.toJson(),
@@ -69,54 +62,39 @@ class OffersApi {
         await _dio.delete<dynamic>(_mine(id), options: _bearer(access));
       });
 
-  Future<MyOffer> send(String access, String id) =>
-      _action(access, '${_mine(id)}/send');
+  Future<MyOffer> send(String access, String id) => _action(access, '${_mine(id)}/send');
 
-  Future<MyOffer> withdraw(String access, String id) =>
-      _action(access, '${_mine(id)}/withdraw');
+  Future<MyOffer> withdraw(String access, String id) => _action(access, '${_mine(id)}/withdraw');
 
-  Future<MyOffer> copy(String access, String id) =>
-      _action(access, '${_mine(id)}/copy');
+  Future<MyOffer> copy(String access, String id) => _action(access, '${_mine(id)}/copy');
 
-  Future<OfferPage> offers(String access, {String? commune, int page = 1}) =>
-      guardApi(() async {
+  Future<OfferPage> offers(String access, {String? commune, int page = 1}) => guardApi(() async {
         final response = await _dio.get<dynamic>(
           '$_base/offers',
-          queryParameters: {
-            'page': page,
-            if (commune != null) 'commune': commune
-          },
+          queryParameters: {'page': page, if (commune != null) 'commune': commune},
           options: _bearer(access),
         );
         final data = Map<String, dynamic>.from(response.data as Map);
         return OfferPage(
           offers: (data['results'] as List)
-              .map((o) =>
-                  PublicOffer.fromJson(Map<String, dynamic>.from(o as Map)))
+              .map((o) => PublicOffer.fromJson(Map<String, dynamic>.from(o as Map)))
               .toList(),
-          communes: ((data['communes'] as List?) ?? const [])
-              .map((c) => '$c')
-              .toList(),
+          communes: ((data['communes'] as List?) ?? const []).map((c) => '$c').toList(),
           hasMore: data['next'] != null,
         );
       });
 
   Future<PublicOffer> offer(String access, String id) => guardApi(() async {
-        final response = await _dio.get<dynamic>('$_base/offers/$id',
-            options: _bearer(access));
-        return PublicOffer.fromJson(
-            Map<String, dynamic>.from(response.data as Map));
+        final response = await _dio.get<dynamic>('$_base/offers/$id', options: _bearer(access));
+        return PublicOffer.fromJson(Map<String, dynamic>.from(response.data as Map));
       });
 
   Future<MyOffer> _action(String access, String path) => guardApi(() async {
-        final response =
-            await _dio.post<dynamic>(path, options: _bearer(access));
+        final response = await _dio.post<dynamic>(path, options: _bearer(access));
         return _offer(response.data);
       });
 
-  MyOffer _offer(Object? data) =>
-      MyOffer.fromJson(Map<String, dynamic>.from(data as Map));
+  MyOffer _offer(Object? data) => MyOffer.fromJson(Map<String, dynamic>.from(data as Map));
 }
 
-final offersApiProvider =
-    Provider<OffersApi>((ref) => OffersApi(ref.watch(dioProvider)));
+final offersApiProvider = Provider<OffersApi>((ref) => OffersApi(ref.watch(dioProvider)));

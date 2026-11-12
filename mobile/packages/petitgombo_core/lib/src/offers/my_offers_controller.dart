@@ -79,16 +79,13 @@ class MyOffersController extends StateNotifier<MyOffersState> {
   /// Creates the draft when [id] is null, otherwise updates it. Null on failure.
   Future<MyOffer?> saveDraft(OfferDraft draft, {String? id}) => _change(
         id ?? '',
-        (access) => id == null
-            ? _api.createDraft(access, draft)
-            : _api.updateDraft(access, id, draft),
+        (access) =>
+            id == null ? _api.createDraft(access, draft) : _api.updateDraft(access, id, draft),
       );
 
-  Future<MyOffer?> publish(String id) =>
-      _change(id, (access) => _api.send(access, id));
+  Future<MyOffer?> publish(String id) => _change(id, (access) => _api.send(access, id));
 
-  Future<MyOffer?> withdraw(String id) =>
-      _change(id, (access) => _api.withdraw(access, id));
+  Future<MyOffer?> withdraw(String id) => _change(id, (access) => _api.withdraw(access, id));
 
   Future<MyOffer?> copy(String id) => _change(
         id,
@@ -104,8 +101,7 @@ class MyOffersController extends StateNotifier<MyOffersState> {
       final data = state.data;
       if (data != null) {
         state = state.copyWith(
-          data:
-              _withOffers(data, data.offers.where((o) => o.id != id).toList()),
+          data: _withOffers(data, data.offers.where((o) => o.id != id).toList()),
         );
       }
       state = state.copyWith(sending: false);
@@ -120,8 +116,7 @@ class MyOffersController extends StateNotifier<MyOffersState> {
   /// offer is no longer in a state to change, an earlier attempt probably arrived
   /// and its answer was lost: the list is reloaded and the offer as it now stands
   /// is returned.
-  Future<MyOffer?> _change(
-      String id, Future<MyOffer> Function(String access) call) async {
+  Future<MyOffer?> _change(String id, Future<MyOffer> Function(String access) call) async {
     if (state.sending) return null;
     state = state.copyWith(sending: true, error: null);
     try {
@@ -168,10 +163,8 @@ class MyOffersController extends StateNotifier<MyOffersState> {
     state = state.copyWith(data: _withOffers(data, [offer, ...rest]));
   }
 
-  MyOffers _withOffers(MyOffers data, List<MyOffer> offers) => MyOffers(
-      canPublish: data.canPublish,
-      reviewHours: data.reviewHours,
-      offers: offers);
+  MyOffers _withOffers(MyOffers data, List<MyOffer> offers) =>
+      MyOffers(canPublish: data.canPublish, reviewHours: data.reviewHours, offers: offers);
 
   String _message(ApiError e) {
     if (e.isNetwork) return OfferCopy.offline;
@@ -180,8 +173,7 @@ class MyOffersController extends StateNotifier<MyOffersState> {
   }
 }
 
-final myOffersControllerProvider =
-    StateNotifierProvider<MyOffersController, MyOffersState>(
+final myOffersControllerProvider = StateNotifierProvider<MyOffersController, MyOffersState>(
   (ref) => MyOffersController(
     api: ref.watch(offersApiProvider),
     session: ref.watch(sessionProvider),

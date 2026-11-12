@@ -87,8 +87,7 @@ void main() {
       'communes': ['Cocody', 'Yopougon'],
     });
     final page = await api.offers('acc', commune: 'Cocody', page: 2);
-    expect(adapter.requests.single.queryParameters,
-        {'commune': 'Cocody', 'page': 2});
+    expect(adapter.requests.single.queryParameters, {'commune': 'Cocody', 'page': 2});
     expect(page.offers.single.commune, 'Cocody');
     expect(page.communes, ['Cocody', 'Yopougon']);
     expect(page.hasMore, isFalse);
@@ -97,8 +96,7 @@ void main() {
   test('a 409 too_many_offers becomes an ApiError with its message', () async {
     adapter.reply(409, {
       'error': 'too_many_offers',
-      'message':
-          'Vous avez déjà 3 offres en cours. Retirez-en une pour en publier une autre.',
+      'message': 'Vous avez déjà 3 offres en cours. Retirez-en une pour en publier une autre.',
     });
     await expectLater(
       api.send('acc', 'o-1'),

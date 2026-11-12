@@ -14,9 +14,12 @@ import 'identity_flow.dart';
 
 /// The householder's home screen until verified: three steps, each with its status.
 class ChecklistScreen extends ConsumerStatefulWidget {
-  const ChecklistScreen({super.key, required this.onSignOut});
+  const ChecklistScreen({super.key, required this.onSignOut, this.onBack});
 
   final VoidCallback onSignOut;
+
+  /// Set when the checklist is opened from another screen: shows a back arrow.
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<ChecklistScreen> createState() => _ChecklistScreenState();
@@ -60,6 +63,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
     final onTop = ModalRoute.of(context)?.isCurrent ?? true;
 
     return Scaffold(
+      appBar: widget.onBack == null ? null : AppBar(leading: BackButton(onPressed: widget.onBack)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

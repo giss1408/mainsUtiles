@@ -74,15 +74,11 @@ enum OfferStatus {
 
   /// The author may withdraw the offer.
   bool get canWithdraw =>
-      this == OfferStatus.draft ||
-      this == OfferStatus.inReview ||
-      this == OfferStatus.published;
+      this == OfferStatus.draft || this == OfferStatus.inReview || this == OfferStatus.published;
 
   /// The author may make a similar offer from it.
   bool get canCopy =>
-      this == OfferStatus.refused ||
-      this == OfferStatus.withdrawn ||
-      this == OfferStatus.closed;
+      this == OfferStatus.refused || this == OfferStatus.withdrawn || this == OfferStatus.closed;
 }
 
 /// One of the householder's own offers, with everything they are allowed to see.
@@ -215,10 +211,7 @@ class OfferDraft {
 }
 
 class MyOffers {
-  const MyOffers(
-      {required this.canPublish,
-      required this.reviewHours,
-      required this.offers});
+  const MyOffers({required this.canPublish, required this.reviewHours, required this.offers});
 
   final bool canPublish;
   final int reviewHours;
@@ -226,16 +219,14 @@ class MyOffers {
 }
 
 class OfferPage {
-  const OfferPage(
-      {required this.offers, required this.communes, required this.hasMore});
+  const OfferPage({required this.offers, required this.communes, required this.hasMore});
 
   final List<PublicOffer> offers;
   final List<String> communes;
   final bool hasMore;
 }
 
-List<String> _strings(Object? value) =>
-    ((value as List?) ?? const []).map((v) => '$v').toList();
+List<String> _strings(Object? value) => ((value as List?) ?? const []).map((v) => '$v').toList();
 
 List<int> _ints(Object? value) =>
     ((value as List?) ?? const []).map((v) => (v as num).toInt()).toList();

@@ -12,8 +12,7 @@ void main() {
 
   setUp(() {
     adapter = FakeAdapter();
-    controller = OffersController(
-        api: OffersApi(dioWith(adapter)), session: _SignedIn());
+    controller = OffersController(api: OffersApi(dioWith(adapter)), session: _SignedIn());
   });
 
   test('load fills the list and the communes', () async {
@@ -48,8 +47,7 @@ void main() {
       });
     await controller.load();
     await controller.setCommune('Cocody');
-    expect(adapter.requests.last.queryParameters,
-        {'commune': 'Cocody', 'page': 1});
+    expect(adapter.requests.last.queryParameters, {'commune': 'Cocody', 'page': 1});
     expect(controller.state.commune, 'Cocody');
     expect(controller.state.offers!.map((o) => o.id), ['p-2']);
   });
@@ -88,26 +86,18 @@ void main() {
     await controller.load();
     adapter.offline = true;
     await controller.loadMore(); // no more pages: nothing is requested
-    adapter.reply(200, {
-      'count': 1,
-      'next': null,
-      'previous': null,
-      'results': [],
-      'communes': []
-    });
+    adapter.reply(200, {'count': 1, 'next': null, 'previous': null, 'results': [], 'communes': []});
     await controller.setCommune(null);
     adapter.offline = true;
     await controller.setCommune('Yopougon');
-    expect(controller.state.offers!.map((o) => o.id),
-        ['p-1'] /* kept from before */);
+    expect(controller.state.offers!.map((o) => o.id), ['p-1'] /* kept from before */);
     expect(controller.state.error, 'Pas de connexion. Réessayez.');
   });
 }
 
 class _SignedIn implements Session {
   @override
-  Future<T> authorized<T>(Future<T> Function(String access) call) =>
-      call('acc');
+  Future<T> authorized<T>(Future<T> Function(String access) call) => call('acc');
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>

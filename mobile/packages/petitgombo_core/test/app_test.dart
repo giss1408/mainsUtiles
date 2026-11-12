@@ -90,6 +90,48 @@ void main() {
     expect(adapter.requests.single.headers['Authorization'], 'Bearer fake-access');
   });
 
+  testWidgets('a verified householder lands on Mes offres', (tester) async {
+    final adapter = FakeAdapter()
+      ..reply(200, checklistJson(tier: 'H1'))
+      ..reply(200, {'can_publish': true, 'review_hours': 24, 'offers': []})
+      ..reply(200, {
+        'categories': [
+          {
+            'id': 1,
+            'name': 'Ménage',
+            'duties': ['Dépoussiérer'],
+            'durations_minutes': [180],
+            'suggested_pay_min': 2000,
+            'suggested_pay_max': 5000,
+          }
+        ],
+        'limits': {
+          'earliest_start': '06:00',
+          'latest_end': '19:00',
+          'min_pay': 1000,
+          'max_pay': 100000,
+          'max_days_ahead': 30,
+          'note_max_length': 300,
+        },
+      });
+    await pumpApp(
+      tester,
+      AppRole.householder,
+      FakeSession(restored: me),
+      extra: [
+        dioProvider.overrideWithValue(dioWith(adapter)),
+        photoCaptureProvider.overrideWithValue(FakePhotoCapture()),
+        positionReaderProvider.overrideWithValue(FakePositionReader()),
+      ],
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(find.text('Mes offres'), findsOneWidget);
+    expect(find.text('Créer une offre'), findsOneWidget);
+    expect(find.text('Vérification de votre compte'), findsNothing);
+  });
+
   testWidgets('signing out shows the reconnect screen, and reconnecting returns home',
       (tester) async {
     final session = FakeSession(restored: me);
