@@ -26,6 +26,9 @@ class FakeSession implements Session {
 
   @override
   String? get access => null;
+
+  @override
+  Future<T> authorized<T>(Future<T> Function(String access) call) => call('fake-access');
 }
 
 const me = Me(id: 'u-1', phone: '+2250708091011', role: 'jobber');
@@ -62,7 +65,8 @@ void main() {
     expect(find.text('Mini-jobber'), findsNothing);
   });
 
-  testWidgets('signing out shows the reconnect screen, and reconnecting returns home', (tester) async {
+  testWidgets('signing out shows the reconnect screen, and reconnecting returns home',
+      (tester) async {
     final session = FakeSession(restored: me);
     await pumpApp(tester, AppRole.jobber, session);
     await tester.tap(find.text('Se déconnecter'));

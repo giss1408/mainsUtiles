@@ -136,8 +136,8 @@ void main() {
     await controller.submitPhone('0708091011');
     api.serverStatus = 'awaiting_code';
     await controller.refresh();
-    api.confirmError =
-        const ApiError(code: 'code_invalid', message: 'Numéro de confirmation incorrect.', status: 422);
+    api.confirmError = const ApiError(
+        code: 'code_invalid', message: 'Numéro de confirmation incorrect.', status: 422);
     await controller.submitCode('000000');
     expect(
       controller.state,

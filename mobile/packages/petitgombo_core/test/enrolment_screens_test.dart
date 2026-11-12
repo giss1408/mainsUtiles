@@ -29,7 +29,8 @@ void main() {
   testWidgets('initial state shows the phone screen with the WhatsApp note', (tester) async {
     await pumpWith(tester, const EnrolmentInitial());
     expect(find.text('Votre numéro de téléphone'), findsOneWidget);
-    expect(find.text('Nous vous enverrons un numéro de confirmation par WhatsApp.'), findsOneWidget);
+    expect(
+        find.text('Nous vous enverrons un numéro de confirmation par WhatsApp.'), findsOneWidget);
     expect(find.text('+225'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
   });
@@ -132,7 +133,8 @@ void main() {
       EnrolmentSubmitting(),
       EnrolmentPending(24),
       EnrolmentHeld('Numéro à confirmer avant de continuer'),
-      EnrolmentAwaitingCode(errorMessage: 'Ce numéro a été remplacé. Utilisez le dernier message WhatsApp reçu.'),
+      EnrolmentAwaitingCode(
+          errorMessage: 'Ce numéro a été remplacé. Utilisez le dernier message WhatsApp reçu.'),
       EnrolmentRefused('Numéro injoignable après plusieurs essais'),
       EnrolmentLocked(),
       EnrolmentExpired(),

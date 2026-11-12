@@ -97,7 +97,8 @@ void main() {
     expect((await api.refresh('r')).access, 'a2');
     expect(adapter.requests[2].data, {'refresh': 'r'});
 
-    adapter.reply(200, {'id': 'u-1', 'phone': '+2250708091011', 'role': 'jobber', 'device_id': 'dev-1'});
+    adapter.reply(
+        200, {'id': 'u-1', 'phone': '+2250708091011', 'role': 'jobber', 'device_id': 'dev-1'});
     final me = await api.me('a2');
     expect(adapter.requests[3].headers['Authorization'], 'Bearer a2');
     expect((me.id, me.phone, me.role), ('u-1', '+2250708091011', 'jobber'));

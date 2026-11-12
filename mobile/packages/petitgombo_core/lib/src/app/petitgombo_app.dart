@@ -146,8 +146,7 @@ class _AppRootState extends ConsumerState<_AppRoot> with WidgetsBindingObserver 
           ],
         ),
       _Stage.enrolment => const EnrolmentFlow(),
-      _Stage.signedIn =>
-        HomePlaceholderScreen(roleLabel: copy.roleLabel, onSignOut: _signOut),
+      _Stage.signedIn => HomePlaceholderScreen(roleLabel: copy.roleLabel, onSignOut: _signOut),
       _Stage.signedOut => ScreenScaffold(
           title: 'petitGombo',
           icon: Icons.lock_outline,

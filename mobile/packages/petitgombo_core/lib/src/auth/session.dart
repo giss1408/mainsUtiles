@@ -15,6 +15,7 @@ class Session {
   final KeyValueStore _store;
 
   String? _access;
+  Future<bool>? _renewing;
 
   /// The current access token, or null when signed out.
   String? get access => _access;
@@ -44,6 +45,46 @@ class Session {
       if (e.isNetwork) rethrow;
       await signOut();
       return null;
+    }
+  }
+
+  /// Runs [call] with the access token. When the server answers 401 (the
+  /// token lasts minutes), renews it once and runs [call] again; if it cannot
+  /// be renewed the 401 is rethrown. Calls made at the same moment share one
+  /// renewal, because a refresh token presented twice revokes the device's
+  /// tokens.
+  Future<T> authorized<T>(Future<T> Function(String access) call) async {
+    ApiError? rejected;
+    final access = _access;
+    if (access != null) {
+      try {
+        return await call(access);
+      } on ApiError catch (e) {
+        if (e.status != 401) rethrow;
+        rejected = e;
+      }
+    }
+    final renewed = await (_renewing ??= _renew().whenComplete(() => _renewing = null));
+    final fresh = _access;
+    if (!renewed || fresh == null) {
+      throw rejected ?? const ApiError(code: 'token_invalid', message: '', status: 401);
+    }
+    return call(fresh);
+  }
+
+  /// False when the server refuses the stored refresh token; network
+  /// failures are rethrown.
+  Future<bool> _renew() async {
+    final refresh = await _store.read(_refreshKey);
+    if (refresh == null) return false;
+    try {
+      final pair = await _api.refresh(refresh);
+      _access = pair.access;
+      await _store.write(_refreshKey, pair.refresh);
+      return true;
+    } on ApiError catch (e) {
+      if (e.isNetwork) rethrow;
+      return false;
     }
   }
 

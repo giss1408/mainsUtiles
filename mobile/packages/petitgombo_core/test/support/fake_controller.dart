@@ -2,8 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
 /// Holds a fixed state and records what the screens ask for.
-class FakeEnrolmentController extends StateNotifier<EnrolmentState>
-    implements EnrolmentController {
+class FakeEnrolmentController extends StateNotifier<EnrolmentState> implements EnrolmentController {
   FakeEnrolmentController(super.state);
 
   String? submittedPhone;

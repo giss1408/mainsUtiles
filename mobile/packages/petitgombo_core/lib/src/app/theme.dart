@@ -29,8 +29,10 @@ ThemeData buildAppTheme() {
   );
 
   const textTheme = TextTheme(
-    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.25, color: AppColors.text),
-    titleMedium: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.3, color: AppColors.text),
+    headlineMedium:
+        TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.25, color: AppColors.text),
+    titleMedium:
+        TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.3, color: AppColors.text),
     bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: AppColors.text),
     bodyMedium: TextStyle(fontSize: 14, height: 1.45, color: AppColors.text),
     bodySmall: TextStyle(fontSize: 12, height: 1.4, color: AppColors.textMuted),
