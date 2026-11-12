@@ -20,7 +20,7 @@ none of them makes harm impossible.
 | Fake GPS | Both | Mock-location, root and emulator detection; network cross-check; `integrity_verdict` recorded at enrolment | planned | |
 | Relayed QR codes | Both | Signed, short-lived, device-bound, rotating codes; screenshot blocking | planned | |
 | SIM swap and account takeover | Both | Staff-approved device enrolment with a single-use WhatsApp confirmation number; sign-in with a device-bound key; rotating refresh tokens; one active device per account | tested | `test_enrolment_service.py` (all), `test_device_auth.py` (all), `test_full_flow.py` |
-| Fake support agents and cloned apps | Both | "Staff never ask for this number" wording in every confirmation; official-channels page | planned | |
+| Fake support agents and cloned apps | Both | "Staff never ask for this number" wording in every confirmation; official-channels page | built | `test_enrolment_screens_test.dart` (code screen note); official-channels page not built yet |
 | Payment fraud | Both | Idempotent payment states; signed webhooks; cash confirmed by QR scan | planned | |
 | Harassment | Both | In-app chat with contact filtering (7); block and report; human review (8) | planned | |
 | Data breach | Both | Field-level encryption for addresses and identity data (9); no secrets or codes in logs; hashes only for codes and tokens | planned | |

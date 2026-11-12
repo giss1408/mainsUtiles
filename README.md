@@ -62,3 +62,30 @@ curl -X POST http://localhost:8000/api/v1/enrolment/applications \
 
 Then open the web console, go to "Demandes d'enrôlement", approve the application and press
 "Envoyer par WhatsApp". Staff members need the `enrolment_agent` group (superusers have every right).
+
+## Mobile apps
+
+Flutter 3.24 or later. The shared code is in `mobile/packages/petitgombo_core`; each app is a thin
+entry point.
+
+| App | Folder | Android id |
+|-----|--------|------------|
+| petitGombo (householders) | `mobile/apps/householder` | `com.regisse.petitgombo` |
+| petitGombo Jobber | `mobile/apps/jobber` | `com.regisse.petitgombo.jobber` |
+
+```bash
+cd mobile/apps/jobber            # or mobile/apps/householder
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+```
+
+`10.0.2.2` is the host machine as seen from the Android emulator (the default when the option is
+omitted). On a real phone use the computer's address on the local network and start the backend with
+`runserver 0.0.0.0:8000`. Debug builds allow plain HTTP for this; release builds must use HTTPS.
+
+Tests and analysis, in each of the three Dart packages:
+
+```bash
+flutter test
+flutter analyze
+```
