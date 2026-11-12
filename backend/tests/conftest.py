@@ -73,3 +73,39 @@ def created(db, api_client, payload):
     response = api_client.post("/api/v1/enrolment/applications", payload, format="json")
     assert response.status_code == 201, response.content
     return response.json()
+
+
+@pytest.fixture
+def enrol_device(db, staff_user):
+    """Enrol a device through the service. Returns the DeviceKey with `.device` attached."""
+    from django.utils import timezone
+
+    from apps.accounts.models import DeviceEnrolmentRequest
+    from apps.accounts.services import enrolment
+    from tests.helpers import DeviceKey
+
+    def _enrol(phone="0708091011", role="jobber"):
+        key = DeviceKey()
+        req = enrolment.apply(
+            phone=phone,
+            role=role,
+            device_id=key.device_id,
+            device_model="Tecno Spark",
+            platform="android",
+            public_key=key.public_key,
+            client_token="tok",
+        )
+        if req.kind == "new_device":
+            DeviceEnrolmentRequest.objects.filter(pk=req.pk).update(selfie_verified_at=timezone.now())
+            req.refresh_from_db()
+        enrolment.approve(req, staff=staff_user)
+        code = enrolment.issue_code(req, staff=staff_user)
+        key.device = enrolment.confirm(req, client_token="tok", code=code)
+        return key
+
+    return _enrol
+
+
+@pytest.fixture
+def enrolled(enrol_device):
+    return enrol_device()

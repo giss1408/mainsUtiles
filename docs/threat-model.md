@@ -19,7 +19,7 @@ none of them makes harm impossible.
 | Forged or reused documents | Both | In-app camera capture only; reuse detection on images and customer numbers; staff review | planned | |
 | Fake GPS | Both | Mock-location, root and emulator detection; network cross-check; `integrity_verdict` recorded at enrolment | planned | |
 | Relayed QR codes | Both | Signed, short-lived, device-bound, rotating codes; screenshot blocking | planned | |
-| SIM swap and account takeover | Both | Staff-approved device enrolment with a single-use WhatsApp confirmation number; sign-in with a device-bound key; rotating refresh tokens; one active device per account | planned | |
+| SIM swap and account takeover | Both | Staff-approved device enrolment with a single-use WhatsApp confirmation number; sign-in with a device-bound key; rotating refresh tokens; one active device per account | tested | `test_enrolment_service.py` (all), `test_device_auth.py` (all), `test_full_flow.py` |
 | Fake support agents and cloned apps | Both | "Staff never ask for this number" wording in every confirmation; official-channels page | planned | |
 | Payment fraud | Both | Idempotent payment states; signed webhooks; cash confirmed by QR scan | planned | |
 | Harassment | Both | In-app chat with contact filtering (7); block and report; human review (8) | planned | |

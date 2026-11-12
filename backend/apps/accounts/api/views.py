@@ -4,15 +4,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import DeviceEnrolmentRequest
-from apps.accounts.services import enrolment
+from apps.accounts.services import device_auth, enrolment
 from apps.core.net import client_ip
 
 from .errors import error_response
 from .serializers import (
     ApplicationCreateSerializer,
     ApplicationStatusSerializer,
+    ChallengeSerializer,
     ConfirmResultSerializer,
     ConfirmSerializer,
+    MeSerializer,
+    NonceSerializer,
+    RefreshSerializer,
+    TokenPairSerializer,
+    TokenRequestSerializer,
 )
 
 TOKEN_HEADER = "X-Enrolment-Token"
@@ -70,3 +76,53 @@ class ApplicationConfirmView(PublicView):
         except enrolment.EnrolmentError as exc:
             return error_response(exc.code)
         return Response({"status": "completed", "device_id": str(device.pk)})
+
+
+def auth_error(exc: device_auth.AuthError) -> Response:
+    return Response({"error": exc.code}, status=423 if exc.code == "locked" else 401)
+
+
+class ChallengeView(PublicView):
+    @extend_schema(request=ChallengeSerializer, responses=NonceSerializer)
+    def post(self, request):
+        serializer = ChallengeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({"nonce": device_auth.create_challenge(serializer.validated_data["device_id"])})
+
+
+class TokenView(PublicView):
+    @extend_schema(request=TokenRequestSerializer, responses=TokenPairSerializer)
+    def post(self, request):
+        serializer = TokenRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            pair = device_auth.sign_in(data["device_id"], data["nonce"], data["signature"])
+        except device_auth.AuthError as exc:
+            return auth_error(exc)
+        return Response({"access": pair.access, "refresh": pair.refresh})
+
+
+class RefreshView(PublicView):
+    @extend_schema(request=RefreshSerializer, responses=TokenPairSerializer)
+    def post(self, request):
+        serializer = RefreshSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            pair = device_auth.rotate(serializer.validated_data["refresh"])
+        except device_auth.AuthError as exc:
+            return auth_error(exc)
+        return Response({"access": pair.access, "refresh": pair.refresh})
+
+
+class MeView(APIView):
+    @extend_schema(responses=MeSerializer)
+    def get(self, request):
+        return Response(
+            {
+                "id": str(request.user.pk),
+                "phone": request.user.phone,
+                "role": request.user.role,
+                "device_id": str(request.auth.pk),
+            }
+        )

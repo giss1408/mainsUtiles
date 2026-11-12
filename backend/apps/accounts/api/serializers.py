@@ -67,3 +67,33 @@ class ConfirmSerializer(serializers.Serializer):
 class ConfirmResultSerializer(serializers.Serializer):
     status = serializers.CharField()
     device_id = serializers.UUIDField()
+
+
+class ChallengeSerializer(serializers.Serializer):
+    device_id = serializers.UUIDField()
+
+
+class NonceSerializer(serializers.Serializer):
+    nonce = serializers.CharField()
+
+
+class TokenRequestSerializer(serializers.Serializer):
+    device_id = serializers.UUIDField()
+    nonce = serializers.CharField(max_length=200)
+    signature = serializers.CharField(max_length=200)
+
+
+class RefreshSerializer(serializers.Serializer):
+    refresh = serializers.CharField(max_length=200)
+
+
+class TokenPairSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class MeSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    phone = serializers.CharField()
+    role = serializers.CharField()
+    device_id = serializers.UUIDField()

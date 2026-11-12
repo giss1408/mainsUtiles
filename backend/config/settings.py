@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(BASE_DIR.parent / ".env")
 
-DEV_SECRET_KEY = "dev-insecure-change-me"
+DEV_SECRET_KEY = "dev-insecure-change-me-before-any-real-use"
 
 DEBUG = env.bool("DEBUG", default=True)
 SECRET_KEY = env.str("SECRET_KEY", default=DEV_SECRET_KEY)
@@ -101,11 +101,15 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "UNAUTHENTICATED_USER": None,
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.accounts.authentication.DeviceJWTAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "petitGombo API",
     "VERSION": "1",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
 }
 
 # External providers (dotted path to a class implementing apps.providers.base).
@@ -125,3 +129,12 @@ ENROLMENT_MAX_PER_DEVICE_PER_DAY = env.int("ENROLMENT_MAX_PER_DEVICE_PER_DAY", d
 ENROLMENT_MAX_PER_IP_PER_DAY = env.int("ENROLMENT_MAX_PER_IP_PER_DAY", default=10)
 ENROLMENT_APPLICATION_TTL_DAYS = env.int("ENROLMENT_APPLICATION_TTL_DAYS", default=7)
 ENROLMENT_RESPONSE_HOURS = env.int("ENROLMENT_RESPONSE_HOURS", default=24)
+
+# Sign-in and tokens
+ACCESS_TOKEN_TTL_MINUTES = env.int("ACCESS_TOKEN_TTL_MINUTES", default=15)
+REFRESH_TOKEN_TTL_DAYS = env.int("REFRESH_TOKEN_TTL_DAYS", default=30)
+AUTH_CHALLENGE_TTL_SECONDS = env.int("AUTH_CHALLENGE_TTL_SECONDS", default=120)
+STAFF_ACCESS_TOKEN_TTL_MINUTES = env.int("STAFF_ACCESS_TOKEN_TTL_MINUTES", default=10)
+STAFF_REFRESH_TOKEN_TTL_HOURS = env.int("STAFF_REFRESH_TOKEN_TTL_HOURS", default=12)
+STAFF_LOGIN_MAX_FAILURES = env.int("STAFF_LOGIN_MAX_FAILURES", default=5)
+STAFF_LOGIN_LOCK_MINUTES = env.int("STAFF_LOGIN_LOCK_MINUTES", default=15)
