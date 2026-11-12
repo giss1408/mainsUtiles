@@ -7,6 +7,7 @@ from django.test import RequestFactory
 
 from apps.core.net import client_ip
 
+PROD_FIELD_KEY = "3Zl0r0Vb3m1kq0m6sQ2m4v8y1b5n7c9e2g4i6k8m0o0="
 SETTINGS_FILE = Path(__file__).resolve().parent.parent / "config" / "settings.py"
 
 
@@ -31,6 +32,7 @@ def prod_settings(monkeypatch):
         SECRET_KEY="a-long-random-production-secret-key-for-tests",
         ALLOWED_HOSTS="petitgombo.example",
         CSRF_TRUSTED_ORIGINS="https://petitgombo.example",
+        FIELD_ENCRYPTION_KEY=PROD_FIELD_KEY,
     )
 
 
@@ -66,7 +68,27 @@ def test_development_keeps_the_flags_off(monkeypatch):
 @pytest.mark.parametrize("secret", [None, "dev-insecure-change-me-before-any-real-use", ""])
 def test_default_secret_key_is_refused_in_production(monkeypatch, secret):
     with pytest.raises(ImproperlyConfigured, match="SECRET_KEY"):
-        load_settings(monkeypatch, DEBUG="0", SECRET_KEY=secret)
+        load_settings(monkeypatch, DEBUG="0", SECRET_KEY=secret, FIELD_ENCRYPTION_KEY=PROD_FIELD_KEY)
+
+
+@pytest.mark.parametrize("key", [None, "", "dev"])
+def test_default_encryption_key_is_refused_in_production(monkeypatch, key):
+    if key == "dev":
+        key = load_settings(monkeypatch, DEBUG="1").DEV_FIELD_ENCRYPTION_KEY
+    with pytest.raises(ImproperlyConfigured, match="FIELD_ENCRYPTION_KEY"):
+        load_settings(
+            monkeypatch, DEBUG="0", SECRET_KEY="a-long-random-production-secret", FIELD_ENCRYPTION_KEY=key
+        )
+
+
+def test_verification_limits_have_the_agreed_defaults(monkeypatch):
+    dev = load_settings(monkeypatch, DEBUG="1")
+    assert dev.MINIMUM_AGE_YEARS == 18
+    assert dev.ADDRESS_PROOF_MAX_AGE_MONTHS == 3 and dev.ADDRESS_PROOF_VALID_MONTHS == 12
+    assert dev.HOME_PIN_MAX_ACCURACY_M == 50 and dev.VERIFICATION_PHOTO_MAX_BYTES == 3_000_000
+    assert len(dev.SERVICE_COMMUNES) == 13 and "Yopougon" in dev.SERVICE_COMMUNES
+    assert dev.IDENTITY_DOCUMENT_TYPES == ["cni", "passport", "carte_consulaire", "permis"]
+    assert dev.ADDRESS_PROOF_TYPES == ["facture_eau", "facture_electricite", "certificat_residence"]
 
 
 def test_forwarded_ip_is_used_only_when_proxy_is_trusted(settings):

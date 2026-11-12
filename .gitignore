@@ -10,6 +10,7 @@ __pycache__/
 .superpowers/
 skill.original.md
 backend/staticfiles/
+backend/verification_storage/
 mobile/**/build/
 mobile/**/.dart_tool/
 mobile/**/.flutter-plugins

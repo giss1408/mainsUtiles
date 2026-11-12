@@ -19,6 +19,12 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "10
 if not DEBUG and SECRET_KEY in ("", DEV_SECRET_KEY):
     raise ImproperlyConfigured("SECRET_KEY must be set to a private random value when DEBUG is off.")
 
+# Encrypts identity photos and sensitive fields. Losing it makes them unreadable.
+DEV_FIELD_ENCRYPTION_KEY = "ZGV2LW9ubHktcGV0aXRnb21iby1maWVsZC1rZXktMDA="
+FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", default=DEV_FIELD_ENCRYPTION_KEY)
+if not DEBUG and FIELD_ENCRYPTION_KEY in ("", DEV_FIELD_ENCRYPTION_KEY):
+    raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY must be set to a private Fernet key when DEBUG is off.")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -32,6 +38,7 @@ INSTALLED_APPS = [
     "apps.providers",
     "apps.audit",
     "apps.accounts",
+    "apps.verification",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -162,6 +169,41 @@ STAFF_ACCESS_TOKEN_TTL_MINUTES = env.int("STAFF_ACCESS_TOKEN_TTL_MINUTES", defau
 STAFF_REFRESH_TOKEN_TTL_HOURS = env.int("STAFF_REFRESH_TOKEN_TTL_HOURS", default=12)
 STAFF_LOGIN_MAX_FAILURES = env.int("STAFF_LOGIN_MAX_FAILURES", default=5)
 STAFF_LOGIN_LOCK_MINUTES = env.int("STAFF_LOGIN_LOCK_MINUTES", default=15)
+
+# Householder verification
+MINIMUM_AGE_YEARS = env.int("MINIMUM_AGE_YEARS", default=18)
+ADDRESS_PROOF_MAX_AGE_MONTHS = env.int("ADDRESS_PROOF_MAX_AGE_MONTHS", default=3)
+ADDRESS_PROOF_VALID_MONTHS = env.int("ADDRESS_PROOF_VALID_MONTHS", default=12)
+HOME_PIN_MAX_ACCURACY_M = env.int("HOME_PIN_MAX_ACCURACY_M", default=50)
+VERIFICATION_PHOTO_MAX_BYTES = env.int("VERIFICATION_PHOTO_MAX_BYTES", default=3_000_000)
+VERIFICATION_REVIEW_HOURS = env.int("VERIFICATION_REVIEW_HOURS", default=24)
+VERIFICATION_STORAGE_DIR = Path(
+    env.str("VERIFICATION_STORAGE_DIR", default=str(BASE_DIR / "verification_storage"))
+)
+SERVICE_COMMUNES = env.list(
+    "SERVICE_COMMUNES",
+    default=[
+        "Abobo",
+        "Adjamé",
+        "Anyama",
+        "Attécoubé",
+        "Bingerville",
+        "Cocody",
+        "Koumassi",
+        "Marcory",
+        "Plateau",
+        "Port-Bouët",
+        "Songon",
+        "Treichville",
+        "Yopougon",
+    ],
+)
+IDENTITY_DOCUMENT_TYPES = env.list(
+    "IDENTITY_DOCUMENT_TYPES", default=["cni", "passport", "carte_consulaire", "permis"]
+)
+ADDRESS_PROOF_TYPES = env.list(
+    "ADDRESS_PROOF_TYPES", default=["facture_eau", "facture_electricite", "certificat_residence"]
+)
 
 # Staff console
 OFFICIAL_WHATSAPP_NUMBER = env.str("OFFICIAL_WHATSAPP_NUMBER", default="")

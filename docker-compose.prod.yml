@@ -14,6 +14,8 @@ x-backend: &backend
     ALLOWED_HOSTS: ${SITE_DOMAIN:?set SITE_DOMAIN in .env.prod},localhost
     CSRF_TRUSTED_ORIGINS: https://${SITE_DOMAIN}
     TRUST_PROXY_HEADERS: "1"
+    FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?set FIELD_ENCRYPTION_KEY in .env.prod}
+    VERIFICATION_STORAGE_DIR: /data/verification
     DATABASE_URL: postgres://petitgombo:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}@db:5432/petitgombo
     REDIS_URL: redis://redis:6379/0
     OFFICIAL_WHATSAPP_NUMBER: ${OFFICIAL_WHATSAPP_NUMBER:-}
@@ -31,6 +33,9 @@ services:
       <<: *backend-env
       RUN_MIGRATIONS: "1"
     command: ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--workers", "3"]
+    volumes:
+      # Encrypted identity photos. Only the web service reads or writes them.
+      - verification_data:/data/verification
     healthcheck:
       test:
         - CMD
@@ -93,5 +98,6 @@ services:
 
 volumes:
   pgdata:
+  verification_data:
   caddy_data:
   caddy_config:
