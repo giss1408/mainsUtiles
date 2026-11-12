@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
+
+import 'support/fake_adapter.dart';
+import 'support/verification_fixtures.dart';
 
 class FakeSession implements Session {
   FakeSession({this.restored, this.offline = false});
@@ -33,13 +37,19 @@ class FakeSession implements Session {
 
 const me = Me(id: 'u-1', phone: '+2250708091011', role: 'jobber');
 
-Future<void> pumpApp(WidgetTester tester, AppRole role, FakeSession session) async {
+Future<void> pumpApp(
+  WidgetTester tester,
+  AppRole role,
+  FakeSession session, {
+  List<Override> extra = const [],
+}) async {
   await tester.pumpWidget(
     PetitGomboApp(
       role: role,
       overrides: [
         keyValueStoreProvider.overrideWithValue(InMemoryKeyValueStore()),
         sessionProvider.overrideWithValue(session),
+        ...extra,
       ],
     ),
   );
@@ -59,10 +69,25 @@ void main() {
     expect(find.text('Mini-jobber'), findsOneWidget);
   });
 
-  testWidgets('the householder home shows Particulier', (tester) async {
-    await pumpApp(tester, AppRole.householder, FakeSession(restored: me));
-    expect(find.text('Particulier'), findsOneWidget);
-    expect(find.text('Mini-jobber'), findsNothing);
+  testWidgets('a signed-in householder lands on the verification checklist', (tester) async {
+    final adapter = FakeAdapter()..reply(200, checklistJson());
+    await pumpApp(
+      tester,
+      AppRole.householder,
+      FakeSession(restored: me),
+      extra: [
+        dioProvider.overrideWithValue(dioWith(adapter)),
+        photoCaptureProvider.overrideWithValue(FakePhotoCapture()),
+        positionReaderProvider.overrideWithValue(FakePositionReader()),
+      ],
+    );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(find.text('Vérification de votre compte'), findsOneWidget);
+    expect(find.text('Commencer'), findsNWidgets(3));
+    expect(find.text('Bienvenue'), findsNothing);
+    expect(adapter.requests.single.headers['Authorization'], 'Bearer fake-access');
   });
 
   testWidgets('signing out shows the reconnect screen, and reconnecting returns home',

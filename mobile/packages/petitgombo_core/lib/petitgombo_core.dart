@@ -20,6 +20,7 @@ export 'src/enrolment/enrolment_copy.dart';
 export 'src/enrolment/enrolment_flow.dart';
 export 'src/home/home_placeholder_screen.dart';
 export 'src/verification/capture.dart';
+export 'src/verification/screens/checklist_screen.dart';
 export 'src/verification/verification_api.dart';
 export 'src/verification/verification_controller.dart';
 export 'src/verification/verification_copy.dart';

@@ -24,7 +24,7 @@ abstract final class VerificationCopy {
   static String submitted(int hours) => 'Envoyé. Nous vérifions sous $hours h.';
 
   /// The sentence under a step's title.
-  static String statusText(StepState step, int reviewHours) => switch (step.status) {
+  static String statusText(VerificationStep step, int reviewHours) => switch (step.status) {
         StepStatus.notStarted => '',
         StepStatus.submitted => submitted(reviewHours),
         StepStatus.inReview => inReview,

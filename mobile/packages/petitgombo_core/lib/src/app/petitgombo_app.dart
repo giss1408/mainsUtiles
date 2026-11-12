@@ -8,6 +8,7 @@ import '../enrolment/enrolment_copy.dart';
 import '../enrolment/enrolment_flow.dart';
 import '../enrolment/enrolment_state.dart';
 import '../home/home_placeholder_screen.dart';
+import '../verification/screens/checklist_screen.dart';
 import '../widgets/message_banner.dart';
 import '../widgets/screen_scaffold.dart';
 import 'app_role.dart';
@@ -146,7 +147,10 @@ class _AppRootState extends ConsumerState<_AppRoot> with WidgetsBindingObserver 
           ],
         ),
       _Stage.enrolment => const EnrolmentFlow(),
-      _Stage.signedIn => HomePlaceholderScreen(roleLabel: copy.roleLabel, onSignOut: _signOut),
+      // A householder is taken through verification first; offers come after it.
+      _Stage.signedIn => ref.watch(appRoleProvider) == AppRole.householder
+          ? ChecklistScreen(onSignOut: _signOut)
+          : HomePlaceholderScreen(roleLabel: copy.roleLabel, onSignOut: _signOut),
       _Stage.signedOut => ScreenScaffold(
           title: 'petitGombo',
           icon: Icons.lock_outline,

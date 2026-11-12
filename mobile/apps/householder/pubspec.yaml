@@ -28,15 +28,23 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  camera: ^0.11.0+2
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.5.1
+  geolocator: ">=13.0.1 <14.0.0"
+  image: ^4.12.0
   petitgombo_core:
     path: ../../packages/petitgombo_core
 
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
+
+# geolocator_android 4.6.2 and later need a newer Flutter than the project's 3.24.2
+# (their Android build reads settings that the 3.24 Gradle plugin does not provide).
+dependency_overrides:
+  geolocator_android: 4.6.1
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +56,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+  dio: ^5.11.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

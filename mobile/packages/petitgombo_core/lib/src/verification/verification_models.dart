@@ -22,10 +22,10 @@ enum StepStatus {
       this == StepStatus.notStarted || this == StepStatus.refused || this == StepStatus.expired;
 }
 
-class StepState {
-  const StepState({required this.status, this.reason = ''});
+class VerificationStep {
+  const VerificationStep({required this.status, this.reason = ''});
 
-  factory StepState.fromJson(Map<String, dynamic> json) => StepState(
+  factory VerificationStep.fromJson(Map<String, dynamic> json) => VerificationStep(
         status: StepStatus.parse(json['status'] as String?),
         reason: (json['reason'] as String?) ?? '',
       );
@@ -36,7 +36,7 @@ class StepState {
   final String reason;
 }
 
-class AddressState extends StepState {
+class AddressState extends VerificationStep {
   const AddressState({
     required super.status,
     super.reason,
@@ -76,17 +76,18 @@ class VerificationChecklist {
         tier: (json['tier'] as String?) ?? 'H0',
         reviewHours: (json['review_hours'] as num?)?.toInt() ?? 24,
         communes: ((json['communes'] as List?) ?? const []).map((c) => '$c').toList(),
-        identity: StepState.fromJson(Map<String, dynamic>.from(json['identity'] as Map)),
+        identity: VerificationStep.fromJson(Map<String, dynamic>.from(json['identity'] as Map)),
         address: AddressState.fromJson(Map<String, dynamic>.from(json['address'] as Map)),
-        homeLocation: StepState.fromJson(Map<String, dynamic>.from(json['home_location'] as Map)),
+        homeLocation:
+            VerificationStep.fromJson(Map<String, dynamic>.from(json['home_location'] as Map)),
       );
 
   final String tier;
   final int reviewHours;
   final List<String> communes;
-  final StepState identity;
+  final VerificationStep identity;
   final AddressState address;
-  final StepState homeLocation;
+  final VerificationStep homeLocation;
 
   bool get verified => tier == 'H1';
 }
