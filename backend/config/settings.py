@@ -25,7 +25,12 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.core",
+    "apps.providers",
+    "apps.audit",
+    "apps.accounts",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -103,3 +108,6 @@ MESSAGING_PROVIDER = env.str("MESSAGING_PROVIDER", default="apps.providers.mocks
 PAYMENT_PROVIDER = env.str("PAYMENT_PROVIDER", default="apps.providers.mocks.MockPayment")
 IDENTITY_PROVIDER = env.str("IDENTITY_PROVIDER", default="apps.providers.mocks.MockIdentity")
 MAP_PROVIDER = env.str("MAP_PROVIDER", default="apps.providers.mocks.MockMap")
+
+# Phone numbers
+ALLOWED_PHONE_REGIONS = env.list("ALLOWED_PHONE_REGIONS", default=["CI"])
