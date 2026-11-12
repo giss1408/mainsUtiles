@@ -137,3 +137,29 @@ def agent_client(staff_user):
     client = Client()
     client.force_login(staff_user)
     return client
+
+
+@pytest.fixture(autouse=True)
+def _verification_storage(settings, tmp_path):
+    settings.VERIFICATION_STORAGE_DIR = tmp_path / "verification"
+
+
+@pytest.fixture
+def householder_key(enrol_device):
+    """An enrolled householder's device identity; `.device.user` is the householder."""
+    return enrol_device(phone="0505050505", role="householder")
+
+
+@pytest.fixture
+def householder(householder_key):
+    return householder_key.device.user
+
+
+@pytest.fixture
+def jpeg():
+    """Bytes that start like a JPEG file. Each call to `jpeg(n)` gives a different image."""
+
+    def _make(seed: int = 0, size: int = 200) -> bytes:
+        return b"\xff\xd8\xff\xe0" + bytes([seed % 256]) * size + b"\xff\xd9"
+
+    return _make

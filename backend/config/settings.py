@@ -146,7 +146,7 @@ SPECTACULAR_SETTINGS = {
 # External providers (dotted path to a class implementing apps.providers.base).
 MESSAGING_PROVIDER = env.str("MESSAGING_PROVIDER", default="apps.providers.mocks.MockMessaging")
 PAYMENT_PROVIDER = env.str("PAYMENT_PROVIDER", default="apps.providers.mocks.MockPayment")
-IDENTITY_PROVIDER = env.str("IDENTITY_PROVIDER", default="apps.providers.mocks.MockIdentity")
+IDENTITY_PROVIDER = env.str("IDENTITY_PROVIDER", default="apps.providers.staff_review.StaffReviewIdentity")
 MAP_PROVIDER = env.str("MAP_PROVIDER", default="apps.providers.mocks.MockMap")
 
 # Phone numbers

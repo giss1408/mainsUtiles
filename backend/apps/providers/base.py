@@ -18,7 +18,7 @@ class PaymentResult:
 
 @dataclass(frozen=True)
 class IdentityResult:
-    status: str  # pending | verified | action_required
+    status: str  # pending | verified | action_required | human_review
     full_name: str | None
 
 
@@ -42,6 +42,8 @@ class IdentityProvider(Protocol):
     def start_verification(self, user_ref: str) -> str: ...
 
     def get_result(self, session_ref: str) -> IdentityResult: ...
+
+    def submit_documents(self, user_ref: str, front: bytes, back: bytes, selfie: bytes) -> IdentityResult: ...
 
     def match_selfie(self, user_ref: str, image: bytes) -> bool: ...
 

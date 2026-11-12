@@ -37,6 +37,9 @@ class MockIdentity:
     def get_result(self, session_ref: str) -> IdentityResult:
         return IdentityResult(status="pending", full_name=None)
 
+    def submit_documents(self, user_ref: str, front: bytes, back: bytes, selfie: bytes) -> IdentityResult:
+        return IdentityResult(status="pending", full_name=None)
+
     def match_selfie(self, user_ref: str, image: bytes) -> bool:
         # The mock never confirms a face, so nothing is approved by accident.
         return False
