@@ -1,0 +1,40 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Actions</h2>
+  {% if original.status == "pending" or original.status == "held" %}
+    <form method="post" action="{% url 'admin:accounts_enrolment_approve' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="submit" class="default" value="Approuver" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:accounts_enrolment_refuse' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="text" name="reason" placeholder="Motif" size="50" required>
+      <input type="submit" value="Refuser">
+    </form>
+  {% endif %}
+  {% if original.status == "pending" %}
+    <form method="post" action="{% url 'admin:accounts_enrolment_hold' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="text" name="reason" placeholder="Motif" size="50" required>
+      <input type="submit" value="Mettre en attente">
+    </form>
+  {% endif %}
+  {% if original.status == "approved" %}
+    <form method="post" action="{% url 'admin:accounts_enrolment_send' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="submit" class="default" value="Envoyer par WhatsApp" style="float:none">
+    </form>
+  {% endif %}
+  {% if original.status == "code_sent" %}
+    <form method="post" action="{% url 'admin:accounts_enrolment_send' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <input type="submit" value="Renvoyer par WhatsApp">
+    </form>
+  {% endif %}
+  {% if original.status == "completed" or original.status == "refused" or original.status == "expired" or original.status == "locked" %}
+    <p>Aucune action possible : la demande est close.</p>
+  {% endif %}
+</div>
+{% endblock %}

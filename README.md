@@ -49,3 +49,16 @@ These are not settled by the code and must be supplied by the business:
 - Labour status of mini-jobbers, insurance cover.
 - Safety desk staffing and hours, incident protocol, police contact, emergency numbers.
 - Trademark, domain and store availability of the name "petitGombo".
+
+## Trying the enrolment flow by hand
+
+Create an application as the app would:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/enrolment/applications \
+  -H 'Content-Type: application/json' \
+  -d '{"phone":"07 08 09 10 11","role":"jobber","device_id":"11111111-1111-4111-8111-111111111111","device_model":"curl","platform":"android","public_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=","client_token":"smoke-token"}'
+```
+
+Then open the web console, go to "Demandes d'enrôlement", approve the application and press
+"Envoyer par WhatsApp". Staff members need the `enrolment_agent` group (superusers have every right).

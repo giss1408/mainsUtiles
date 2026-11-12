@@ -109,3 +109,29 @@ def enrol_device(db, staff_user):
 @pytest.fixture
 def enrolled(enrol_device):
     return enrol_device()
+
+
+@pytest.fixture
+def pending_request(db):
+    import uuid
+
+    from apps.accounts.services import enrolment
+
+    return enrolment.apply(
+        phone="0708091011",
+        role="jobber",
+        device_id=uuid.uuid4(),
+        device_model="Tecno Spark",
+        platform="android",
+        public_key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        client_token="tok",
+    )
+
+
+@pytest.fixture
+def agent_client(staff_user):
+    from django.test import Client
+
+    client = Client()
+    client.force_login(staff_user)
+    return client
