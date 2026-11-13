@@ -38,6 +38,8 @@ STATUS = {
     "contact_code_invalid": 422,
     "contact_code_expired": 422,
     "contact_locked": 423,
+    "card_invalid": 400,
+    "choice_invalid": 400,
     # Job offers
     "verification_required": 403,
     "category_invalid": 400,
@@ -85,6 +87,8 @@ MESSAGES = {
     "contact_code_invalid": "Code incorrect.",
     "contact_code_expired": "Ce code a expiré. Demandez-en un nouveau.",
     "contact_locked": "Trop d'essais. Demandez un nouveau code.",
+    "card_invalid": "Carte introuvable.",
+    "choice_invalid": "Choix invalide.",
     # Shown to staff in the console when a verification decision breaks a rule.
     "under_age": "La personne a moins de 18 ans. La vérification ne peut pas être confirmée.",
     "document_expired": "Le document d'identité est expiré.",
