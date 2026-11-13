@@ -61,9 +61,11 @@ def test_checklist_for_a_new_jobber(api_client, jobber_bearer):
     assert response.json() == {
         "tier": "J0",
         "review_hours": 24,
-        "required": ["identity", "guarantor"],
+        "required": ["identity", "guarantor", "trusted_contact", "briefing"],
         "identity": {"status": "not_started", "reason": ""},
         "guarantor": {"status": "not_started", "reason": ""},
+        "trusted_contact": {"status": "not_started", "reason": "", "confirmed": 0, "pending": 0},
+        "briefing": {"status": "not_started", "reason": "", "answered": 0, "total": 3, "new_cards": 3},
     }
 
 

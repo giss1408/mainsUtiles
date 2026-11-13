@@ -248,7 +248,9 @@ GUARANTOR_VALID_MONTHS = env.int("GUARANTOR_VALID_MONTHS", default=12)
 # How many jobbers one bill (customer number) may vouch for.
 GUARANTOR_MAX_JOBBERS = env.int("GUARANTOR_MAX_JOBBERS", default=3)
 # Steps a jobber must have confirmed to reach tier J1.
-JOBBER_REQUIRED_STEPS = env.list("JOBBER_REQUIRED_STEPS", default=["identity", "guarantor"])
+JOBBER_REQUIRED_STEPS = env.list(
+    "JOBBER_REQUIRED_STEPS", default=["identity", "guarantor", "trusted_contact", "briefing"]
+)
 # Trusted contacts: a code is sent by staff on WhatsApp; a contact is replaced, never removed.
 TRUSTED_CONTACTS_MAX = env.int("TRUSTED_CONTACTS_MAX", default=2)
 TRUSTED_CONTACT_CODE_TTL_MINUTES = env.int("TRUSTED_CONTACT_CODE_TTL_MINUTES", default=1440)
