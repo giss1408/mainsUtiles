@@ -21,6 +21,14 @@ payment all on the record (safety rule 4: no booking off the record).
 - **The householder pays the platform first**, by mobile money. The platform pays the jobber after
   the duty is done.
 - **Mobile money only** in this piece. Cash, with the QR code scan, comes later.
+- **Payment is manual, checked by staff** (amendment, 2026-11-13). There is no payment API. Staff set
+  up the platform's receiving numbers in the admin console for Wave, MTN MoMo and Orange Money. The
+  householder pays that number from their own mobile-money app, then uploads a screenshot and the
+  transaction reference. Staff check the amount and reference against the platform account's real
+  history and confirm. **If no payment method is set, the service is not provided**: nobody can apply
+  or be accepted, and the apps say so.
+- **The jobber is paid by staff**, manually from the platform's number, after the duty is done;
+  staff record the reference. A refund is manual in the same way.
 
 ## Goals
 
@@ -38,8 +46,8 @@ payment all on the record (safety rule 4: no booking off the record).
   The apps show the new state when opened or refreshed. (Later pieces.)
 - Cash and the payment QR code; the householder access fee; recurring or multi-day offers; several
   jobbers on one offer; tier J2 rules; favourites and "rebook"; tips.
-- A real payment provider. The `PaymentProvider` interface and a mock exist; the real one is a
-  business decision (Wave, Orange, MTN or an aggregator).
+- A payment API or webhooks. The `PaymentProvider` interface stays unused for now; it can return when a
+  provider with an API is chosen.
 
 ## Anti-goals (a failure even if it works)
 
@@ -80,8 +88,8 @@ booking: accepted ──pay──▶ confirmed ──window opens──▶ addre
 
 1. **Applications** (`apps/bookings`): apply, list, withdraw, accept; the booking is created
    `accepted`; the offer leaves the jobber list.
-2. **Payment and address release** (`apps/payments`): pay, confirm, expiry, cancellation and refund,
-   the release window.
+2. **Payment and address release** (`apps/payments`): payment methods, proof of payment and staff
+   confirmation, expiry, cancellation and refund, the release window, the jobber's name and photo.
 3. **The job and after**: check-in and check-out, householder confirmation and timeout, payout,
    disputes in the console, reviews, rating on the applicant card.
 
@@ -101,19 +109,28 @@ be `published` and not started; the chosen applicant must still be J1; the booki
 `accepted` with a snapshot of category, duties, start, duration, pay, commune and quartier; the
 other applications become `declined`; the offer becomes `booked` (hidden from jobbers).
 
-**Paying.** The householder has `PAYMENT_WINDOW_HOURS` (12) after accepting, and never past the
-release window's opening. They pay `pay_xof` plus the platform fee (`PLATFORM_FEE_PERCENT`, default
-0, a business decision) from a mobile-money number they enter. The payment starts `pending`; a
-signed webhook (idempotent, by provider reference) sets it `successful` or `failed`. On success the
-booking becomes `confirmed`, and the jobber's photo and full name are released to the householder.
-If the window passes unpaid, the booking becomes `expired`, the applicant is told, and the offer is
-`published` again if it has not started.
+**Payment methods.** Staff keep a list in the console ("Moyens de paiement"): provider (Wave, MTN MoMo,
+Orange Money), the receiving number, the account name shown to the householder, and active or not. The
+service is available only while at least one method is active with a number; `apply` and `accept` are
+refused with `payment_unavailable` otherwise.
+
+**Paying.** The householder has `PAYMENT_WINDOW_HOURS` (12) after accepting, and never past the release
+window's opening. They see the amount (`pay_xof` plus `PLATFORM_FEE_PERCENT`, default 0) and the active
+methods' numbers, pay from their own app, then choose the method, type the transaction reference and
+upload a screenshot. The booking becomes `payment_review`. Staff confirm or refuse. A refusal returns the
+booking to `accepted` with the reason, so the householder can send another proof inside the window. A
+confirmation makes the booking `confirmed` and releases the jobber's full name and verified photo to the
+householder. One transaction reference confirms only one booking. A booking in `payment_review` does not
+expire: staff are expected to answer, and a stale review is shown at the top of their queue. A booking in
+`accepted` that is not paid in time becomes `expired`, and the offer is `published` again if it has not
+started.
 
 **Releasing the address.** Only to the accepted jobber, only for a `confirmed` booking, only from
 `ADDRESS_RELEASE_HOURS` (3) before the start until check-out. Each release is audited. Before then
 the jobber sees commune and quartier only.
 
-**Cancelling.** Before check-in, either side can cancel; a `confirmed` booking is refunded in full
+**Cancelling.** Before check-in, either side can cancel; a `confirmed` booking is refunded in full, by
+staff, who record the refund reference (a queue "Remboursements à faire")
 (`CANCEL_FREE_HOURS`, default 24 h before the start; after that the refund rule is a business
 decision, default full refund and a recorded strike). Repeated cancellations are flagged for staff
 (`CANCEL_STRIKES_FLAG`, 3 in 30 days). The offer goes back to `published` if it has not started.
@@ -133,10 +150,13 @@ n'allait pas" report goes to staff without telling the other side.
 - `Application` (offer, jobber, message, status `pending/accepted/declined/withdrawn`, timestamps).
 - `Booking` (offer, application, householder, jobber, snapshot fields, state per the diagram, per-state
   timestamps, `cancelled_by`, `cancel_reason`).
-- `Payment` (booking, amount, fee, state `pending/successful/failed/refunded/disputed`, payout state
-  `none/pending/paid/failed`, provider references, an idempotency key; unique per booking attempt).
+- `PaymentMethod` (provider, receiving number, account name, active), edited in the console.
+- `Payment` (booking, method, amount, fee, reference, screenshot, state `submitted/confirmed/refused/
+  refund_due/refunded`, who decided and when, the reason on a refusal). A reference is unique among
+  confirmed payments.
+- `Payout` (booking, amount, method, reference, paid by, paid at): one per completed booking.
 - `Review` (booking, author, about, stars, comment, published_at); `Report` for private reports.
-- `Offer.Status` gains `booked`.
+- `Offer.Status` gains `booked`; `Booking.Status` gains `payment_review`.
 - Every transition writes an `AdminAction`-style audit row (actor may be the user, a task or staff).
 
 ## Surfaces
@@ -146,7 +166,8 @@ n'allait pas" report goes to staff without telling the other side.
   A jobber below J1 sees what is still missing, with a link to the checklist.
 - **Householder app:** each offer shows its applicants; accepting; the payment screen; the booking
   with state, "Confirmer que c'est fait", "Signaler un problème", reviews.
-- **Console (staff):** bookings board, disputes, payment problems, strikes, reports. Staff app: later.
+- **Console (staff):** payment methods, the payments to check, refunds to make, payouts to make, the
+  bookings board, disputes, strikes, reports. The staff app gets the payments queue later.
 - **Backend:** apps `bookings` and `payments`; the existing `PaymentProvider` and a mock; Celery tasks
   for expiry, release timeout and review publication.
 
@@ -160,8 +181,9 @@ scale 2 without overflow; threat-model rows added for each new risk.
 
 ## Open decisions for the business
 
-- The payment provider and its settlement model (can it hold funds until release? does it pay out to
-  a mobile-money number?). Until then the mock stands in. Do not say "escrow" in the apps.
+- Who holds the platform's mobile-money accounts and how staff are trained to check a payment against
+  the account history, not the screenshot alone. Holding customers' money may need a licence or a
+  partner: a legal review before launch. Do not say "escrow" in the apps.
 - The platform fee and who bears it; the refund rule for a late cancellation.
 - Whether SMS or push is needed for "you were accepted" and "pay now", given phones that rarely open
   the app. (Probably yes before launch; out of scope here.)
