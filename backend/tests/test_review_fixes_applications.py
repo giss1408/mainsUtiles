@@ -1,6 +1,5 @@
 """Regressions found by the review of the applications stage."""
 
-import threading
 from datetime import timedelta
 
 import pytest
@@ -50,31 +49,6 @@ def test_accept_refuses_a_jobber_who_opened_a_dispute_after_applying(verified_ho
     old = make_offer(verified_householder, days=-5, status=Offer.Status.CLOSED)
     booking_for(old, Application.objects.create(offer=old, jobber=jobber), Booking.Status.DISPUTED)
     assert code(lambda: applications.accept(verified_householder, application.pk)) == "dispute_open"
-
-
-@pytest.mark.django_db(transaction=True, serialized_rollback=True)
-def test_simultaneous_applications_to_different_offers_respect_the_cap(
-    verified_householder, jobber, settings
-):
-    settings.APPLICATIONS_MAX_OPEN = 1
-    offers = [make_offer(verified_householder, days=2 + n) for n in range(2)]
-    results = []
-
-    def run(offer):
-        try:
-            applications.apply(jobber, offer.pk, "")
-            results.append("ok")
-        except BookingError as exc:
-            results.append(exc.code)
-        finally:
-            connection.close()
-
-    threads = [threading.Thread(target=run, args=(offer,)) for offer in offers]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-    assert sorted(results) == ["ok", "too_many_applications"]
 
 
 def test_withdrawing_a_booked_offer_cancels_its_unpaid_booking(verified_householder, jobber):

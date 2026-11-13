@@ -285,7 +285,7 @@ def test_tidy_closes_past_offers_and_withdraws_those_of_unverified_householders(
     past.refresh_from_db()
     future.refresh_from_db()
     lapsed.refresh_from_db()
-    assert result == {"closed": 1, "withdrawn": 1}
+    assert result == {"closed": 1, "withdrawn": 1, "expired": 0}
     assert past.status == "closed" and future.status == "published"
     assert lapsed.status == "withdrawn" and "vérifié" in lapsed.reason
 

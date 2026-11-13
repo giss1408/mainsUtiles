@@ -97,7 +97,8 @@ def test_second_accept_is_invalid_state_and_one_booking_exists(
 
 
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
-def test_two_devices_accepting_at_once_make_one_booking(verified_householder, jpeg, verifier):
+def test_concurrent_requests_stay_consistent(verified_householder, jpeg, verifier, settings):
+    """Two devices accepting at once make one booking; simultaneous applications keep the cap."""
     offer = make_offer(verified_householder)
     first, second = j1_jobber(jpeg, verifier), j1_jobber(jpeg, verifier)
     a = applications.apply(first, offer.pk, "")
@@ -120,6 +121,28 @@ def test_two_devices_accepting_at_once_make_one_booking(verified_householder, jp
         thread.join()
     assert sorted(results) == ["invalid_state", "ok"] or sorted(results) == ["offer_unavailable", "ok"]
     assert Booking.objects.filter(offer=offer).count() == 1
+
+    # Simultaneous applications to different offers must not pass the jobber's cap.
+    settings.APPLICATIONS_MAX_OPEN = 1
+    busy = j1_jobber(jpeg, verifier)
+    others = [make_offer(verified_householder, days=5 + n) for n in range(2)]
+    outcomes = []
+
+    def apply_to(target):
+        try:
+            applications.apply(busy, target.pk, "")
+            outcomes.append("ok")
+        except BookingError as exc:
+            outcomes.append(exc.code)
+        finally:
+            connection.close()
+
+    workers = [threading.Thread(target=apply_to, args=(target,)) for target in others]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join()
+    assert sorted(outcomes) == ["ok", "too_many_applications"]
 
 
 def test_accept_refused_when_the_applicant_lost_j1(offer, verified_householder, jobber):
