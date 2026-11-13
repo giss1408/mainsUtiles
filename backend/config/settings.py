@@ -118,6 +118,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.verification.tasks.expire_guarantors",
         "schedule": 3600.0,
     },
+    "apply-contact-replacements": {
+        "task": "apps.verification.tasks.apply_contact_replacements",
+        "schedule": 3600.0,
+    },
     "tidy-offers": {
         "task": "apps.listings.tasks.tidy_offers",
         "schedule": 900.0,
@@ -245,6 +249,15 @@ GUARANTOR_VALID_MONTHS = env.int("GUARANTOR_VALID_MONTHS", default=12)
 GUARANTOR_MAX_JOBBERS = env.int("GUARANTOR_MAX_JOBBERS", default=3)
 # Steps a jobber must have confirmed to reach tier J1.
 JOBBER_REQUIRED_STEPS = env.list("JOBBER_REQUIRED_STEPS", default=["identity", "guarantor"])
+# Trusted contacts: a code is sent by staff on WhatsApp; a contact is replaced, never removed.
+TRUSTED_CONTACTS_MAX = env.int("TRUSTED_CONTACTS_MAX", default=2)
+TRUSTED_CONTACT_CODE_TTL_MINUTES = env.int("TRUSTED_CONTACT_CODE_TTL_MINUTES", default=1440)
+TRUSTED_CONTACT_CODE_MAX_ATTEMPTS = env.int("TRUSTED_CONTACT_CODE_MAX_ATTEMPTS", default=5)
+# Wait between two requests for a code.
+TRUSTED_CONTACT_RESEND_SECONDS = env.int("TRUSTED_CONTACT_RESEND_SECONDS", default=600)
+TRUSTED_CONTACT_MAX_ADDS_PER_DAY = env.int("TRUSTED_CONTACT_MAX_ADDS_PER_DAY", default=3)
+# A replaced contact stays this long after its old number has been warned.
+TRUSTED_CONTACT_CHANGE_DELAY_HOURS = env.int("TRUSTED_CONTACT_CHANGE_DELAY_HOURS", default=72)
 
 # Job offers. Categories and moderation terms are edited in the console, not here.
 OFFER_EARLIEST_START = env.str("OFFER_EARLIEST_START", default="06:00")
