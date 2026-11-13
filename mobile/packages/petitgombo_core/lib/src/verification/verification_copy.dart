@@ -1,3 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../app/app_role.dart';
+import '../app/providers.dart';
 import 'capture.dart';
 import 'verification_models.dart';
 
@@ -12,6 +16,7 @@ abstract final class VerificationCopy {
   static const identityTitle = "Pièce d'identité";
   static const addressTitle = 'Justificatif de domicile';
   static const homeTitle = 'Position du domicile';
+  static const guarantorTitle = 'Garant';
 
   static const start = 'Commencer';
   static const restart = 'Recommencer';
@@ -105,3 +110,60 @@ abstract final class VerificationCopy {
         CaptureFailure.unavailable => cameraUnavailable,
       };
 }
+
+/// The sentences that change with the person addressed: "vous" for a householder, "tu" for a jobber.
+class VerificationVoice {
+  const VerificationVoice({
+    required this.title,
+    required this.intro,
+    required this.verifiedBody,
+    required this.chooseIdentityDocument,
+    required this.captureSelfie,
+    required this.selfieHint,
+    required this.summaryTitle,
+    required this.identityPrivacy,
+  });
+
+  static const vous = VerificationVoice(
+    title: VerificationCopy.title,
+    intro: VerificationCopy.intro,
+    verifiedBody: VerificationCopy.verifiedBody,
+    chooseIdentityDocument: VerificationCopy.chooseIdentityDocument,
+    captureSelfie: VerificationCopy.captureSelfie,
+    selfieHint: VerificationCopy.selfieHint,
+    summaryTitle: VerificationCopy.summaryTitle,
+    identityPrivacy:
+        'Vos photos sont chiffrées et vues seulement par notre équipe de vérification. '
+        'Chaque consultation est enregistrée.',
+  );
+
+  static const tu = VerificationVoice(
+    title: 'Vérifie ton compte',
+    intro: 'Deux étapes pour pouvoir postuler.',
+    verifiedBody: 'Tu pourras bientôt postuler aux offres.',
+    chooseIdentityDocument: 'Quel document vas-tu utiliser ?',
+    captureSelfie: 'Ton visage',
+    selfieHint: "Regarde l'appareil, visage dégagé.",
+    summaryTitle: 'Vérifie tes photos',
+    identityPrivacy:
+        'Tes photos sont chiffrées et vues seulement par notre équipe de vérification. '
+        'Chaque consultation est enregistrée.',
+  );
+
+  final String title;
+  final String intro;
+  final String verifiedBody;
+  final String chooseIdentityDocument;
+  final String captureSelfie;
+  final String selfieHint;
+  final String summaryTitle;
+  final String identityPrivacy;
+
+  String captureTitle(PhotoKind kind) =>
+      kind == PhotoKind.selfie ? captureSelfie : VerificationCopy.captureTitle(kind);
+}
+
+final verificationVoiceProvider = Provider<VerificationVoice>(
+  (ref) =>
+      ref.watch(appRoleProvider) == AppRole.jobber ? VerificationVoice.tu : VerificationVoice.vous,
+);

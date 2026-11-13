@@ -44,12 +44,13 @@ class _PhotoStepState extends ConsumerState<PhotoStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final voice = ref.watch(verificationVoiceProvider);
     final photo = _photo;
     final failure = _failure;
     final denied = failure == CaptureFailure.permissionDenied ||
         failure == CaptureFailure.permissionDeniedForever;
     return FlowScaffold(
-      title: VerificationCopy.captureTitle(widget.kind),
+      title: voice.captureTitle(widget.kind),
       banner: failure == null
           ? null
           : MessageBanner(
@@ -60,9 +61,7 @@ class _PhotoStepState extends ConsumerState<PhotoStep> {
       children: [
         if (photo == null) ...[
           Text(
-            widget.kind == PhotoKind.selfie
-                ? VerificationCopy.selfieHint
-                : VerificationCopy.photoHint,
+            widget.kind == PhotoKind.selfie ? voice.selfieHint : VerificationCopy.photoHint,
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: Gaps.xl),

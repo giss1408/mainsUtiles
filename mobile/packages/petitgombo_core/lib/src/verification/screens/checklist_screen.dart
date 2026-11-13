@@ -9,6 +9,7 @@ import '../verification_copy.dart';
 import '../verification_models.dart';
 import 'address_flow.dart';
 import 'flow_scaffold.dart';
+import 'guarantor_flow.dart';
 import 'home_location_screen.dart';
 import 'identity_flow.dart';
 
@@ -59,6 +60,7 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = ref.watch(verificationControllerProvider);
+    final voice = ref.watch(verificationVoiceProvider);
     final checklist = state.checklist;
     // An error raised inside a step belongs to that step's screen, not to this one.
     final onTop = ModalRoute.of(context)?.isCurrent ?? true;
@@ -80,12 +82,12 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: Gaps.xl),
-                    Text(VerificationCopy.title, style: theme.textTheme.headlineMedium),
+                    Text(voice.title, style: theme.textTheme.headlineMedium),
                     const SizedBox(height: Gaps.sm),
                     if (checklist != null && checklist.verified)
-                      const _VerifiedNote()
+                      _VerifiedNote(body: voice.verifiedBody)
                     else
-                      Text(VerificationCopy.intro, style: theme.textTheme.bodyLarge),
+                      Text(voice.intro, style: theme.textTheme.bodyLarge),
                     const SizedBox(height: Gaps.lg),
                     if (state.error != null && onTop) ...[
                       MessageBanner(
@@ -97,7 +99,20 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
                     ],
                     if (checklist == null)
                       for (var i = 0; i < 3; i++) const _SkeletonCard()
-                    else ...[
+                    else if (checklist.forJobber) ...[
+                      _StepCard(
+                        title: VerificationCopy.identityTitle,
+                        step: checklist.identity,
+                        reviewHours: checklist.reviewHours,
+                        onStart: () => _open(const IdentityFlow()),
+                      ),
+                      _StepCard(
+                        title: VerificationCopy.guarantorTitle,
+                        step: checklist.guarantor,
+                        reviewHours: checklist.reviewHours,
+                        onStart: () => _open(const GuarantorFlow()),
+                      ),
+                    ] else ...[
                       _StepCard(
                         title: VerificationCopy.identityTitle,
                         step: checklist.identity,
@@ -136,7 +151,9 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
 }
 
 class _VerifiedNote extends StatelessWidget {
-  const _VerifiedNote();
+  const _VerifiedNote({required this.body});
+
+  final String body;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +168,7 @@ class _VerifiedNote extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(VerificationCopy.verified, style: theme.textTheme.titleMedium),
-              Text(VerificationCopy.verifiedBody, style: theme.textTheme.bodyLarge),
+              Text(body, style: theme.textTheme.bodyLarge),
             ],
           ),
         ),

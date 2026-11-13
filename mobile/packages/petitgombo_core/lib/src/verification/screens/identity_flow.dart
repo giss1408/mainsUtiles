@@ -61,15 +61,12 @@ class _IdentityFlowState extends ConsumerState<IdentityFlow> {
   Widget _step(BuildContext context) {
     if (_documentType == null) {
       return FlowScaffold(
-        title: VerificationCopy.chooseIdentityDocument,
+        title: ref.watch(verificationVoiceProvider).chooseIdentityDocument,
         children: [
           for (final entry in VerificationCopy.identityTypes.entries)
             ChoiceCard(label: entry.value, onTap: () => setState(() => _documentType = entry.key)),
           const SizedBox(height: Gaps.lg),
-          const PrivacyNote(
-            'Vos photos sont chiffrées et vues seulement par notre équipe de vérification. '
-            'Chaque consultation est enregistrée.',
-          ),
+          PrivacyNote(ref.watch(verificationVoiceProvider).identityPrivacy),
         ],
       );
     }
@@ -82,20 +79,18 @@ class _IdentityFlowState extends ConsumerState<IdentityFlow> {
       );
     }
     final state = ref.watch(verificationControllerProvider);
+    final voice = ref.watch(verificationVoiceProvider);
     return FlowScaffold(
-      title: VerificationCopy.summaryTitle,
+      title: voice.summaryTitle,
       banner: state.error == null ? null : MessageBanner(message: state.error!),
       children: [
         for (var i = 0; i < _kinds.length; i++) ...[
-          Text(
-            VerificationCopy.captureTitle(_kinds[i]),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text(voice.captureTitle(_kinds[i]), style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: Gaps.xs),
           PhotoPreview(
             photo: _photos[i],
             height: 140,
-            label: VerificationCopy.captureTitle(_kinds[i]),
+            label: voice.captureTitle(_kinds[i]),
           ),
           const SizedBox(height: Gaps.lg),
         ],
