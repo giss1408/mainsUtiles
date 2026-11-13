@@ -40,6 +40,8 @@ abstract final class ProfileCopy {
   static const identityVerified = 'Identité vérifiée';
   static const addressVerified = 'Adresse vérifiée';
   static const guarantorConfirmed = 'Garant confirmé';
+  static const contactConfirmed = 'Personne de confiance confirmée';
+  static const briefingDone = 'Consignes de sécurité vues';
   static const reviews = 'Avis reçus';
   static const noReview = 'Aucun avis pour le moment';
   static const noReviewBodyVous = 'Les avis apparaîtront ici après vos premières missions.';
@@ -77,6 +79,8 @@ class ProfileScreen extends ConsumerWidget {
       ] else ...[
         (ProfileCopy.identityVerified, checklist?.identity.status == StepStatus.confirmed),
         (ProfileCopy.guarantorConfirmed, checklist?.guarantor.status == StepStatus.confirmed),
+        (ProfileCopy.contactConfirmed, checklist?.trustedContact.status == StepStatus.confirmed),
+        (ProfileCopy.briefingDone, checklist?.briefing.status == StepStatus.confirmed),
       ],
     ];
 

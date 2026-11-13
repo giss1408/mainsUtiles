@@ -139,6 +139,15 @@ class PrivacyScreen extends StatelessWidget {
               'voit ces informations, jamais les ménages ni les autres mini-jobbers.',
         ),
         InfoSection(
+          Icons.contact_phone_outlined,
+          'Informations sur votre personne de confiance',
+          'Un mini-jobber indique le nom et le numéro de téléphone de la personne à prévenir si '
+              'quelque chose ne va pas pendant une mission. Notre équipe lui envoie un seul '
+              "message WhatsApp avec un code, pour qu'elle confirme. Le numéro n'est utilisé que "
+              'pour cela. Seul le personnel habilité voit ces informations, jamais les ménages ni '
+              'les autres mini-jobbers.',
+        ),
+        InfoSection(
           Icons.enhanced_encryption_outlined,
           'Comment elles sont protégées',
           'Les photos et les informations sensibles sont chiffrées. La connexion est liée à votre '

@@ -108,6 +108,7 @@ void main() {
     await tap(tester, find.text('Profil'));
     await tap(tester, find.text('Confidentialité et données'));
     expect(find.text('Informations sur votre garant'), findsOneWidget);
+    expect(find.text('Informations sur votre personne de confiance'), findsOneWidget);
     expect(find.textContaining('numéro de téléphone'), findsWidgets);
   });
 
@@ -130,7 +131,10 @@ void main() {
     final adapter = FakeAdapter()
       ..reply(
         200,
-        jobberChecklistJson(identity: {'status': 'confirmed', 'reason': ''}),
+        jobberChecklistJson(
+          identity: {'status': 'confirmed', 'reason': ''},
+          contact: contactStepJson(status: 'confirmed', confirmed: 1),
+        ),
       );
     await pumpShell(tester, adapter: adapter);
     ProviderScope.containerOf(tester.element(find.byType(HomeShell)))
@@ -142,6 +146,9 @@ void main() {
     expect(find.text('Identité vérifiée'), findsOneWidget);
     expect(find.text('Garant confirmé'), findsNothing);
     expect(find.text('Garant confirmé : à compléter'), findsOneWidget);
+    expect(find.text('Personne de confiance confirmée'), findsOneWidget);
+    expect(find.text('Consignes de sécurité vues'), findsNothing);
+    expect(find.text('Consignes de sécurité vues : à compléter'), findsOneWidget);
   });
 
   testWidgets('jobber profile earns nothing before the checklist is known', (tester) async {
@@ -150,6 +157,8 @@ void main() {
     expect(find.text('Identité vérifiée'), findsNothing);
     expect(find.text('Garant confirmé'), findsNothing);
     expect(find.text('Identité vérifiée : à compléter'), findsOneWidget);
+    expect(find.text('Personne de confiance confirmée'), findsNothing);
+    expect(find.text('Consignes de sécurité vues'), findsNothing);
   });
 
   testWidgets('a review card shows the author, the words and its stars in words', (tester) async {

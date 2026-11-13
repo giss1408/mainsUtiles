@@ -95,6 +95,7 @@ abstract final class VerificationCopy {
 
   // Trusted contacts, jobber only, in "tu".
   static const contactsTitle = 'Personnes de confiance';
+  static const contactStepTitle = 'Personne de confiance';
   static String contactsIntro(int max) =>
       'Une personne de confiance est prévenue si quelque chose ne va pas pendant une mission. '
       "Tu peux en indiquer jusqu'à $max.";
@@ -125,6 +126,11 @@ abstract final class VerificationCopy {
       'Notre équipe envoie un code par WhatsApp à cette personne, en général sous $hours h. '
       'Demande-le-lui, puis saisis-le ici.';
   static const contactCodeLabel = 'Code à 6 chiffres';
+  static const contactStepWaiting = 'En attente de confirmation.';
+  static const modify = 'Modifier';
+  static const resume = 'Continuer';
+  static String briefingStepProgress(int answered, int total) =>
+      '$answered ${answered > 1 ? 'cartes' : 'carte'} sur $total';
   static const contactAwaiting = "En attente d'envoi du code";
   static const contactSent = 'Code envoyé, à saisir';
   static String contactReplacedOn(DateTime date) =>
@@ -225,7 +231,7 @@ class VerificationVoice {
 
   static const tu = VerificationVoice(
     title: 'Vérifie ton compte',
-    intro: 'Deux étapes pour pouvoir postuler.',
+    intro: 'Quelques étapes pour pouvoir postuler.',
     verifiedBody: 'Tu pourras bientôt postuler aux offres.',
     chooseIdentityDocument: 'Quel document vas-tu utiliser ?',
     captureSelfie: 'Ton visage',

@@ -8,10 +8,12 @@ import '../verification_controller.dart';
 import '../verification_copy.dart';
 import '../verification_models.dart';
 import 'address_flow.dart';
+import 'briefing_flow.dart';
 import 'flow_scaffold.dart';
 import 'guarantor_flow.dart';
 import 'home_location_screen.dart';
 import 'identity_flow.dart';
+import 'trusted_contact_flow.dart';
 
 /// The householder's home screen until verified: three steps, each with its status.
 class ChecklistScreen extends ConsumerStatefulWidget {
@@ -54,6 +56,51 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
   void _open(Widget flow) {
     ref.read(verificationControllerProvider.notifier).clearError();
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => flow));
+  }
+
+  Widget _contactCard(VerificationChecklist checklist) {
+    final step = checklist.trustedContact;
+    return _StepCard(
+      title: VerificationCopy.contactStepTitle,
+      step: step,
+      reviewHours: checklist.reviewHours,
+      status: switch (step.status) {
+        StepStatus.inProgress => VerificationCopy.contactStepWaiting,
+        StepStatus.confirmed => VerificationCopy.confirmed,
+        _ => '',
+      },
+      action: switch (step.status) {
+        StepStatus.confirmed => const _Action(VerificationCopy.modify, primary: false),
+        StepStatus.inProgress => const _Action(VerificationCopy.resume),
+        _ => const _Action(VerificationCopy.start),
+      },
+      onStart: () => _open(const TrustedContactFlow()),
+    );
+  }
+
+  Widget _briefingCard(VerificationChecklist checklist) {
+    final step = checklist.briefing;
+    final hasNew = step.status == StepStatus.confirmed && step.newCards > 0;
+    return _StepCard(
+      title: VerificationCopy.briefingTitle,
+      step: step,
+      reviewHours: checklist.reviewHours,
+      status: hasNew
+          ? VerificationCopy.briefingNewCard
+          : switch (step.status) {
+              StepStatus.inProgress =>
+                VerificationCopy.briefingStepProgress(step.answered, step.total),
+              StepStatus.confirmed => VerificationCopy.confirmed,
+              _ => '',
+            },
+      action: hasNew || step.status == StepStatus.inProgress
+          ? const _Action(VerificationCopy.resume)
+          : step.status == StepStatus.confirmed
+              ? null
+              : const _Action(VerificationCopy.start),
+      hideDefaultAction: step.status == StepStatus.confirmed,
+      onStart: () => _open(const BriefingFlow()),
+    );
   }
 
   @override
@@ -112,6 +159,8 @@ class _ChecklistScreenState extends ConsumerState<ChecklistScreen> with WidgetsB
                         reviewHours: checklist.reviewHours,
                         onStart: () => _open(const GuarantorFlow()),
                       ),
+                      _contactCard(checklist),
+                      _briefingCard(checklist),
                     ] else ...[
                       _StepCard(
                         title: VerificationCopy.identityTitle,
@@ -183,12 +232,22 @@ class _StepCard extends StatelessWidget {
     required this.step,
     required this.reviewHours,
     required this.onStart,
+    this.status,
+    this.action,
+    this.hideDefaultAction = false,
   });
 
   final String title;
   final VerificationStep step;
   final int reviewHours;
   final VoidCallback onStart;
+
+  /// The sentence under the title, when the step is not reviewed by staff.
+  final String? status;
+
+  /// The button, when the step has its own (no review: no "Recommencer").
+  final _Action? action;
+  final bool hideDefaultAction;
 
   (IconData, Color) _icon(BuildContext context) => switch (step.status) {
         StepStatus.notStarted => (Icons.radio_button_unchecked, AppColors.textMuted),
@@ -204,7 +263,7 @@ class _StepCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (icon, color) = _icon(context);
-    final status = VerificationCopy.statusText(step, reviewHours);
+    final status = this.status ?? VerificationCopy.statusText(step, reviewHours);
     return Container(
       margin: const EdgeInsets.only(bottom: Gaps.md),
       padding: const EdgeInsets.all(Gaps.lg),
@@ -235,7 +294,13 @@ class _StepCard extends StatelessWidget {
               ),
             ],
           ),
-          if (step.status.canStart) ...[
+          if (action != null) ...[
+            const SizedBox(height: Gaps.md),
+            if (action!.primary)
+              FilledButton(onPressed: onStart, child: Text(action!.label))
+            else
+              OutlinedButton(onPressed: onStart, child: Text(action!.label)),
+          ] else if (!hideDefaultAction && step.status.canStart) ...[
             const SizedBox(height: Gaps.md),
             if (step.status == StepStatus.notStarted)
               FilledButton(onPressed: onStart, child: const Text(VerificationCopy.start))
@@ -246,6 +311,14 @@ class _StepCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A step button that differs from the usual Commencer / Recommencer.
+class _Action {
+  const _Action(this.label, {this.primary = true});
+
+  final String label;
+  final bool primary;
 }
 
 /// A grey block shaped like a step card, shown while the checklist loads.

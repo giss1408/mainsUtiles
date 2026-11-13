@@ -14,17 +14,20 @@ import 'checklist_screen.dart';
 class VerificationCard extends ConsumerWidget {
   const VerificationCard({super.key});
 
-  static const _total = 2;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final checklist = ref.watch(verificationControllerProvider).checklist;
     if (checklist == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final verified = checklist.verified;
-    final done = [checklist.identity, checklist.guarantor]
-        .where((step) => step.status == StepStatus.confirmed)
-        .length;
+    final steps = {
+      'identity': checklist.identity,
+      'guarantor': checklist.guarantor,
+      'trusted_contact': checklist.trustedContact,
+      'briefing': checklist.briefing,
+    };
+    final done =
+        checklist.required.where((name) => steps[name]?.status == StepStatus.confirmed).length;
     return Padding(
       padding: const EdgeInsets.only(bottom: Gaps.lg),
       child: AppCard(
@@ -48,7 +51,7 @@ class VerificationCard extends ConsumerWidget {
                   if (!verified) ...[
                     const SizedBox(height: Gaps.xs),
                     Text(
-                      VerificationCopy.cardProgress(done, _total),
+                      VerificationCopy.cardProgress(done, checklist.required.length),
                       style: theme.textTheme.bodyMedium!.copyWith(color: AppColors.textMuted),
                     ),
                   ],

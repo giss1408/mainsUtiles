@@ -162,8 +162,24 @@ void main() {
       jobberChecklistJson(identity: {'status': 'confirmed', 'reason': ''}),
     ]);
     expect(find.text('Fais vérifier ton compte'), findsOneWidget);
-    expect(find.text('1 étape sur 2'), findsOneWidget);
+    expect(find.text('1 étape sur 4'), findsOneWidget);
     expect(find.text('Compte vérifié'), findsNothing);
+  });
+
+  testWidgets('the card progress counts the steps the server requires', (tester) async {
+    final json = jobberChecklistJson(
+      identity: {'status': 'confirmed', 'reason': ''},
+      contact: contactStepJson(status: 'confirmed', confirmed: 1),
+    );
+    await pumpOffers(tester, [pageJson(), json]);
+    expect(find.text('2 étapes sur 4'), findsOneWidget);
+  });
+
+  testWidgets('with only two required steps the card says sur 2', (tester) async {
+    final json = jobberChecklistJson(identity: {'status': 'confirmed', 'reason': ''})
+      ..['required'] = ['identity', 'guarantor'];
+    await pumpOffers(tester, [pageJson(), json]);
+    expect(find.text('1 étape sur 2'), findsOneWidget);
   });
 
   testWidgets('at J1 the card says the account is verified', (tester) async {

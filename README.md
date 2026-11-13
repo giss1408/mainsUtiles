@@ -159,9 +159,9 @@ is an open decision (see "Open decisions").
 
 ## Jobber verification
 
-A jobber is tier J0 until the steps named in `JOBBER_REQUIRED_STEPS` (default `identity, guarantor`)
-are confirmed, then J1. The jobber app shows a card on "Offres" ("Fais vérifier ton compte", with its
-progress) that opens a checklist with two steps, written in "tu":
+A jobber is tier J0 until the steps named in `JOBBER_REQUIRED_STEPS` (default `identity, guarantor,
+trusted_contact, briefing`) are confirmed, then J1. The jobber app shows a card on "Offres" ("Fais vérifier ton compte", with its
+progress) that opens a checklist with four steps, written in "tu":
 
 1. **Identité** — the same photos as a householder (front, back, selfie), sent to
    `POST /api/v1/jobber/verification/identity`.
@@ -169,6 +169,14 @@ progress) that opens a checklist with two steps, written in "tu":
    other), and a photo of a bill in the guarantor's name (water, electricity, certificat de
    résidence or prepaid subscription), sent to `POST /api/v1/jobber/verification/guarantor`.
    `GET /api/v1/jobber/verification` returns statuses only, never the guarantor's name, phone or bill.
+3. **Personne de confiance** — up to two people (`TRUSTED_CONTACTS_MAX`) the jobber names; at least one
+   must be confirmed. A contact is confirmed by a 6-digit code that **staff send on WhatsApp** and
+   the jobber types in the app. A contact is never removed, only **replaced**: the new one goes
+   through the same code, the old one keeps counting for J1 until its replacement has confirmed, staff
+   have warned the old number and `TRUSTED_CONTACT_CHANGE_DELAY_HOURS` (72) have passed.
+4. **Consignes de sécurité** — the safety briefing: cards of text with a question, answered in the app.
+   A wrong answer shows why and allows another try; all active cards answered correctly completes the
+   step. A card added later does not take J1 away: the jobber just sees "Nouvelle carte à lire".
 
 Staff work in the web console under "Vérifications", queue "Garants" (permission
 `verification.view_guarantor`, group `verification_agent`):
@@ -178,13 +186,33 @@ Staff work in the web console under "Vérifications", queue "Garants" (permissio
 2. Confirm with the holder's name, the bill reference, the issue date and whether the name matches,
    or refuse with a reason. The jobber's identity must be confirmed first, and the call recorded.
 
+Staff also work two more queues in the console under "Vérifications":
+
+- **"Personnes de confiance"** (permission `verification.send_contact_code`, group `verification_agent`):
+  "À envoyer" lists the contacts waiting for a code. "Envoyer le code par WhatsApp" shows an
+  "Ouvrir WhatsApp" link once; the message is already written; send it from the official number
+  (`OFFICIAL_WHATSAPP_NUMBER`). The contact's number appears only inside that link, and every view and
+  send is audited. "À prévenir" lists confirmed contacts being replaced: warn the old number the same
+  way; the delay starts then. Without that notice the old contact stays.
+- **"Cartes de briefing"** (group `briefing_manager`): write each card (title, text, question, one
+  choice per line, the number of the right line, the explanation shown after a wrong answer), reorder
+  them and switch them on or off. **The three cards created by the migration are placeholders:
+  replace them before launch.**
+
 Settings (environment variables): `GUARANTOR_DOCUMENT_TYPES`, `GUARANTOR_BILL_MAX_AGE_MONTHS` (3),
 `GUARANTOR_VALID_MONTHS` (12; an expired guarantor drops the jobber back to J0, swept hourly by
-`expire-guarantors`), `GUARANTOR_MAX_JOBBERS` (3 jobbers per bill reference), `JOBBER_REQUIRED_STEPS`.
+`expire-guarantors`), `GUARANTOR_MAX_JOBBERS` (3 jobbers per bill reference), `JOBBER_REQUIRED_STEPS`, `TRUSTED_CONTACTS_MAX` (2),
+`TRUSTED_CONTACT_CODE_TTL_MINUTES` (1440), `TRUSTED_CONTACT_CODE_MAX_ATTEMPTS` (5),
+`TRUSTED_CONTACT_RESEND_SECONDS` (600), `TRUSTED_CONTACT_MAX_ADDS_PER_DAY` (3, replacements included),
+`TRUSTED_CONTACT_CHANGE_DELAY_HOURS` (72; swept hourly by `apply-contact-replacements`).
 
 Open decisions: the lawful basis for holding a third party's name, phone and bill (the privacy notice
 has a draft section "Informations sur votre garant"); whether a guarantor must consent in writing;
-what staff do when a guarantor does not answer; whether J1 should be required to apply (applications
+what staff do when a guarantor does not answer; the lawful basis for holding a trusted contact's number
+(section "Informations sur votre personne de confiance" in the privacy notice); who sends the
+WhatsApp messages, from which number, and the staff workload of sending every code; how a contact who
+says "I did not agree" gets off the list, since a contact can be replaced by the jobber but never
+removed; whether the briefing needs videos; whether J1 should be required to apply (applications
 do not exist yet). The jobber app takes its photos with the same in-app camera as the householder
 app; it asks for the camera permission only, never for the location.
 
