@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
 import 'device_capture.dart';
+import 'gallery_picker.dart';
 
 /// The householder app. Its screens live in petitgombo_core; the camera and
 /// the GPS, which only this app needs, are supplied here.
@@ -16,6 +17,7 @@ PetitGomboApp buildApp({
       overrides: [
         photoCaptureProvider.overrideWithValue(CameraPhotoCapture()),
         positionReaderProvider.overrideWithValue(GeolocatorPositionReader()),
+        proofPickerProvider.overrideWithValue(GalleryProofPicker()),
         ...overrides,
       ],
     );

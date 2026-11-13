@@ -14,10 +14,12 @@ import 'support/verification_fixtures.dart';
 
 class FakePicker implements ProofPicker {
   int calls = 0;
+  bool unreadable = false;
 
   @override
   Future<CapturedPhoto?> pick() async {
     calls++;
+    if (unreadable) throw const FormatException('not an image');
     return CapturedPhoto(
       bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]),
       capturedAt: DateTime.utc(2026, 11, 13, 10),
@@ -167,6 +169,18 @@ void main() {
     expect(find.text('Le délai pour payer est dépassé.'), findsOneWidget);
     expect(find.text('WAVE-123456'), findsOneWidget);
     expect(find.text('Payer la réservation'), findsOneWidget);
+  });
+
+  testWidgets('an unreadable image shows a message and keeps the screen', (tester) async {
+    final adapter = await pumpBooking(tester, bookingDetailJson());
+    await tap(tester, find.text('Payer'));
+    final container = ProviderScope.containerOf(tester.element(find.text('Payer la réservation')));
+    (container.read(proofPickerProvider) as FakePicker).unreadable = true;
+    await tap(tester, find.text("Choisir la capture d'écran"));
+    expect(find.text('Cette image ne peut pas être lue. Choisissez une autre capture.'),
+        findsOneWidget);
+    expect(find.text("Choisir la capture d'écran"), findsOneWidget);
+    expect(adapter.requests, hasLength(1));
   });
 
   testWidgets('without a payment method the accept buttons are replaced by the notice',

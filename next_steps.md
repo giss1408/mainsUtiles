@@ -1,7 +1,7 @@
 # Next steps
 
 State on `feat/jobber-verification`: jobber verification 3a (identity, guarantor), 3b (trusted
-contact, safety briefing) and piece 4 stage 1 (applications and accepting one applicant) are
+contact, safety briefing) and piece 4 stage 1 (applications and accepting one applicant) and stage 2 (payment, address release) are
 implemented and green. Nothing has been tried on a
 real phone, and no reviewer other than the author has read the branch.
 
@@ -30,18 +30,21 @@ real phone, and no reviewer other than the author has read the branch.
 
 ## Build next
 
-- **Applications and bookings, stage 2 of 3: payment and address release** (design:
-  `docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`). The householder pays the
-  platform first by mobile money (a mock provider behind `PaymentProvider`), the booking becomes
-  `confirmed`, the exact address is released shortly before the start, and either side can cancel.
-  Needs its own plan. Today an accepted booking waits for a payment that cannot be made yet.
-- **Stage 3:** check-in and check-out, householder confirmation, payout to the jobber, disputes in
-  the console, reviews and ratings.
-- **Before launch (business):** the payment provider and its settlement model, the platform fee, the
-  late-cancellation rule, and SMS or push for "you were accepted" and "pay now".
+- **Applications and bookings, stage 3 of 3: the job and after** (design:
+  `docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`): check-in and check-out, the
+  householder's confirmation (or the 24 h timeout), the payout to the jobber (staff send it by hand and
+  record the reference, a queue "Paiements à verser"), disputes in the console, reviews and ratings.
+  Needs its own plan.
+- **Staff app payments queue:** the payments to check and the refunds, like the contact codes, so staff
+  can confirm from the phone that holds the platform's mobile-money account.
+- **Before launch (business):** who holds the platform's mobile-money accounts and how staff check a
+  payment against the account's real history (a screenshot alone is not proof); a legal review of
+  holding customers' money; the platform fee; the late-cancellation refund rule; SMS or push for "you
+  were accepted", "pay now" and "your payment was refused".
 - **Out of scope so far:** tier J2 and commune of service, linked-account detection (shared guarantor,
   bill or phone across accounts) and a banned-guarantor rule, automated guarantor call, real SMS,
-  liveness check, cash with the QR code, live tracking, the door handshake, SOS, chat.
+  liveness check, cash with the QR code, live tracking, the door handshake, SOS, chat, strikes for
+  repeated cancellations.
 
 ## Housekeeping
 

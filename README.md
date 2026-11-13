@@ -284,5 +284,40 @@ API: jobber `POST offers/<id>/apply`, `GET my-applications`, `POST my-applicatio
 in the console under "Réservations".
 
 This is stage 1 of 3 (design: `docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`).
-Payment, the address release and cancellation are stage 2; check-in, the payout and reviews are
-stage 3.
+Stage 2 (below) adds payment, the address release and cancellation; check-in, the payout and
+reviews are stage 3.
+
+## Payment and address release
+
+There is no payment API. The platform has one or more mobile-money accounts; the householder pays one
+of them from their own app, then sends the transaction reference and a screenshot; staff check it
+against the account's real history and confirm.
+
+**Set up (staff, console "Moyens de paiement", group `payment_agent`).** One row per provider (Wave,
+MTN MoMo, Orange Money): the receiving number, the account name, active or not. **With no active
+method that has a number, nobody can apply or be accepted**, and the apps say so.
+
+**The flow.** Accepting a jobber creates the booking (`accepted`). The householder opens the booking in
+the app, sees the amount and the numbers, pays, picks the method, types the reference and chooses the
+screenshot from the gallery (converted to JPEG on the phone). The booking becomes `payment_review`.
+Staff open "Paiements" in the console (queue "À vérifier", oldest first, late ones marked), look at the
+proof, tick "Le montant correspond" and "La référence correspond", and confirm or refuse (the reason is
+shown to the householder, who can send another proof). One reference confirms only one booking. A
+confirmed booking shows the jobber's full name and verified photo to the householder; the jobber gets
+the exact pin (the householder's confirmed home position) `ADDRESS_RELEASE_HOURS` (3) before the start,
+until the job's end; every release and every view of the proof is audited.
+
+**Time and cancelling.** The householder has `PAYMENT_WINDOW_HOURS` (12) to send a proof, and never
+past the release time. An unpaid booking then expires (hourly task `expire-unpaid-bookings`) and the
+offer reopens if it has not started. A booking whose proof is under review never expires: staff are
+expected to answer. Either side can cancel before check-in; money that may have been sent becomes a
+line in "Remboursements à faire", and staff record the refund reference. Withdrawing a booked offer
+cancels its booking while it is unpaid or under review.
+
+**Settings:** `PAYMENT_WINDOW_HOURS`, `ADDRESS_RELEASE_HOURS`, `PLATFORM_FEE_PERCENT` (0 until the
+business decides), `CANCEL_FREE_HOURS`, `PAYMENT_REVIEW_LATE_HOURS` (2).
+
+**What staff must know.** A screenshot is easy to fake: confirm against the platform account's own
+history, not the picture. The console warns when the same image was sent for another payment. Holding
+customers' money may need a licence or a partner; get a legal review before launch.
+

@@ -27,6 +27,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   final _reference = TextEditingController();
   int? _methodId;
   CapturedPhoto? _screenshot;
+  String? _pickError;
 
   @override
   void initState() {
@@ -42,8 +43,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   Future<void> _pick() async {
-    final photo = await ref.read(proofPickerProvider).pick();
-    if (photo != null && mounted) setState(() => _screenshot = photo);
+    try {
+      final photo = await ref.read(proofPickerProvider).pick();
+      if (photo != null && mounted) {
+        setState(() {
+          _screenshot = photo;
+          _pickError = null;
+        });
+      }
+    } on FormatException {
+      if (mounted) setState(() => _pickError = ApplicationCopy.imageUnreadable);
+    }
   }
 
   Future<void> _send() async {
@@ -72,7 +82,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final ready = _methodId != null && _reference.text.trim().isNotEmpty && _screenshot != null;
     return FlowScaffold(
       title: ApplicationCopy.payTitle,
-      banner: state.error == null ? null : MessageBanner(message: state.error!),
+      banner: state.error != null
+          ? MessageBanner(message: state.error!)
+          : _pickError == null
+              ? null
+              : MessageBanner(message: _pickError!),
       children: [
         AppCard(
           child: Column(

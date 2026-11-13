@@ -86,6 +86,7 @@ abstract final class ApplicationCopy {
   static const gone = "Cette réservation n'existe plus.";
   static const jobberLabel2 = 'Jobber';
   static const photoLabel = 'Photo vérifiée';
+  static const imageUnreadable = 'Cette image ne peut pas être lue. Choisissez une autre capture.';
 
   static String bookingStatusLine(BookingDetail detail) {
     final payment = detail.payment;
