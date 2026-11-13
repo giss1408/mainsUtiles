@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/spacing.dart';
 import '../../applications/application_copy.dart';
 import '../../applications/screens/applicants_screen.dart';
+import '../../applications/screens/my_booking_screen.dart';
 import '../../verification/screens/flow_scaffold.dart';
 import '../../widgets/message_banner.dart';
 import '../../widgets/ui_kit.dart';
@@ -52,16 +53,23 @@ class MyOfferDetailScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: Gaps.sm),
             child: AppCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => MyBookingScreen(offerId: offer.id)),
+              ),
               child: Row(
                 children: [
                   const IconTile(icon: Icons.event_available),
                   const SizedBox(width: Gaps.md),
                   Expanded(
                     child: Text(
-                      ApplicationCopy.bookingLine(offer.booking!.jobberFirstName),
+                      ApplicationCopy.bookingLineFor(
+                        offer.booking!.jobberFirstName,
+                        offer.booking!.status,
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
+                  const Icon(Icons.chevron_right),
                 ],
               ),
             ),

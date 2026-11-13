@@ -11,22 +11,33 @@ import 'applications_controller.dart';
 const _keep = Object();
 
 class ApplicantsState {
-  const ApplicantsState({this.applicants, this.loading = false, this.sending = false, this.error});
+  const ApplicantsState({
+    this.applicants,
+    this.paymentAvailable = true,
+    this.loading = false,
+    this.sending = false,
+    this.error,
+  });
 
   /// Null until the first successful load.
   final List<ApplicantCard>? applicants;
+
+  /// False when staff have set up no payment method: nobody can be accepted.
+  final bool paymentAvailable;
   final bool loading;
   final bool sending;
   final String? error;
 
   ApplicantsState copyWith({
     List<ApplicantCard>? applicants,
+    bool? paymentAvailable,
     bool? loading,
     bool? sending,
     Object? error = _keep,
   }) =>
       ApplicantsState(
         applicants: applicants ?? this.applicants,
+        paymentAvailable: paymentAvailable ?? this.paymentAvailable,
         loading: loading ?? this.loading,
         sending: sending ?? this.sending,
         error: identical(error, _keep) ? this.error : error as String?,
@@ -56,8 +67,9 @@ class ApplicantsController extends StateNotifier<ApplicantsState> {
     if (state.loading) return;
     state = state.copyWith(loading: true, error: null);
     try {
-      final rows = await _session.authorized((access) => _api.applicants(access, offerId));
-      state = state.copyWith(applicants: rows, loading: false);
+      final (rows, available) =
+          await _session.authorized((access) => _api.applicants(access, offerId));
+      state = state.copyWith(applicants: rows, paymentAvailable: available, loading: false);
     } on ApiError catch (e) {
       state = state.copyWith(loading: false, error: applicationMessage(e));
     }

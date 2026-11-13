@@ -57,6 +57,9 @@ String formatDuration(int minutes) {
 String _hm(DateTime value) =>
     '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 
+/// `18:00`. Times are shown in Abidjan time, which is UTC.
+String formatClock(DateTime value) => _hm(value.toUtc());
+
 /// `samedi 14 novembre`.
 String formatDay(DateTime start) {
   final local = start.toUtc();

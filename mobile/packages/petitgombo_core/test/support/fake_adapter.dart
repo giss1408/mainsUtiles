@@ -14,6 +14,9 @@ class FakeAdapter implements HttpClientAdapter {
 
   void reply(int status, Object? body) => replies.add((status, body));
 
+  /// Answers with raw bytes (an image), not JSON.
+  void replyBytes(int status, List<int> bytes) => replies.add((status, Uint8List.fromList(bytes)));
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -25,6 +28,15 @@ class FakeAdapter implements HttpClientAdapter {
       throw DioException.connectionError(requestOptions: options, reason: 'offline');
     }
     final (status, body) = replies.removeAt(0);
+    if (body is Uint8List) {
+      return ResponseBody.fromBytes(
+        body,
+        status,
+        headers: {
+          Headers.contentTypeHeader: ['image/jpeg'],
+        },
+      );
+    }
     return ResponseBody.fromString(
       jsonEncode(body),
       status,

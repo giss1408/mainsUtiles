@@ -103,6 +103,32 @@ class ApplicationsController extends StateNotifier<ApplicationsState> {
       return false;
     }
   }
+
+  /// The exact pin, when the server shows it. Null otherwise; [ApplicationsState.error] then says why.
+  /// The address is not kept in the state: the screen holds it only while it is open.
+  Future<ReleasedAddress?> address(String bookingId) async {
+    state = state.copyWith(error: null);
+    try {
+      return await _session.authorized((access) => _api.address(access, bookingId));
+    } on ApiError catch (e) {
+      state = state.copyWith(error: applicationMessage(e));
+      return null;
+    }
+  }
+
+  Future<bool> cancelBooking(String bookingId, String reason) async {
+    if (state.sending) return false;
+    state = state.copyWith(sending: true, error: null);
+    try {
+      await _session.authorized((access) => _api.cancelJobberBooking(access, bookingId, reason));
+      state = state.copyWith(sending: false);
+      await load();
+      return true;
+    } on ApiError catch (e) {
+      state = state.copyWith(sending: false, error: applicationMessage(e));
+      return false;
+    }
+  }
 }
 
 final applicationsControllerProvider =

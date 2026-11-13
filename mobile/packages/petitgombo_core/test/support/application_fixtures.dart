@@ -54,4 +54,39 @@ Map<String, dynamic> jobberBookingJson() => {
       'pay_xof': 3500,
       'commune': 'Cocody',
       'quartier': 'Angré',
+      'address_available_from': '2026-11-14T05:00:00Z',
+      'payment': 'pending',
+    };
+
+Map<String, dynamic> methodJson({int id = 1, String provider = 'wave'}) => {
+      'id': id,
+      'provider': provider,
+      'provider_label': provider == 'wave' ? 'Wave' : 'MTN MoMo',
+      'number': '+2250101010101',
+      'account_name': 'petitGombo',
+    };
+
+Map<String, dynamic> bookingDetailJson({
+  String status = 'accepted',
+  Map<String, dynamic>? payment,
+  Map<String, dynamic>? jobber,
+  bool cancellable = true,
+}) =>
+    {
+      'id': 'b-1',
+      'status': status,
+      'amount_xof': 3500,
+      'fee_xof': 0,
+      'pay_deadline': '2026-11-14T02:00:00Z',
+      'methods': [methodJson(), methodJson(id: 2, provider: 'mtn_momo')],
+      'payment': payment,
+      'jobber': jobber ?? {'first_name': 'Awa'},
+      'cancellable': cancellable,
+    };
+
+Map<String, dynamic> addressJson() => {
+      'latitude': 5.3599,
+      'longitude': -3.9871,
+      'commune': 'Cocody',
+      'quartier': 'Angré',
     };

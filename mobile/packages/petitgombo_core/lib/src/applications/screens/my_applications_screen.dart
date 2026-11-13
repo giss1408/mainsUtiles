@@ -11,6 +11,7 @@ import '../../widgets/ui_kit.dart';
 import '../application_copy.dart';
 import '../application_models.dart';
 import '../applications_controller.dart';
+import 'jobber_booking_screen.dart';
 
 /// The offers the jobber applied to, and what became of each.
 class MyApplicationsScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,9 @@ class _MyApplicationsScreenState extends ConsumerState<MyApplicationsScreen> {
     final theme = Theme.of(context);
     final state = ref.watch(applicationsControllerProvider);
     final rows = state.applications;
+    final jobs = (state.bookings ?? const <JobberBooking>[])
+        .where((b) => b.status != 'cancelled' && b.status != 'expired')
+        .toList();
     return FlowScaffold(
       title: ApplicationCopy.myApplications,
       banner: state.error == null
@@ -96,6 +100,34 @@ class _MyApplicationsScreenState extends ConsumerState<MyApplicationsScreen> {
                 ),
               ),
             ),
+        if (jobs.isNotEmpty) ...[
+          const SizedBox(height: Gaps.lg),
+          const SectionHeader(ApplicationCopy.myJobs),
+          for (final job in jobs)
+            AppCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => JobberBookingScreen(booking: job)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(job.categoryName, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: Gaps.xs),
+                        Text(
+                          ApplicationCopy.jobStatus(job, DateTime.now()),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+        ],
       ],
     );
   }

@@ -66,6 +66,10 @@ class _ApplicantsScreenState extends ConsumerState<ApplicantsScreen> {
               onAction: ref.read(applicantsControllerProvider(widget.offerId).notifier).load,
             ),
       children: [
+        if (!state.paymentAvailable) ...[
+          const MessageBanner(message: ApplicationCopy.unavailable),
+          const SizedBox(height: Gaps.lg),
+        ],
         if (rows == null && state.error == null)
           const Center(child: CircularProgressIndicator())
         else if (rows != null && rows.isEmpty)
@@ -104,10 +108,11 @@ class _ApplicantsScreenState extends ConsumerState<ApplicantsScreen> {
                       Text(applicant.message, style: theme.textTheme.bodyLarge),
                     ],
                     const SizedBox(height: Gaps.md),
-                    FilledButton(
-                      onPressed: state.sending ? null : () => _accept(applicant),
-                      child: const Text(ApplicationCopy.accept),
-                    ),
+                    if (state.paymentAvailable)
+                      FilledButton(
+                        onPressed: state.sending ? null : () => _accept(applicant),
+                        child: const Text(ApplicationCopy.accept),
+                      ),
                   ],
                 ),
               ),
