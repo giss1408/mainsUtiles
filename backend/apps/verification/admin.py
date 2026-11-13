@@ -4,7 +4,7 @@ from django.urls import path, reverse
 from django.utils.cache import patch_cache_control
 
 from . import console_views
-from .models import UNDECIDED, AddressProof, HomeLocation, IdentityVerification, Status
+from .models import UNDECIDED, AddressProof, Guarantor, HomeLocation, IdentityVerification, Status
 from .services import review
 from .services.encryption import decrypt_text
 from .services.submissions import VerificationError, location_coordinates
@@ -168,4 +168,56 @@ class AddressProofAdmin(ReviewAdmin):
             "photo_url": reverse("admin:verification_address_photo", args=[record.pk, record.photo.pk]),
             "identity_name": decrypt_text(identity.full_name) if confirmed else None,
             "position": position,
+        }
+
+
+@admin.register(Guarantor)
+class GuarantorAdmin(ReviewAdmin):
+    change_form_template = "admin/verification/guarantor_review.html"
+    list_display = ("created_at", "phone", "document_type", "relationship", "status", "flags")
+    fields = (
+        "user",
+        "document_type",
+        "relationship",
+        *ReviewAdmin.fields[2:],
+        "contacted_at",
+        "expires_at",
+    )
+    readonly_fields = fields
+
+    def get_urls(self):
+        wrap = self.admin_site.admin_view
+        custom = [
+            path(
+                "<uuid:pk>/call/",
+                wrap(console_views.record_guarantor_call),
+                name="verification_guarantor_call",
+            ),
+            path(
+                "<uuid:pk>/confirm/",
+                wrap(console_views.confirm_guarantor),
+                name="verification_guarantor_confirm",
+            ),
+            path(
+                "<uuid:pk>/refuse/",
+                wrap(console_views.refuse_guarantor),
+                name="verification_guarantor_refuse",
+            ),
+            path(
+                "<uuid:pk>/photo/<uuid:photo_id>/",
+                wrap(console_views.guarantor_photo),
+                name="verification_guarantor_photo",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def review_context(self, request, record) -> dict:
+        identity = current_record(IdentityVerification, record.user)
+        confirmed = identity is not None and identity.status == Status.CONFIRMED
+        return {
+            "photo_url": reverse("admin:verification_guarantor_photo", args=[record.pk, record.photo.pk]),
+            "identity_name": decrypt_text(identity.full_name) if confirmed else None,
+            "guarantor_name": decrypt_text(record.guarantor_name),
+            "guarantor_phone": decrypt_text(record.guarantor_phone),
+            "relationship_label": record.get_relationship_display(),
         }

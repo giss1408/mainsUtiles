@@ -95,7 +95,7 @@ def test_call_requires_all_three_answers(jpeg, verifier, answers):
                 agrees_contact=agrees,
             )
         )
-        == "checks_required"
+        == "call_answers_required"
     )
     record.refresh_from_db()
     assert record.contacted_at is None

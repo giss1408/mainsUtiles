@@ -1,0 +1,46 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Facture du garant</h2>
+  <figure style="margin:10px 0;max-width:560px">
+    <a href="{{ photo_url }}" target="_blank" rel="noopener"><img src="{{ photo_url }}" alt="Facture du garant" style="width:100%;border:1px solid #ccc"></a>
+  </figure>
+  {% for text in flag_texts %}
+    <p class="errornote" style="margin:10px 0">Signalement : {{ text }}</p>
+  {% endfor %}
+  <h2>À appeler</h2>
+  <p>Jeune : <strong>{% if identity_name %}{{ identity_name }}{% else %}Identité non confirmée{% endif %}</strong></p>
+  <p>Garant : <strong>{{ guarantor_name }}</strong> ({{ relationship_label }})</p>
+  <p>Téléphone du garant : <strong>{{ guarantor_phone }}</strong></p>
+  <p>Appelez depuis le numéro officiel, suivez le script, ne communiquez aucune donnée du jeune.</p>
+  {% if original.contacted_at %}<p>Appel enregistré le {{ original.contacted_at|date:"d/m/Y H:i" }}.</p>{% endif %}
+</div>
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  {% if undecided %}
+    <form method="post" action="{% url 'admin:verification_guarantor_call' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <p><label><input type="checkbox" name="knows_jobber"> Le garant connaît le jeune</label></p>
+      <p><label><input type="checkbox" name="confirms_residence"> Il confirme son identité et son domicile</label></p>
+      <p><label><input type="checkbox" name="agrees_contact"> Il accepte d'être contacté en cas de problème</label></p>
+      <input type="submit" value="Enregistrer l'appel" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:verification_guarantor_confirm' original.pk %}" style="margin:20px 0 10px">
+      {% csrf_token %}
+      <p><label>Nom du titulaire de la facture<br><input type="text" name="holder_name" size="50" required autocomplete="off"></label></p>
+      <p><label>Numéro client ou référence<br><input type="text" name="reference_number" size="30" required autocomplete="off"></label></p>
+      <p><label>Date d'émission<br><input type="date" name="issued_on" required></label></p>
+      <p><label><input type="checkbox" name="name_matches"> Le nom sur la facture correspond au garant déclaré</label></p>
+      <input type="submit" class="default" value="Confirmer" style="float:none">
+    </form>
+    <form method="post" action="{% url 'admin:verification_guarantor_refuse' original.pk %}" style="margin:20px 0 10px">
+      {% csrf_token %}
+      <p><label>Motif (le jeune le verra)<br><input type="text" name="reason" placeholder="Motif" size="60" required></label></p>
+      <input type="submit" value="Refuser">
+    </form>
+  {% else %}
+    <p>Aucune action possible : ce garant a déjà été traité.</p>
+  {% endif %}
+</div>
+{% endblock %}

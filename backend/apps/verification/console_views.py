@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.api.errors import MESSAGES
-from apps.verification.models import AddressProof, IdentityVerification
+from apps.verification.models import AddressProof, Guarantor, IdentityVerification
 from apps.verification.services import review
 from apps.verification.services.submissions import VerificationError
 
@@ -137,6 +137,60 @@ def identity_photo(request, pk, photo_id):
 @require_GET
 def address_photo(request, pk, photo_id):
     record = get_object_or_404(AddressProof.objects.select_related("photo"), pk=pk)
+    if record.photo.pk != photo_id:
+        raise Http404
+    return _photo_response(request, record.photo)
+
+
+@require_POST
+def record_guarantor_call(request, pk):
+    record = get_object_or_404(Guarantor, pk=pk)
+    return _run(
+        request,
+        record,
+        lambda: review.record_call(
+            record,
+            staff=request.user,
+            knows_jobber=request.POST.get("knows_jobber") == "on",
+            confirms_residence=request.POST.get("confirms_residence") == "on",
+            agrees_contact=request.POST.get("agrees_contact") == "on",
+        ),
+        "Appel enregistré.",
+    )
+
+
+@require_POST
+def confirm_guarantor(request, pk):
+    record = get_object_or_404(Guarantor, pk=pk)
+    return _run(
+        request,
+        record,
+        lambda: review.confirm_guarantor(
+            record,
+            staff=request.user,
+            holder_name=request.POST.get("holder_name", ""),
+            reference_number=request.POST.get("reference_number", ""),
+            issued_on=_date(request, "issued_on"),
+            name_matches=request.POST.get("name_matches") == "on",
+        ),
+        "Garant confirmé.",
+    )
+
+
+@require_POST
+def refuse_guarantor(request, pk):
+    record = get_object_or_404(Guarantor, pk=pk)
+    return _run(
+        request,
+        record,
+        lambda: review.refuse_guarantor(record, staff=request.user, reason=request.POST.get("reason", "")),
+        "Garant refusé.",
+    )
+
+
+@require_GET
+def guarantor_photo(request, pk, photo_id):
+    record = get_object_or_404(Guarantor.objects.select_related("photo"), pk=pk)
     if record.photo.pk != photo_id:
         raise Http404
     return _photo_response(request, record.photo)

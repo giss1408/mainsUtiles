@@ -25,6 +25,7 @@ STATUS = {
     "guarantor_name_required": 400,
     "relationship_invalid": 400,
     "call_required": 400,
+    "call_answers_required": 400,
     "bill_reference_cap": 400,
     # Job offers
     "verification_required": 403,
@@ -60,6 +61,7 @@ MESSAGES = {
     "guarantor_phone_own": ("Le garant ne peut pas être toi-même : indique le numéro d'une autre personne."),
     "guarantor_name_required": "Indique le nom du garant.",
     "relationship_invalid": "Choisis le lien avec le garant.",
+    "call_answers_required": "Cochez les trois réponses du garant avant d'enregistrer l'appel.",
     "call_required": "Notez d'abord l'appel au garant.",
     "bill_reference_cap": "Ce justificatif garantit déjà le nombre maximum de mini-jobbers.",
     # Shown to staff in the console when a verification decision breaks a rule.

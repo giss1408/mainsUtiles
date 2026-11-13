@@ -257,7 +257,7 @@ def record_call(
     row = _locked(record)
     _require_undecided(row)
     if not (knows_jobber and confirms_residence and agrees_contact):
-        raise VerificationError("checks_required")
+        raise VerificationError("call_answers_required")
     now = timezone.now()
     row.contacted_at = now
     row.contacted_by = staff
