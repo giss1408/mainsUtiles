@@ -87,3 +87,24 @@ class Harness {
       ..reply(200, {'count': pending.length, 'next': null, 'previous': null, 'results': pending});
   }
 }
+
+Map<String, dynamic> contactJson({
+  String id = 'c1',
+  String action = 'send',
+  String relationship = 'parent',
+  String? name,
+  String? jobberName,
+}) =>
+    {
+      'id': id,
+      'relationship': relationship,
+      'action': action,
+      'created_at': '2026-11-12T10:00:00Z',
+      if (name != null) 'name': name,
+      if (name != null) 'jobber_name': jobberName,
+    };
+
+Map<String, dynamic> page(List<Map<String, dynamic>> rows) =>
+    {'count': rows.length, 'next': null, 'previous': null, 'results': rows};
+
+const contactPermissions = ['send_contact_code'];

@@ -28,6 +28,7 @@ abstract final class StaffCopy {
   static const _permissions = {
     'review_enrolment': 'Examiner les demandes',
     'send_enrolment_code': 'Envoyer les numéros par WhatsApp',
+    'send_contact_code': 'Envoyer les codes aux personnes de confiance',
   };
   static String permission(String value) => _permissions[value] ?? value;
   static const empty = 'Aucune demande.';
@@ -37,6 +38,31 @@ abstract final class StaffCopy {
     ('approved', 'À envoyer'),
     ('code_sent', 'Envoyées'),
   ];
+
+  static const enrolmentsTitle = 'Enrôlements';
+  static const contactsTitle = 'Personnes de confiance';
+  static const contactsEmpty = 'Aucune personne de confiance à traiter.';
+  static const contactTabs = [
+    ('send', 'À envoyer'),
+    ('notice', 'À prévenir'),
+  ];
+  static const contactDetailTitle = 'Personne de confiance';
+  static const fieldContactName = 'Personne';
+  static const fieldContactLink = 'Lien avec le jeune';
+  static const fieldJobber = 'Mini-jobber';
+  static const sendContactCode = 'Envoyer le code par WhatsApp';
+  static const sendNotice = "Prévenir l'ancienne personne par WhatsApp";
+  static const doNotCopyCode = 'Ne recopiez pas ce code : il sera demandé au mini-jobber.';
+  static const noticeNote = 'Le remplacement prendra effet quelques jours après ce message.';
+  static const _relationships = {
+    'parent': 'Parent',
+    'relative': 'Famille',
+    'friend': 'Ami(e)',
+    'other': 'Autre',
+  };
+  static String contactRelationship(String value) => _relationships[value] ?? value;
+  static String contactAction(String value) =>
+      value == 'notice' ? "À prévenir (ancienne personne)" : 'Code à envoyer';
 
   static const detailTitle = 'Demande';
   static const back = 'Retour';

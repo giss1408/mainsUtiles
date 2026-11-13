@@ -7,17 +7,15 @@ real phone, and no reviewer other than the author has read the branch.
 ## Before merging
 
 1. **Review the branch.** Run `/code-review` on `feat/jobber-verification`. 3b had a self-review only.
-2. **Try it on a real phone.** Install the jobber debug APK and go through all four steps: identity
+2. **Try it on real phones.** Install the staff app on the official-number phone and the jobber debug APK and go through all four steps: identity
    photos with the in-app camera, guarantor, adding a trusted contact, entering the code, the briefing.
    Then replace a confirmed contact and check the notice and the 72 h delay in the console.
 3. **Open a PR to `main`** once 1 and 2 are done.
 
 ## Decisions to take (owner: product)
 
-- **WhatsApp sending.** Decided: messages are always sent from the admin app, on the device that holds
-  the official number. Still to decide: is that the web console on that device (what is built now:
-  a one-time `wa.me` link) or the Flutter staff app, which already opens WhatsApp for device
-  enrolment? The second is a new task.
+- **WhatsApp sending.** Decided and built: messages are sent from the staff app, on the device that
+  holds the official number (the console link stays as a fallback). Check on a real staff phone.
 - **Staff workload** of sending every contact code by hand, and who is on duty.
 - **Real briefing cards.** The three cards seeded by migration `0006` are placeholders; write the real
   ones in the console ("Cartes de briefing") before launch. Decide whether videos are needed.
@@ -31,8 +29,6 @@ real phone, and no reviewer other than the author has read the branch.
 
 ## Build next
 
-- **Staff-app sending of contact codes** (if chosen above): staff app lists "À envoyer" and "À prévenir",
-  opens WhatsApp with the written message, never shows or stores the number. Needs a plan.
 - **Applications and bookings**, which will enforce J1 (nothing enforces it today; the tier is only
   computed and shown). This is the next big plan.
 - **Out of scope so far:** tier J2 and commune of service, linked-account detection (shared guarantor,

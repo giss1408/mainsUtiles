@@ -7,6 +7,9 @@ import 'staff_session.dart';
 
 enum StaffStage { login, devicePending, queue }
 
+/// Which queue the agent is working.
+enum StaffSection { enrolments, contacts }
+
 const _keep = Object();
 
 class StaffState {
@@ -19,6 +22,10 @@ class StaffState {
     this.items,
     this.listError,
     this.selected,
+    this.section = StaffSection.enrolments,
+    this.contactTab = 'send',
+    this.contacts,
+    this.contactSelected,
   });
 
   final StaffStage stage;
@@ -40,6 +47,15 @@ class StaffState {
   /// The application open in the detail screen.
   final EnrolmentItem? selected;
 
+  final StaffSection section;
+
+  /// `send` or `notice`.
+  final String contactTab;
+
+  /// The trusted contacts queue; null while it loads.
+  final List<ContactItem>? contacts;
+  final ContactItem? contactSelected;
+
   StaffState copyWith({
     bool? busy,
     Object? error = _keep,
@@ -47,9 +63,19 @@ class StaffState {
     Object? items = _keep,
     Object? listError = _keep,
     Object? selected = _keep,
+    StaffSection? section,
+    String? contactTab,
+    Object? contacts = _keep,
+    Object? contactSelected = _keep,
   }) =>
       StaffState(
         stage: stage,
+        section: section ?? this.section,
+        contactTab: contactTab ?? this.contactTab,
+        contacts: identical(contacts, _keep) ? this.contacts : contacts as List<ContactItem>?,
+        contactSelected: identical(contactSelected, _keep)
+            ? this.contactSelected
+            : contactSelected as ContactItem?,
         busy: busy ?? this.busy,
         error: identical(error, _keep) ? this.error : error as String?,
         me: me,
@@ -75,20 +101,89 @@ class StaffController extends StateNotifier<StaffState> {
     state = const StaffState(busy: true);
     try {
       final me = await _session.signIn(username, password);
-      state = StaffState(stage: StaffStage.queue, me: me);
+      // An agent who may only send contact codes starts on that queue.
+      final contactsOnly = !me.can('review_enrolment') && me.can('send_contact_code');
+      state = StaffState(
+        stage: StaffStage.queue,
+        me: me,
+        section: contactsOnly ? StaffSection.contacts : StaffSection.enrolments,
+      );
     } on ApiError catch (e) {
       state = e.code == 'device_pending'
           ? const StaffState(stage: StaffStage.devicePending)
           : StaffState(error: StaffCopy.loginError(e));
       return;
     }
-    await refresh();
+    await (state.section == StaffSection.contacts ? refreshContacts() : refresh());
   }
 
   /// Back to the login screen, where the password is typed again.
   void signOut({String? message}) {
     _session.signOut();
     state = StaffState(error: message);
+  }
+
+  Future<void> selectSection(StaffSection section) async {
+    if (state.stage != StaffStage.queue || section == state.section) return;
+    state = state.copyWith(section: section, error: null);
+    if (section == StaffSection.contacts) {
+      state = state.copyWith(contacts: null, listError: null);
+      await refreshContacts();
+    } else {
+      state = state.copyWith(items: null, listError: null);
+      await refresh();
+    }
+  }
+
+  Future<void> selectContactTab(String file) async {
+    if (state.stage != StaffStage.queue || file == state.contactTab) return;
+    state = state.copyWith(contactTab: file, contacts: null, listError: null);
+    await refreshContacts();
+  }
+
+  Future<void> refreshContacts() async {
+    final tab = state.contactTab;
+    final rows = await _guard((access) => _api.contacts(access, file: tab), onError: (message) {
+      if (state.contactTab == tab) {
+        state = state.copyWith(contacts: state.contacts ?? const [], listError: message);
+      }
+    });
+    if (rows != null && state.stage == StaffStage.queue && state.contactTab == tab) {
+      state = state.copyWith(contacts: rows, listError: null);
+    }
+  }
+
+  /// Opens a contact and loads the names the list does not carry (the server audits it).
+  Future<void> openContact(ContactItem item) async {
+    state = state.copyWith(contactSelected: item, error: null);
+    final detail = await _guard((access) => _api.contact(access, item.id), onError: (_) {});
+    if (detail != null && state.contactSelected?.id == item.id) {
+      state = state.copyWith(contactSelected: detail);
+    }
+  }
+
+  void closeContact() => state = state.copyWith(contactSelected: null, error: null);
+
+  /// Issues a code for the open contact. The returned link carries the code: open it
+  /// and let it go, never keep or log it.
+  Future<Uri?> sendContact() => _contactLink((access, id) => _api.sendContactCode(access, id));
+
+  /// Records the notice and returns the link to the number being replaced.
+  Future<Uri?> noticeContact() => _contactLink((access, id) => _api.noticeContact(access, id));
+
+  Future<Uri?> _contactLink(Future<Uri> Function(String access, String id) call) async {
+    final selected = state.contactSelected;
+    if (selected == null || state.busy) return null;
+    state = state.copyWith(busy: true, error: null);
+    final uri = await _guard((access) => call(access, selected.id), onError: _actionFailed);
+    if (uri != null) {
+      // Done: the contact leaves this queue.
+      state = state.copyWith(
+        busy: false,
+        contacts: state.contacts?.where((c) => c.id != selected.id).toList(),
+      );
+    }
+    return uri;
   }
 
   Future<void> selectTab(String status) async {

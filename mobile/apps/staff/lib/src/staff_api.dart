@@ -61,6 +61,39 @@ class EnrolmentItem {
       );
 }
 
+/// One trusted contact waiting for staff. The number is never part of it: it only
+/// travels inside the WhatsApp link the server returns on send.
+class ContactItem {
+  const ContactItem({
+    required this.id,
+    required this.relationship,
+    required this.action,
+    required this.createdAt,
+    this.name,
+    this.jobberName,
+  });
+
+  factory ContactItem.fromJson(Map<String, dynamic> json) => ContactItem(
+        id: json['id'] as String,
+        relationship: json['relationship'] as String,
+        action: json['action'] as String,
+        createdAt: DateTime.parse(json['created_at'] as String),
+        name: json['name'] as String?,
+        jobberName: json['jobber_name'] as String?,
+      );
+
+  final String id;
+  final String relationship;
+
+  /// `send` (a code to send) or `notice` (an old contact to warn).
+  final String action;
+  final DateTime createdAt;
+
+  /// Only known once the detail is open.
+  final String? name;
+  final String? jobberName;
+}
+
 class StaffMe {
   const StaffMe({required this.id, required this.username, required this.permissions});
 
@@ -194,6 +227,40 @@ class StaffApi {
   /// Issues a new confirmation number and returns the WhatsApp link carrying it.
   Future<Uri> send(String access, String id) => guardApi(() async {
         final response = await _dio.post<dynamic>('$_queue/$id/send', options: _bearer(access));
+        return Uri.parse(_json(response)['whatsapp_url'] as String);
+      });
+
+  static const _contacts = '$_base/staff/contacts';
+
+  /// The oldest contacts in [file] (`send` or `notice`), first page. No names, no numbers.
+  Future<List<ContactItem>> contacts(String access, {String file = 'send'}) => guardApi(() async {
+        final response = await _dio.get<dynamic>(
+          _contacts,
+          queryParameters: {'file': file},
+          options: _bearer(access),
+        );
+        final results = (_json(response)['results'] as List?) ?? const [];
+        return results
+            .map((row) => ContactItem.fromJson(Map<String, dynamic>.from(row as Map)))
+            .toList();
+      });
+
+  /// The contact's name and the jobber's name. Opening it is audited by the server.
+  Future<ContactItem> contact(String access, String id) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_contacts/$id', options: _bearer(access));
+        return ContactItem.fromJson(_json(response));
+      });
+
+  /// Issues a code and returns the WhatsApp link carrying it.
+  Future<Uri> sendContactCode(String access, String id) => guardApi(() async {
+        final response = await _dio.post<dynamic>('$_contacts/$id/send', options: _bearer(access));
+        return Uri.parse(_json(response)['whatsapp_url'] as String);
+      });
+
+  /// Records the notice and returns the WhatsApp link to the number being replaced.
+  Future<Uri> noticeContact(String access, String id) => guardApi(() async {
+        final response =
+            await _dio.post<dynamic>('$_contacts/$id/notice', options: _bearer(access));
         return Uri.parse(_json(response)['whatsapp_url'] as String);
       });
 }

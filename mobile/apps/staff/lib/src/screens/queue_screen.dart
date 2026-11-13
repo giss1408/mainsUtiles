@@ -5,6 +5,7 @@ import '../staff_api.dart';
 import 'staff_profile_screen.dart';
 import '../staff_controller.dart';
 import '../staff_copy.dart';
+import 'section_bar.dart';
 
 /// Content never grows wider than this on tablets and desktops.
 const double maxContentWidth = 720;
@@ -17,6 +18,7 @@ class QueueScreen extends StatelessWidget {
     required this.onRefresh,
     required this.onOpen,
     required this.onSignOut,
+    this.onSection,
     this.now,
   });
 
@@ -25,6 +27,7 @@ class QueueScreen extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final ValueChanged<EnrolmentItem> onOpen;
   final VoidCallback onSignOut;
+  final ValueChanged<StaffSection>? onSection;
   final DateTime? now;
 
   @override
@@ -54,6 +57,8 @@ class QueueScreen extends StatelessWidget {
             tabs: [for (final tab in StaffCopy.tabs) Tab(text: tab.$2)],
           ),
         ),
+        bottomNavigationBar:
+            sectionBar(me: state.me, section: StaffSection.enrolments, onSection: onSection),
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(

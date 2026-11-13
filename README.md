@@ -103,7 +103,10 @@ flutter analyze
 ### Staff app
 
 The staff app shows the enrolment queue (approve, refuse, hold, send the confirmation number by
-WhatsApp). It is distributed privately to the operations team, never through a public store, and it
+WhatsApp) and, for staff with the right `verification.send_contact_code`, the trusted contacts queue
+("À envoyer": send a code; "À prévenir": warn an old number). Both are sent by WhatsApp from this
+app, on the phone that holds the official number; the contact's number is only ever inside the
+one-time link, never shown or stored. It is distributed privately to the operations team, never through a public store, and it
 blocks screenshots and screen recording.
 
 A staff member signs in with a username, a password and a phone that an administrator has activated:
@@ -186,7 +189,8 @@ Staff work in the web console under "Vérifications", queue "Garants" (permissio
 2. Confirm with the holder's name, the bill reference, the issue date and whether the name matches,
    or refuse with a reason. The jobber's identity must be confirmed first, and the call recorded.
 
-Staff also work two more queues in the console under "Vérifications":
+The same two queues are in the staff app, which is how the messages are normally sent. Staff also
+work two more queues in the console under "Vérifications":
 
 - **"Personnes de confiance"** (permission `verification.send_contact_code`, group `verification_agent`):
   "À envoyer" lists the contacts waiting for a code. "Envoyer le code par WhatsApp" shows an
@@ -206,6 +210,9 @@ Settings (environment variables): `GUARANTOR_DOCUMENT_TYPES`, `GUARANTOR_BILL_MA
 `TRUSTED_CONTACT_CODE_TTL_MINUTES` (1440), `TRUSTED_CONTACT_CODE_MAX_ATTEMPTS` (5),
 `TRUSTED_CONTACT_RESEND_SECONDS` (600), `TRUSTED_CONTACT_MAX_ADDS_PER_DAY` (3, replacements included),
 `TRUSTED_CONTACT_CHANGE_DELAY_HOURS` (72; swept hourly by `apply-contact-replacements`).
+
+Staff API: `GET staff/contacts?file=send|notice`, `GET staff/contacts/<id>` (name; audited),
+`POST staff/contacts/<id>/send` and `.../notice` (return `whatsapp_url`, never cached).
 
 Open decisions: the lawful basis for holding a third party's name, phone and bill (the privacy notice
 has a draft section "Informations sur votre garant"); whether a guarantor must consent in writing;
