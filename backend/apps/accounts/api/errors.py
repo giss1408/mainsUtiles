@@ -50,6 +50,16 @@ STATUS = {
     "pay_invalid": 400,
     "note_too_long": 400,
     "too_many_offers": 409,
+    "jobber_verification_required": 403,
+    "offer_unavailable": 409,
+    "already_applied": 409,
+    "too_many_applications": 409,
+    "offer_full": 409,
+    "application_overlap": 409,
+    "dispute_open": 409,
+    "message_contact_details": 400,
+    "message_too_long": 400,
+    "applicant_not_verified": 409,
     "reason_required": 400,
 }
 
@@ -111,6 +121,17 @@ MESSAGES = {
     "pay_invalid": "Indiquez un montant entre 1 000 et 100 000 FCFA.",
     "note_too_long": "La précision est trop longue.",
     "too_many_offers": "Vous avez déjà 3 offres en cours. Retirez-en une pour en publier une autre.",
+    # Applications
+    "jobber_verification_required": "Termine ta vérification pour postuler.",
+    "offer_unavailable": "Cette offre n'est plus disponible.",
+    "already_applied": "Tu as déjà postulé à cette offre.",
+    "too_many_applications": "Tu as trop de candidatures en attente. Retires-en une.",
+    "offer_full": "Cette offre a déjà beaucoup de candidatures.",
+    "application_overlap": "Tu as déjà un job à cette heure-là.",
+    "dispute_open": "Tu as un litige en cours. Tu pourras postuler quand il sera réglé.",
+    "message_contact_details": "Ne mets pas de numéro ni de contact dans ton message.",
+    "message_too_long": "Ton message est trop long.",
+    "applicant_not_verified": "Ce candidat n'est plus vérifié.",
 }
 
 
