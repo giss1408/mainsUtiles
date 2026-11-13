@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import jobber_views, payments_views, views
+from . import jobber_views, payments_views, staff_views, views
 
 urlpatterns = [
     path("offers/<uuid:pk>/apply", jobber_views.ApplyView.as_view()),
@@ -15,4 +15,10 @@ urlpatterns = [
     path("my-offers/<uuid:pk>/booking/cancel", payments_views.CancelView.as_view()),
     path("my-bookings/<uuid:pk>/address", payments_views.AddressView.as_view()),
     path("my-bookings/<uuid:pk>/cancel", payments_views.JobberCancelView.as_view()),
+    path("staff/payments", staff_views.PaymentQueueView.as_view()),
+    path("staff/payments/<uuid:pk>", staff_views.PaymentDetailView.as_view()),
+    path("staff/payments/<uuid:pk>/proof", staff_views.PaymentProofView.as_view()),
+    path("staff/payments/<uuid:pk>/confirm", staff_views.PaymentConfirmView.as_view()),
+    path("staff/payments/<uuid:pk>/refuse", staff_views.PaymentRefuseView.as_view()),
+    path("staff/payments/<uuid:pk>/refund", staff_views.PaymentRefundView.as_view()),
 ]

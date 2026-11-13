@@ -124,3 +124,37 @@ class AddressSerializer(serializers.Serializer):
     longitude = serializers.FloatField()
     commune = serializers.CharField()
     quartier = serializers.CharField()
+
+
+class PaymentItemSerializer(serializers.Serializer):
+    """A payment in a staff queue. Never a reference, a name or a phone."""
+
+    id = serializers.UUIDField()
+    category_name = serializers.CharField()
+    starts_at = serializers.DateTimeField()
+    amount_xof = serializers.IntegerField()
+    method_label = serializers.CharField()
+    submitted_at = serializers.DateTimeField()
+    late = serializers.BooleanField()
+    action = serializers.CharField()
+
+
+class PaymentDetailSerializer(PaymentItemSerializer):
+    fee_xof = serializers.IntegerField()
+    reference = serializers.CharField()
+    method_number = serializers.CharField()
+    seen_before = serializers.BooleanField()
+    status = serializers.CharField()
+
+
+class ConfirmBodySerializer(serializers.Serializer):
+    amount_matches = serializers.BooleanField(default=False)
+    reference_matches = serializers.BooleanField(default=False)
+
+
+class RefuseBodySerializer(serializers.Serializer):
+    reason = serializers.CharField(allow_blank=True, default="", max_length=300)
+
+
+class RefundBodySerializer(serializers.Serializer):
+    reference = serializers.CharField(allow_blank=True, default="", max_length=40)

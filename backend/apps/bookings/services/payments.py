@@ -224,3 +224,21 @@ def record_refund(payment: Payment, *, staff, reference: str) -> None:
         row.save(update_fields=["status", "refund_reference", "refunded_by", "refunded_at"])
         audit(staff, "booking.payment.refund", row, booking=str(row.booking_id))
     payment.refresh_from_db()
+
+
+def check_queue():
+    """Payments waiting for staff to check them, oldest first."""
+    return Payment.objects.filter(status=Payment.Status.SUBMITTED).select_related("booking", "method")
+
+
+def refund_queue():
+    """Cancelled payments waiting for staff to send the money back, oldest first."""
+    return Payment.objects.filter(status=Payment.Status.REFUND_DUE).select_related("booking", "method")
+
+
+def is_late(payment: Payment) -> bool:
+    """A payment waiting longer than PAYMENT_REVIEW_LATE_HOURS for a decision."""
+    waited = timezone.now() - payment.submitted_at
+    return payment.status == Payment.Status.SUBMITTED and waited > timedelta(
+        hours=settings.PAYMENT_REVIEW_LATE_HOURS
+    )
