@@ -223,6 +223,9 @@ def accept(user, application_id, *, offer_id=None) -> Booking:
             raise BookingError("invalid_state")
         if offer.status != Offer.Status.PUBLISHED or offer.starts_at <= timezone.now():
             raise BookingError("offer_unavailable")
+        # Too late to pay and release the address before the start: the booking could only expire.
+        if offer.starts_at - timedelta(hours=settings.ADDRESS_RELEASE_HOURS) <= timezone.now():
+            raise BookingError("offer_unavailable")
         if jobber_tier(application.jobber) != "J1" or application.jobber_id not in first_names(
             [application.jobber_id]
         ):

@@ -214,6 +214,15 @@ def test_accept_refused_when_the_offer_is_withdrawn_or_started(offer, verified_h
     assert code(lambda: applications.accept(verified_householder, other.pk)) == "offer_unavailable"
 
 
+def test_accept_is_refused_when_there_is_no_time_left_to_pay(offer, verified_householder, jobber, settings):
+    application = applications.apply(jobber, offer.pk, "")
+    Offer.objects.filter(pk=offer.pk).update(
+        starts_at=timezone.now() + timedelta(hours=settings.ADDRESS_RELEASE_HOURS - 1)
+    )
+    assert code(lambda: applications.accept(verified_householder, application.pk)) == "offer_unavailable"
+    assert not Booking.objects.filter(offer=offer).exists()
+
+
 def test_only_the_owner_can_accept(offer, jobber, jpeg, verifier):
     application = applications.apply(jobber, offer.pk, "")
     assert code(lambda: applications.accept(jobber, application.pk)) == "forbidden"
