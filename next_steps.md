@@ -35,8 +35,6 @@ real phone, and no reviewer other than the author has read the branch.
   householder's confirmation (or the 24 h timeout), the payout to the jobber (staff send it by hand and
   record the reference, a queue "Paiements à verser"), disputes in the console, reviews and ratings.
   Needs its own plan.
-- **Staff app payments queue:** the payments to check and the refunds, like the contact codes, so staff
-  can confirm from the phone that holds the platform's mobile-money account.
 - **Before launch (business):** who holds the platform's mobile-money accounts and how staff check a
   payment against the account's real history (a screenshot alone is not proof); a legal review of
   holding customers' money; the platform fee; the late-cancellation refund rule; SMS or push for "you

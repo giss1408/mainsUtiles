@@ -103,7 +103,7 @@ flutter analyze
 ### Staff app
 
 The staff app shows the enrolment queue (approve, refuse, hold, send the confirmation number by
-WhatsApp) and, for staff with the right `verification.send_contact_code`, the trusted contacts queue
+WhatsApp), the payments queue (see "Payment and address release") and, for staff with the right `verification.send_contact_code`, the trusted contacts queue
 ("À envoyer": send a code; "À prévenir": warn an old number). Both are sent by WhatsApp from this
 app, on the phone that holds the official number; the contact's number is only ever inside the
 one-time link, never shown or stored. It is distributed privately to the operations team, never through a public store, and it
@@ -317,7 +317,12 @@ cancels its booking while it is unpaid or under review.
 **Settings:** `PAYMENT_WINDOW_HOURS`, `ADDRESS_RELEASE_HOURS`, `PLATFORM_FEE_PERCENT` (0 until the
 business decides), `CANCEL_FREE_HOURS`, `PAYMENT_REVIEW_LATE_HOURS` (2).
 
+**In the staff app.** Staff with `verify_payment` see "Paiements" with the tab "À vérifier"; those
+with `make_refund` also see "Remboursements". The detail shows the amount, the number it went to, the
+reference typed and the receipt image (the app blocks screenshots), with the same two checks as the
+console. Nothing is kept on the phone after the screen closes. Routes: `GET staff/payments?file=check|refund`,
+`GET staff/payments/<id>` and `/proof`, `POST .../confirm`, `.../refuse`, `.../refund`.
+
 **What staff must know.** A screenshot is easy to fake: confirm against the platform account's own
 history, not the picture. The console warns when the same image was sent for another payment. Holding
 customers' money may need a licence or a partner; get a legal review before launch.
-

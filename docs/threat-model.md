@@ -52,6 +52,7 @@ none of them makes harm impossible.
 | Jobber's name or photo learned before payment | Jobber | Released to the householder only for a paid booking; the photo endpoint is not cached; both views are audited | tested | `test_address_release.py` (`test_jobber_card_needs_a_confirmed_booking_and_is_for_the_householder_only`) |
 | A refund never made, or made twice | Householder | A cancelled paid booking becomes a visible refund-due line, recorded once with a reference and an actor | tested | `test_booking_cancel.py` (`test_record_refund_needs_the_permission_a_reference_and_happens_once`) |
 | Payment service used with no way to pay | Both | With no active method with a number, apply and accept are refused | tested | `test_payment_methods.py` (`test_no_active_method_means_apply_and_accept_are_refused`) |
+| Insider reads a payment reference or receipt, or decides without the right | Householder | The list shows no reference; the detail and the image only for payments in the queue the member may work (`verify_payment` or `make_refund`), audited, never cached, dropped from the phone when the screen closes | tested | `test_staff_payments_api.py`, `payments_controller_test.dart` (`test_neither_the_state_nor_the_storage_holds_the_reference_after_close`) |
 
 ## Safety rules and their tests
 
