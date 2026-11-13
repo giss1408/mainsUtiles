@@ -37,6 +37,7 @@ export 'src/verification/contacts_controller.dart';
 export 'src/verification/screens/checklist_screen.dart';
 export 'src/verification/screens/flow_scaffold.dart';
 export 'src/verification/screens/guarantor_flow.dart';
+export 'src/verification/screens/trusted_contact_flow.dart';
 export 'src/verification/screens/verification_card.dart';
 export 'src/verification/verification_api.dart';
 export 'src/verification/verification_controller.dart';

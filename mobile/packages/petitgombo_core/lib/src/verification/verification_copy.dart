@@ -93,6 +93,43 @@ abstract final class VerificationCopy {
   static const positionUnavailable = 'Position indisponible. Activez la localisation et réessayez.';
   static const cameraUnavailable = "L'appareil photo est indisponible. Réessayez.";
 
+  // Trusted contacts, jobber only, in "tu".
+  static const contactsTitle = 'Personnes de confiance';
+  static String contactsIntro(int max) =>
+      'Une personne de confiance est prévenue si quelque chose ne va pas pendant une mission. '
+      "Tu peux en indiquer jusqu'à $max.";
+  static const addContact = 'Ajouter une personne';
+  static const changeContact = 'Changer';
+  static const requestNewCode = 'Demander un nouveau code';
+  static const enterCode = 'Saisir le code';
+  static const confirmCode = 'Confirmer';
+  static const contactFormTitle = 'Qui est ta personne de confiance ?';
+  static const contactNameLabel = 'Nom de la personne';
+  static const contactPhoneLabel = 'Téléphone de la personne';
+  static const contactNameRequired = 'Indique le nom de la personne.';
+  static const contactRelationshipHint = 'Quel est son lien avec toi ?';
+  static const contactRelationships = {
+    'parent': 'Parent',
+    'relative': 'Famille',
+    'friend': 'Ami(e)',
+    'other': 'Autre',
+  };
+  static const contactPrivacy =
+      'Notre équipe envoie un message WhatsApp à cette personne, une seule fois, pour qu\'elle '
+      "confirme. On n'utilise son numéro que pour ça.";
+  static const contactReplaceNote =
+      'Ta personne actuelle reste en place jusqu\'à ce que la nouvelle ait confirmé, puis encore '
+      'quelques jours. Notre équipe la préviendra par WhatsApp.';
+  static const contactCodeTitle = 'Saisis le code';
+  static String contactCodeBody(int hours) =>
+      'Notre équipe envoie un code par WhatsApp à cette personne, en général sous $hours h. '
+      'Demande-le-lui, puis saisis-le ici.';
+  static const contactCodeLabel = 'Code à 6 chiffres';
+  static const contactAwaiting = "En attente d'envoi du code";
+  static const contactSent = 'Code envoyé, à saisir';
+  static String contactReplacedOn(DateTime date) =>
+      'Remplacée le ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+
   // The card on Offres, jobber only.
   static const cardTitle = 'Fais vérifier ton compte';
   static const cardVerified = 'Compte vérifié';
