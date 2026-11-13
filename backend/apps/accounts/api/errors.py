@@ -65,6 +65,8 @@ STATUS = {
     "method_invalid": 400,
     "reference_invalid": 400,
     "reference_used": 409,
+    "address_not_yet": 409,
+    "address_closed": 409,
     "reason_required": 400,
 }
 
@@ -142,6 +144,8 @@ MESSAGES = {
     "method_invalid": "Choisissez un moyen de paiement proposé.",
     "reference_invalid": "Indiquez la référence de la transaction.",
     "reference_used": "Cette référence a déjà servi pour une autre réservation.",
+    "address_not_yet": "L'adresse sera communiquée quelques heures avant le début.",
+    "address_closed": "L'adresse n'est plus disponible.",
 }
 
 

@@ -11,6 +11,10 @@ from django.utils import timezone
 from apps.audit.services import record as audit
 from apps.bookings.models import Booking, Payment
 from apps.listings.models import Offer
+from apps.verification.models import HomeLocation, IdentityVerification, Status
+from apps.verification.services.encryption import decrypt_text
+from apps.verification.services.submissions import read_photo_bytes
+from apps.verification.services.tiers import current_record
 
 from .errors import BookingError
 
@@ -82,3 +86,88 @@ def expire_unpaid(now=None) -> int:
             audit(None, "booking.expire", booking)
             count += 1
     return count
+
+
+# ---- What each side learns once the booking is paid ------------------------------------------
+
+RELEASABLE = (Booking.Status.CONFIRMED, Booking.Status.ADDRESS_RELEASED)
+KNOWN_AFTER_PAYMENT = (
+    Booking.Status.CONFIRMED,
+    Booking.Status.ADDRESS_RELEASED,
+    Booking.Status.CHECKED_IN,
+    Booking.Status.COMPLETION_PENDING,
+    Booking.Status.COMPLETED,
+)
+
+
+def available_from(booking: Booking):
+    """When the exact pin is shown to the jobber."""
+    return booking.starts_at - timedelta(hours=settings.ADDRESS_RELEASE_HOURS)
+
+
+def _booking_of(user, booking_id, *, as_role: str) -> Booking:
+    if not (user and user.is_active and user.role == as_role):
+        raise BookingError("forbidden")
+    who = "jobber" if as_role == "jobber" else "householder"
+    try:
+        booking = Booking.objects.filter(pk=booking_id, **{who: user}).first()
+    except (ValidationError, ValueError):
+        booking = None
+    if booking is None:
+        raise BookingError("forbidden")
+    return booking
+
+
+def address_for(user, booking_id) -> dict:
+    """The exact pin, for the booked jobber only, only in the release window. Every read is audited."""
+    booking = _booking_of(user, booking_id, as_role="jobber")
+    with transaction.atomic():
+        booking = Booking.objects.select_for_update().get(pk=booking.pk)
+        if booking.status not in RELEASABLE:
+            raise BookingError("invalid_state")
+        now = timezone.now()
+        if now < available_from(booking):
+            raise BookingError("address_not_yet")
+        if now >= booking.starts_at + timedelta(minutes=booking.duration_minutes):
+            raise BookingError("address_closed")
+        place = current_record(HomeLocation, booking.householder)
+        if place is None or place.status != Status.CONFIRMED:
+            raise BookingError("invalid_state")
+        if booking.status == Booking.Status.CONFIRMED:
+            booking.status = Booking.Status.ADDRESS_RELEASED
+            booking.save(update_fields=["status"])
+        audit(user, "booking.address.release", booking)
+        return {
+            "latitude": float(decrypt_text(place.latitude)),
+            "longitude": float(decrypt_text(place.longitude)),
+            "commune": booking.commune,
+            "quartier": booking.quartier,
+        }
+
+
+def _confirmed_identity(booking: Booking) -> IdentityVerification:
+    identity = current_record(IdentityVerification, booking.jobber)
+    if identity is None or identity.status != Status.CONFIRMED:
+        raise BookingError("invalid_state")
+    return identity
+
+
+def jobber_card(user, booking_id) -> dict:
+    """The jobber's full name, for the householder, once the booking is paid. Audited."""
+    booking = _booking_of(user, booking_id, as_role="householder")
+    if booking.status not in KNOWN_AFTER_PAYMENT:
+        raise BookingError("invalid_state")
+    identity = _confirmed_identity(booking)
+    audit(user, "booking.jobber.view", booking)
+    return {"full_name": decrypt_text(identity.full_name), "has_photo": True}
+
+
+def jobber_photo(user, booking_id) -> bytes:
+    """The jobber's verified photo, for the householder, once the booking is paid. Audited."""
+    booking = _booking_of(user, booking_id, as_role="householder")
+    if booking.status not in KNOWN_AFTER_PAYMENT:
+        raise BookingError("invalid_state")
+    identity = _confirmed_identity(booking)
+    data = read_photo_bytes(identity.selfie)
+    audit(user, "booking.jobber.view_photo", booking)
+    return data

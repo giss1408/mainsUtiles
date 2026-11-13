@@ -111,9 +111,7 @@ def test_jobber_photo_is_the_confirmed_selfie_and_audited(confirmed, verified_ho
     assert code(lambda: bookings.jobber_photo(confirmed.jobber, confirmed.pk)) == "forbidden"
 
 
-def test_nothing_before_payment_contains_the_jobbers_name_or_the_pin(
-    verified_householder, jpeg, verifier
-):
+def test_nothing_before_payment_contains_the_jobbers_name_or_the_pin(verified_householder, jpeg, verifier):
     accepted = accepted_booking(verified_householder, jpeg, verifier)
     start_in(accepted, hours=1)
     for call in (
