@@ -1,0 +1,42 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Paiement à vérifier</h2>
+  <p>Réservation : <strong>{{ category }}</strong>, {{ starts_at|date:"d/m/Y H:i" }}</p>
+  <p>Montant attendu : <strong>{{ amount }} FCFA</strong>{% if fee %} (dont {{ fee }} FCFA de frais){% endif %}</p>
+  <p>Envoyé sur : <strong>{{ method }}</strong> ({{ method_number }})</p>
+  <p>Référence tapée : <strong>{{ reference }}</strong></p>
+  {% if seen_before %}<p style="color:#b00"><strong>Cette image a déjà été envoyée pour un autre paiement.</strong></p>{% endif %}
+  <p>Vérifiez le montant et la référence dans l'historique réel du compte de la plateforme : la capture ne suffit pas.</p>
+  <a href="{{ proof_url }}" target="_blank" rel="noopener"><img src="{{ proof_url }}" alt="Capture du paiement" style="max-width:100%;border:1px solid #ccc"></a>
+</div>
+{% if can_decide %}
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  <form method="post" action="{% url 'admin:bookings_payment_confirm' original.pk %}" style="margin:10px 0">
+    {% csrf_token %}
+    <p><label><input type="checkbox" name="amount_matches"> Le montant correspond</label></p>
+    <p><label><input type="checkbox" name="reference_matches"> La référence correspond</label></p>
+    <input type="submit" class="default" value="Confirmer le paiement" style="float:none">
+  </form>
+  <form method="post" action="{% url 'admin:bookings_payment_refuse' original.pk %}" style="margin:10px 0">
+    {% csrf_token %}
+    <p><label>Motif du refus (montré à la personne) :<br><input type="text" name="reason" size="60" maxlength="300"></label></p>
+    <input type="submit" value="Refuser le paiement" style="float:none">
+  </form>
+</div>
+{% elif refund_due %}
+<div class="module" style="padding:12px">
+  <h2>Remboursement à faire</h2>
+  <p>Renvoyez {{ amount }} FCFA à la personne depuis le compte de la plateforme, puis notez la référence du transfert.</p>
+  <form method="post" action="{% url 'admin:bookings_payment_refund' original.pk %}" style="margin:10px 0">
+    {% csrf_token %}
+    <p><label>Référence du remboursement :<br><input type="text" name="reference" size="40" maxlength="40"></label></p>
+    <input type="submit" class="default" value="Enregistrer le remboursement" style="float:none">
+  </form>
+</div>
+{% else %}
+<div class="module" style="padding:12px"><p>Rien à faire pour ce paiement.</p></div>
+{% endif %}
+{% endblock %}

@@ -83,3 +83,13 @@ def test_my_offers_carry_applicants_count_and_booking(api_client, verified_house
     applications.apply(jobber, offer.pk, "")
     row = call(api_client, verified_householder, "get", "/api/v1/my-offers").json()["offers"][0]
     assert row["applicants_count"] == 1 and row["booking"] is None
+
+
+def test_the_applicants_list_says_whether_payment_is_available(
+    api_client, verified_householder, offer, payment_method
+):
+    path = f"/api/v1/my-offers/{offer.pk}/applicants"
+    assert call(api_client, verified_householder, "get", path).json()["payment_available"] is True
+    payment_method.active = False
+    payment_method.save()
+    assert call(api_client, verified_householder, "get", path).json()["payment_available"] is False

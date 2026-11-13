@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.api.errors import error_response
 from apps.accounts.permissions import IsHouseholder
-from apps.bookings.services import applications
+from apps.bookings.services import applications, payments
 from apps.bookings.services.applications import BookingError, first_names
 
 from .serializers import AcceptedBookingSerializer, ApplicantSerializer
@@ -29,7 +29,13 @@ class ApplicantsView(APIView):
             rows = applications.applicants(request.user, pk)
         except BookingError as exc:
             return failure(exc)
-        return Response({"results": ApplicantSerializer(rows, many=True).data})
+        return Response(
+            {
+                "results": ApplicantSerializer(rows, many=True).data,
+                # Without a payment method nobody can be accepted: the app says so up front.
+                "payment_available": payments.available(),
+            }
+        )
 
 
 class AcceptView(APIView):
