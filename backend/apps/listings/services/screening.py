@@ -33,6 +33,12 @@ def _terms_found(note: str) -> set[str]:
     return found
 
 
+def contact_in(text: str) -> bool:
+    """True when free text hides a way to reach someone outside the app: an email, a phone number
+    or a term that moves the talk elsewhere."""
+    return _contact_details(text) or "off_platform" in _terms_found(text)
+
+
 def screen(*, category: OfferCategory, pay_xof: int, note: str, first_offer: bool) -> list[str]:
     """The flags for an offer, in a fixed order, each at most once."""
     flags = []

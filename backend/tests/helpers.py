@@ -30,3 +30,41 @@ def confirm_contact_and_briefing(user, staff):
     for card in briefing.briefing_cards(user):
         correct = BriefingCard.objects.get(pk=card["id"]).correct_index
         briefing.answer_card(user, card["id"], correct)
+
+
+def make_offer(author, status="published", days=2, **overrides):
+    """An offer of a verified householder; `days` ahead of today, 09:00 in Abidjan."""
+    from datetime import UTC, datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    from django.utils import timezone
+
+    from apps.listings.models import Offer, OfferCategory
+
+    abidjan = ZoneInfo("Africa/Abidjan")
+    today = datetime.now(abidjan).date()
+    start = datetime(today.year, today.month, today.day, 9, tzinfo=abidjan) + timedelta(days=days)
+    values = {
+        "author": author,
+        "category": OfferCategory.objects.get(name="Ménage"),
+        "category_name": "Ménage",
+        "duties": ["Dépoussiérer"],
+        "starts_at": start.astimezone(UTC),
+        "duration_minutes": 180,
+        "pay_xof": 3000,
+        "note": "Merci d'apporter des gants.",
+        "commune": "Cocody",
+        "quartier": "Angré",
+        "status": status,
+        "sent_at": timezone.now(),
+        "published_at": timezone.now() if status == "published" else None,
+    }
+    values.update(overrides)
+    return Offer.objects.create(**values)
+
+
+def j1_jobber(jpeg, verifier):
+    """A jobber with all four steps confirmed."""
+    from tests.test_jobber_tier import verified_jobber
+
+    return verified_jobber(jpeg, verifier)[0]

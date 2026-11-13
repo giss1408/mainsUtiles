@@ -85,6 +85,7 @@ class Offer(models.Model):
         PUBLISHED = "published", "Publiée"
         REFUSED = "refused", "Refusée"
         WITHDRAWN = "withdrawn", "Retirée"
+        BOOKED = "booked", "Réservée"
         CLOSED = "closed", "Terminée"
 
     # Offers that count toward a householder's limit and that jobbers may come to see.

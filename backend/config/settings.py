@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.verification",
     "apps.listings",
+    "apps.bookings",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -270,6 +271,11 @@ OFFER_MAX_PAY_XOF = env.int("OFFER_MAX_PAY_XOF", default=100000)
 OFFER_PAY_FLAG_FACTOR = env.float("OFFER_PAY_FLAG_FACTOR", default=2)
 OFFER_MAX_DAYS_AHEAD = env.int("OFFER_MAX_DAYS_AHEAD", default=30)
 OFFER_MAX_OPEN_PER_HOUSEHOLDER = env.int("OFFER_MAX_OPEN_PER_HOUSEHOLDER", default=3)
+
+# Applications: how many a jobber may have waiting, how many an offer may collect, message length.
+APPLICATIONS_MAX_OPEN = env.int("APPLICATIONS_MAX_OPEN", default=5)
+APPLICATIONS_MAX_PER_OFFER = env.int("APPLICATIONS_MAX_PER_OFFER", default=20)
+APPLICATION_MESSAGE_MAX = env.int("APPLICATION_MESSAGE_MAX", default=200)
 OFFER_NOTE_MAX_LENGTH = env.int("OFFER_NOTE_MAX_LENGTH", default=300)
 OFFER_REVIEW_HOURS = env.int("OFFER_REVIEW_HOURS", default=24)
 
