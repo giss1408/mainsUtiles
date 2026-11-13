@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/spacing.dart';
 import '../../app/theme.dart';
+import '../../applications/application_copy.dart';
+import '../../applications/screens/my_applications_screen.dart';
 import '../../widgets/message_banner.dart';
 import '../../verification/screens/verification_card.dart';
 import '../../verification/verification_controller.dart';
@@ -83,6 +85,27 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
                     ),
                     const SizedBox(height: Gaps.lg),
                     const VerificationCard(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Gaps.lg),
+                      child: AppCard(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(builder: (_) => const MyApplicationsScreen()),
+                        ),
+                        child: Row(
+                          children: [
+                            const IconTile(icon: Icons.send_outlined),
+                            const SizedBox(width: Gaps.md),
+                            Expanded(
+                              child: Text(
+                                ApplicationCopy.myApplications,
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                          ],
+                        ),
+                      ),
+                    ),
                     DropdownButtonFormField<String?>(
                       value: state.commune,
                       isExpanded: true,
