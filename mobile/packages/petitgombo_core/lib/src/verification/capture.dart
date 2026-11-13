@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Which photo the camera is asked for; it decides the lens and the frame.
-enum PhotoKind { idFront, idBack, selfie, addressProof }
+enum PhotoKind { idFront, idBack, selfie, addressProof, guarantorBill }
 
 /// A photo taken in the app. Held in memory only, never written to the gallery.
 class CapturedPhoto {

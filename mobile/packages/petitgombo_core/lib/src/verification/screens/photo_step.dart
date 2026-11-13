@@ -10,10 +10,20 @@ import 'flow_scaffold.dart';
 
 /// Takes one photo with the in-app camera and lets the user check it before going on.
 class PhotoStep extends ConsumerStatefulWidget {
-  const PhotoStep({super.key, required this.kind, required this.onAccepted});
+  const PhotoStep({
+    super.key,
+    required this.kind,
+    required this.onAccepted,
+    this.step,
+    this.steps,
+  });
 
   final PhotoKind kind;
   final ValueChanged<CapturedPhoto> onAccepted;
+
+  /// Position in the surrounding flow, when it shows progress.
+  final int? step;
+  final int? steps;
 
   @override
   ConsumerState<PhotoStep> createState() => _PhotoStepState();
@@ -51,6 +61,8 @@ class _PhotoStepState extends ConsumerState<PhotoStep> {
         failure == CaptureFailure.permissionDeniedForever;
     return FlowScaffold(
       title: voice.captureTitle(widget.kind),
+      step: widget.step,
+      steps: widget.steps,
       banner: failure == null
           ? null
           : MessageBanner(

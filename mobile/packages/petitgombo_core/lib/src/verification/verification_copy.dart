@@ -69,6 +69,7 @@ abstract final class VerificationCopy {
         PhotoKind.idBack => captureBack,
         PhotoKind.selfie => captureSelfie,
         PhotoKind.addressProof => captureAddress,
+        PhotoKind.guarantorBill => captureGuarantorBill,
       };
 
   static const addressNote = 'Le document doit être à votre nom et dater de moins de 3 mois.';
@@ -90,6 +91,32 @@ abstract final class VerificationCopy {
   static const positionUnavailable = 'Position indisponible. Activez la localisation et réessayez.';
   static const cameraUnavailable = "L'appareil photo est indisponible. Réessayez.";
 
+  // Guarantor flow: only jobbers see it, so it is written in "tu".
+  static const guarantorFlowTitle = 'Qui se porte garant pour toi ?';
+  static const guarantorNameLabel = 'Nom du garant';
+  static const guarantorPhoneLabel = 'Téléphone du garant';
+  static const guarantorNameRequired = 'Indique le nom de ton garant.';
+  static const guarantorRelationshipHint = 'Quel est son lien avec toi ?';
+  static const guarantorRelationships = {
+    'parent': 'Parent',
+    'relative': 'Famille',
+    'landlord': 'Propriétaire',
+    'other': 'Autre',
+  };
+  static const guarantorPrivacy =
+      "On appelle ton garant pour confirmer. On utilise son numéro seulement pour ça, "
+      "et la facture n'est vue que par notre équipe de vérification.";
+  static const chooseGuarantorDocument = 'Quel justificatif de ton garant vas-tu envoyer ?';
+  static const guarantorNote =
+      'Le justificatif doit dater de moins de 3 mois et être au nom de ton garant.';
+  static const guarantorDocumentTypes = {
+    'facture_eau': "Facture d'eau",
+    'facture_electricite': "Facture d'électricité",
+    'certificat_residence': 'Certificat de résidence',
+    'abonnement_prepaye': 'Abonnement prépayé',
+  };
+  static const captureGuarantorBill = 'Photo du justificatif';
+  static const guarantorSummaryTitle = 'Vérifie les informations';
   static const guarantorPhoneInvalid = 'Numéro de téléphone invalide.';
   static const offline = 'Pas de connexion. Réessayez.';
   static const offlinePhotosKept = 'Pas de connexion. Vos photos sont gardées. Réessayez.';
