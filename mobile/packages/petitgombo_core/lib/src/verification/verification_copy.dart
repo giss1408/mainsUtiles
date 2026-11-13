@@ -130,6 +130,19 @@ abstract final class VerificationCopy {
   static String contactReplacedOn(DateTime date) =>
       'Remplacée le ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
 
+  // Safety briefing, jobber only, in "tu".
+  static const briefingTitle = 'Consignes de sécurité';
+  static const briefingCardWord = 'Carte';
+  static const briefingRight = 'Bien vu.';
+  static const briefingWrong = 'Pas tout à fait.';
+  static const briefingContinue = 'Continuer';
+  static const briefingRetry = 'Réessayer';
+  static const briefingDone = 'Briefing terminé';
+  static const briefingDoneBody = 'Tu as lu et compris toutes les cartes.';
+  static const briefingFinish = 'Terminer';
+  static const briefingEmpty = 'Rien à lire pour le moment.';
+  static const briefingNewCard = 'Nouvelle carte à lire';
+
   // The card on Offres, jobber only.
   static const cardTitle = 'Fais vérifier ton compte';
   static const cardVerified = 'Compte vérifié';

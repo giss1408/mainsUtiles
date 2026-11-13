@@ -34,6 +34,7 @@ export 'src/offers/offers_controller.dart';
 export 'src/verification/briefing_controller.dart';
 export 'src/verification/capture.dart';
 export 'src/verification/contacts_controller.dart';
+export 'src/verification/screens/briefing_flow.dart';
 export 'src/verification/screens/checklist_screen.dart';
 export 'src/verification/screens/flow_scaffold.dart';
 export 'src/verification/screens/guarantor_flow.dart';

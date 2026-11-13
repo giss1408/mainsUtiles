@@ -14,11 +14,15 @@ class FlowScaffold extends StatelessWidget {
     this.banner,
     this.step,
     this.steps,
+    this.stepWord = 'Étape',
   });
 
   /// The position in a flow, from 1, and its length; both set to show progress.
   final int? step;
   final int? steps;
+
+  /// "Étape" by default; a flow of cards says "Carte".
+  final String stepWord;
 
   final String title;
   final List<Widget> children;
@@ -40,7 +44,7 @@ class FlowScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (step != null && steps != null) ...[
-                    Text('Étape $step sur $steps', style: theme.textTheme.bodySmall),
+                    Text('$stepWord $step sur $steps', style: theme.textTheme.bodySmall),
                     const SizedBox(height: Gaps.sm),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(Gaps.xs),
