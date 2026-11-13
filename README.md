@@ -267,3 +267,22 @@ even before the task runs.
 Jobbers see published offers in the jobber app ("Offres"), filtered by commune. The detail screen
 states that the exact address is given only after a confirmed booking. Applying and booking are not
 built yet.
+
+## Applications
+
+A J1 jobber applies to a published offer with an optional message of up to `APPLICATION_MESSAGE_MAX`
+(200) characters; contact details in it are refused. The householder sees the applicants (first
+name, tier, jobs done, message) and accepts one: that creates a booking in state `accepted`, declines
+the others and marks the offer `booked`, which hides it from jobbers. A jobber may have
+`APPLICATIONS_MAX_OPEN` (5) applications waiting and an offer may collect `APPLICATIONS_MAX_PER_OFFER`
+(20); an application that overlaps one of the jobber's bookings is refused. An hourly task
+(`close-stale-applications`) declines the applications of offers that were withdrawn or have started.
+
+API: jobber `POST offers/<id>/apply`, `GET my-applications`, `POST my-applications/<id>/withdraw`,
+`GET my-bookings`; householder `GET my-offers/<id>/applicants`,
+`POST my-offers/<id>/applicants/<application>/accept`. Staff see applications and bookings, read-only,
+in the console under "Réservations".
+
+This is stage 1 of 3 (design: `docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`).
+Payment, the address release and cancellation are stage 2; check-in, the payout and reviews are
+stage 3.
