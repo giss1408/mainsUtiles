@@ -1,3 +1,5 @@
+import '../applications/application_models.dart';
+
 /// A duty list, durations and a suggested pay, as staff set them up.
 class OfferCategory {
   const OfferCategory({
@@ -58,6 +60,7 @@ enum OfferStatus {
   draft,
   inReview,
   published,
+  booked,
   refused,
   withdrawn,
   closed;
@@ -66,6 +69,7 @@ enum OfferStatus {
   static OfferStatus parse(String? value) => switch (value) {
         'draft' => OfferStatus.draft,
         'published' => OfferStatus.published,
+        'booked' => OfferStatus.booked,
         'refused' => OfferStatus.refused,
         'withdrawn' => OfferStatus.withdrawn,
         'closed' => OfferStatus.closed,
@@ -96,6 +100,8 @@ class MyOffer {
     required this.quartier,
     required this.status,
     required this.reason,
+    this.applicantsCount = 0,
+    this.booking,
   });
 
   factory MyOffer.fromJson(Map<String, dynamic> json) => MyOffer(
@@ -111,6 +117,10 @@ class MyOffer {
         quartier: (json['quartier'] as String?) ?? '',
         status: OfferStatus.parse(json['status'] as String?),
         reason: (json['reason'] as String?) ?? '',
+        applicantsCount: (json['applicants_count'] as num?)?.toInt() ?? 0,
+        booking: json['booking'] == null
+            ? null
+            : BookingSummary.fromJson(Map<String, dynamic>.from(json['booking'] as Map)),
       );
 
   final String id;
@@ -128,6 +138,12 @@ class MyOffer {
   /// Why staff refused or the offer was withdrawn; empty otherwise.
   final String reason;
 
+  /// Applications waiting for the householder's choice.
+  final int applicantsCount;
+
+  /// The jobber chosen, once the householder accepted one.
+  final BookingSummary? booking;
+
   MyOffer copyWithStatus(OfferStatus value) => MyOffer(
         id: id,
         categoryId: categoryId,
@@ -141,6 +157,8 @@ class MyOffer {
         quartier: quartier,
         status: value,
         reason: reason,
+        applicantsCount: applicantsCount,
+        booking: booking,
       );
 }
 
@@ -156,6 +174,8 @@ class PublicOffer {
     required this.note,
     required this.commune,
     required this.quartier,
+    this.householder,
+    this.myApplication,
   });
 
   factory PublicOffer.fromJson(Map<String, dynamic> json) => PublicOffer(
@@ -168,6 +188,12 @@ class PublicOffer {
         note: (json['note'] as String?) ?? '',
         commune: (json['commune'] as String?) ?? '',
         quartier: (json['quartier'] as String?) ?? '',
+        householder: json['householder'] == null
+            ? null
+            : HouseholderTrust.fromJson(Map<String, dynamic>.from(json['householder'] as Map)),
+        myApplication: json['my_application'] == null
+            ? null
+            : MyApplicationRef.fromJson(Map<String, dynamic>.from(json['my_application'] as Map)),
       );
 
   final String id;
@@ -179,6 +205,26 @@ class PublicOffer {
   final String note;
   final String commune;
   final String quartier;
+
+  /// Who published it, as a trust line. Only on the detail.
+  final HouseholderTrust? householder;
+
+  /// The caller's own live application. Only on the detail.
+  final MyApplicationRef? myApplication;
+
+  PublicOffer withMyApplication(MyApplicationRef? value) => PublicOffer(
+        id: id,
+        categoryName: categoryName,
+        duties: duties,
+        startsAt: startsAt,
+        durationMinutes: durationMinutes,
+        payXof: payXof,
+        note: note,
+        commune: commune,
+        quartier: quartier,
+        householder: householder,
+        myApplication: value,
+      );
 }
 
 /// The values of a draft, as the householder entered them.

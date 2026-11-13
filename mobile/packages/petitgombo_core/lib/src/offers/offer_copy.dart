@@ -26,6 +26,7 @@ abstract final class OfferCopy {
         OfferStatus.draft => 'Brouillon',
         OfferStatus.inReview => 'En cours de vérification',
         OfferStatus.published => 'Publiée',
+        OfferStatus.booked => 'Réservée',
         OfferStatus.refused => 'Refusée',
         OfferStatus.withdrawn => 'Retirée',
         OfferStatus.closed => 'Terminée',

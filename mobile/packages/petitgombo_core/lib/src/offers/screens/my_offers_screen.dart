@@ -26,6 +26,7 @@ IconData statusIcon(OfferStatus status) => switch (status) {
       OfferStatus.draft => Icons.edit_note,
       OfferStatus.inReview => Icons.schedule,
       OfferStatus.published => Icons.check_circle_outline,
+      OfferStatus.booked => Icons.event_available,
       OfferStatus.refused => Icons.error_outline,
       OfferStatus.withdrawn => Icons.remove_circle_outline,
       OfferStatus.closed => Icons.event_busy,
