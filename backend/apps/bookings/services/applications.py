@@ -109,7 +109,7 @@ def my_applications(user):
     return Application.objects.filter(jobber=user).select_related("offer", "booking").order_by("-created_at")
 
 
-def _first_name(user) -> str:
+def first_name(user) -> str:
     """The first word of the name staff confirmed on the identity document."""
     from apps.verification.models import IdentityVerification, Status
     from apps.verification.services.encryption import decrypt_text
@@ -145,7 +145,7 @@ def applicants(user, offer_id) -> list[dict]:
     return [
         {
             "id": application.pk,
-            "first_name": _first_name(application.jobber),
+            "first_name": first_name(application.jobber),
             "tier": "J1",
             "jobs_done": _jobs_done(jobber=application.jobber),
             "rating": None,

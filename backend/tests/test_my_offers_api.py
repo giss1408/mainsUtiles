@@ -268,6 +268,8 @@ def test_response_never_contains_flags_or_the_refusal_reason(api_client, verifie
         "status",
         "reason",
         "created_at",
+        "applicants_count",
+        "booking",
     }
 
 

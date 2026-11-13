@@ -26,6 +26,25 @@ class MyOfferSerializer(serializers.ModelSerializer):
     """What the author sees of their own offer. Never the screening flags: they stay internal."""
 
     category_id = serializers.IntegerField(read_only=True)
+    applicants_count = serializers.SerializerMethodField()
+    booking = serializers.SerializerMethodField()
+
+    def get_applicants_count(self, offer) -> int:
+        return offer.applications.filter(status="pending").count()
+
+    def get_booking(self, offer) -> dict | None:
+        """The jobber chosen for this offer: a first name, never a contact."""
+        from apps.bookings.models import Booking
+        from apps.bookings.services.applications import first_name
+
+        booking = offer.bookings.filter(status__in=Booking.LIVE).select_related("jobber").first()
+        if booking is None:
+            return None
+        return {
+            "id": str(booking.pk),
+            "status": booking.status,
+            "jobber_first_name": first_name(booking.jobber),
+        }
 
     class Meta:
         model = Offer
@@ -43,6 +62,8 @@ class MyOfferSerializer(serializers.ModelSerializer):
             "status",
             "reason",
             "created_at",
+            "applicants_count",
+            "booking",
         ]
         read_only_fields = fields
 
