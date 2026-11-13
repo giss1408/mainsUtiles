@@ -47,6 +47,7 @@ class Booking(models.Model):
         CONFIRMED = "confirmed", "Confirmée"
         ADDRESS_RELEASED = "address_released", "Adresse communiquée"
         CHECKED_IN = "checked_in", "En cours"
+        PAYMENT_REVIEW = "payment_review", "Paiement à vérifier"
         COMPLETION_PENDING = "completion_pending", "À confirmer"
         COMPLETED = "completed", "Terminée"
         CANCELLED = "cancelled", "Annulée"
@@ -73,6 +74,11 @@ class Booking(models.Model):
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.ACCEPTED)
     accepted_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancel_reason = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "réservation"
@@ -84,6 +90,7 @@ class Booking(models.Model):
                 condition=Q(
                     status__in=(
                         "accepted",
+                        "payment_review",
                         "confirmed",
                         "address_released",
                         "checked_in",
@@ -102,3 +109,92 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.category_name} ({self.get_status_display()})"
+
+
+class PaymentMethodQuerySet(models.QuerySet):
+    def available(self):
+        """Active methods that have a receiving number: the only ones a householder is shown."""
+        return self.filter(active=True).exclude(number="")
+
+
+class PaymentMethod(models.Model):
+    """A mobile-money account of the platform that householders pay into. Edited by staff."""
+
+    class Provider(models.TextChoices):
+        WAVE = "wave", "Wave"
+        MTN_MOMO = "mtn_momo", "MTN MoMo"
+        ORANGE_MONEY = "orange_money", "Orange Money"
+
+    provider = models.CharField(max_length=20, choices=Provider.choices)
+    number = models.CharField(max_length=30, blank=True)
+    account_name = models.CharField(max_length=80, blank=True)
+    active = models.BooleanField(default=False)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    objects = PaymentMethodQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = "moyen de paiement"
+        verbose_name_plural = "moyens de paiement"
+        ordering = ["position", "provider"]
+
+    def __str__(self):
+        return self.get_provider_display()
+
+
+class Payment(models.Model):
+    """What a householder sent to pay for a booking, and what staff decided about it."""
+
+    class Status(models.TextChoices):
+        SUBMITTED = "submitted", "À vérifier"
+        CONFIRMED = "confirmed", "Confirmé"
+        REFUSED = "refused", "Refusé"
+        REFUND_DUE = "refund_due", "Remboursement à faire"
+        REFUNDED = "refunded", "Remboursé"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.ForeignKey(Booking, on_delete=models.PROTECT, related_name="payments")
+    method = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT, related_name="+")
+    amount_xof = models.PositiveIntegerField()
+    fee_xof = models.PositiveIntegerField(default=0)
+    # What the householder typed from their mobile-money receipt. Encrypted; the hash finds repeats.
+    reference = models.TextField()
+    reference_hash = models.CharField(max_length=64, db_index=True)
+    proof = models.ForeignKey("verification.VerificationPhoto", on_delete=models.PROTECT, related_name="+")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SUBMITTED)
+    reason = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    refund_reference = models.TextField(blank=True)  # encrypted
+    refunded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    refunded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "paiement"
+        verbose_name_plural = "paiements"
+        ordering = ["submitted_at"]
+        permissions = [
+            ("verify_payment", "Peut confirmer ou refuser un paiement"),
+            ("make_refund", "Peut enregistrer un remboursement"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["booking"],
+                condition=Q(status__in=("submitted", "confirmed", "refund_due")),
+                name="one_open_payment_per_booking",
+            ),
+            models.UniqueConstraint(
+                fields=["reference_hash"],
+                condition=Q(status__in=("confirmed", "refund_due", "refunded")),
+                name="one_confirmed_reference",
+            ),
+        ]
+        indexes = [models.Index(fields=["status", "submitted_at"])]
+
+    def __str__(self):
+        return f"{self.booking_id} / {self.get_status_display()}"

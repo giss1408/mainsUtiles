@@ -280,6 +280,13 @@ OFFER_MAX_OPEN_PER_HOUSEHOLDER = env.int("OFFER_MAX_OPEN_PER_HOUSEHOLDER", defau
 APPLICATIONS_MAX_OPEN = env.int("APPLICATIONS_MAX_OPEN", default=5)
 APPLICATIONS_MAX_PER_OFFER = env.int("APPLICATIONS_MAX_PER_OFFER", default=20)
 APPLICATION_MESSAGE_MAX = env.int("APPLICATION_MESSAGE_MAX", default=200)
+
+# Payment and address release: how long to pay, when the exact pin is shown, the platform fee, and the
+# notice after which a cancellation is no longer free (a business decision; the fee is 0 until set).
+PAYMENT_WINDOW_HOURS = env.int("PAYMENT_WINDOW_HOURS", default=12)
+ADDRESS_RELEASE_HOURS = env.int("ADDRESS_RELEASE_HOURS", default=3)
+PLATFORM_FEE_PERCENT = env.int("PLATFORM_FEE_PERCENT", default=0)
+CANCEL_FREE_HOURS = env.int("CANCEL_FREE_HOURS", default=24)
 OFFER_NOTE_MAX_LENGTH = env.int("OFFER_NOTE_MAX_LENGTH", default=300)
 OFFER_REVIEW_HOURS = env.int("OFFER_REVIEW_HOURS", default=24)
 
