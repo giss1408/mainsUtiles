@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.api.errors import error_response
 from apps.bookings.models import Booking
-from apps.bookings.services import applications
+from apps.bookings.services import applications, bookings
 from apps.bookings.services.applications import BookingError
 from apps.listings.api.jobber_views import IsJobberRole
 
@@ -98,5 +98,19 @@ class MyBookingsView(APIView):
 
     @extend_schema(responses=JobberBookingSerializer(many=True))
     def get(self, request):
-        rows = Booking.objects.filter(jobber=request.user).order_by("starts_at")
+        rows = [
+            {
+                "id": booking.pk,
+                "status": booking.status,
+                "category_name": booking.category_name,
+                "starts_at": booking.starts_at,
+                "duration_minutes": booking.duration_minutes,
+                "pay_xof": booking.pay_xof,
+                "commune": booking.commune,
+                "quartier": booking.quartier,
+                "address_available_from": bookings.available_from(booking),
+                "payment": bookings.jobber_payment_state(booking),
+            }
+            for booking in Booking.objects.filter(jobber=request.user).order_by("starts_at")
+        ]
         return Response({"results": JobberBookingSerializer(rows, many=True).data})

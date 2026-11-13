@@ -171,3 +171,60 @@ def jobber_photo(user, booking_id) -> bytes:
     data = read_photo_bytes(identity.selfie)
     audit(user, "booking.jobber.view_photo", booking)
     return data
+
+
+# ---- What the apps show ------------------------------------------------------------------------
+
+
+def live_booking(user, offer_id) -> Booking:
+    if not (user and user.is_active and user.role == "householder"):
+        raise BookingError("forbidden")
+    try:
+        booking = (
+            Booking.objects.filter(offer_id=offer_id, householder=user, status__in=Booking.LIVE)
+            .order_by("-created_at")
+            .first()
+        )
+    except (ValidationError, ValueError):
+        booking = None
+    if booking is None:
+        raise BookingError("forbidden")
+    return booking
+
+
+def householder_view(user, offer_id) -> dict:
+    """The booking of one of the householder's offers, with what they need to pay and follow it."""
+    from . import payments
+    from .applications import first_names
+
+    booking = live_booking(user, offer_id)
+    amount, fee = payments.payment_amount(booking)
+    last = booking.payments.order_by("-submitted_at").first()
+    if booking.status in KNOWN_AFTER_PAYMENT:
+        jobber = jobber_card(user, booking.pk)
+    else:
+        jobber = {"first_name": first_names([booking.jobber_id]).get(booking.jobber_id, "")}
+    return {
+        "id": booking.pk,
+        "status": booking.status,
+        "amount_xof": amount,
+        "fee_xof": fee,
+        "pay_deadline": payments.pay_deadline(booking),
+        "methods": payments.instructions(),
+        "payment": {"status": last.status, "reason": last.reason} if last else None,
+        "jobber": jobber,
+        "cancellable": booking.status in CANCELLABLE,
+    }
+
+
+def jobber_payment_state(booking: Booking) -> str:
+    """`pending` until a proof is sent, `review` while staff check it, `confirmed` after."""
+    if booking.status == Booking.Status.ACCEPTED:
+        return "pending"
+    if booking.status == Booking.Status.PAYMENT_REVIEW:
+        return "review"
+    return "confirmed"
+
+
+def householder_photo(user, offer_id) -> bytes:
+    return jobber_photo(user, live_booking(user, offer_id).pk)
