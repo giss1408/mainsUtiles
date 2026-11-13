@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/spacing.dart';
+import '../../applications/application_copy.dart';
+import '../../applications/screens/applicants_screen.dart';
 import '../../verification/screens/flow_scaffold.dart';
 import '../../widgets/message_banner.dart';
 import '../../widgets/ui_kit.dart';
@@ -46,6 +48,48 @@ class MyOfferDetailScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: Gaps.lg),
+        if (offer.booking != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Gaps.sm),
+            child: AppCard(
+              child: Row(
+                children: [
+                  const IconTile(icon: Icons.event_available),
+                  const SizedBox(width: Gaps.md),
+                  Expanded(
+                    child: Text(
+                      ApplicationCopy.bookingLine(offer.booking!.jobberFirstName),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (offer.status == OfferStatus.published)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Gaps.sm),
+            child: AppCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => ApplicantsScreen(offerId: offer.id)),
+              ),
+              child: Row(
+                children: [
+                  const IconTile(icon: Icons.people_outline),
+                  const SizedBox(width: Gaps.md),
+                  Expanded(
+                    child: Text(
+                      offer.applicantsCount == 0
+                          ? ApplicationCopy.noApplicants
+                          : ApplicationCopy.applicantCount(offer.applicantsCount),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+          ),
         if (offer.reason.isNotEmpty)
           AppCard(
             child: Column(

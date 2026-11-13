@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/spacing.dart';
+import '../../applications/application_copy.dart';
 import '../../app/theme.dart';
 import '../../verification/screens/checklist_screen.dart';
 import '../../widgets/message_banner.dart';
@@ -215,6 +216,13 @@ class _OfferCard extends StatelessWidget {
                   label: OfferCopy.statusLabel(offer.status),
                   strong: offer.status == OfferStatus.published,
                 ),
+                if (offer.applicantsCount > 0) ...[
+                  const SizedBox(height: Gaps.sm),
+                  MetaChip(
+                    icon: Icons.people_outline,
+                    label: ApplicationCopy.applicantCount(offer.applicantsCount),
+                  ),
+                ],
               ],
             ),
           ),

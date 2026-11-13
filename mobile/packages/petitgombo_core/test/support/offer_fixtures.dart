@@ -24,6 +24,8 @@ Map<String, dynamic> myOfferJson({
   String reason = '',
   String startsAt = '2026-11-14T08:00:00Z',
   int pay = 3500,
+  int applicantsCount = 0,
+  Map<String, dynamic>? booking,
 }) =>
     {
       'id': id,
@@ -39,6 +41,8 @@ Map<String, dynamic> myOfferJson({
       'status': status,
       'reason': reason,
       'created_at': '2026-11-12T10:00:00Z',
+      'applicants_count': applicantsCount,
+      'booking': booking,
     };
 
 Map<String, dynamic> publicOfferJson({String id = 'p-1', String commune = 'Cocody'}) => {
