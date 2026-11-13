@@ -57,9 +57,7 @@ MESSAGES = {
         "Position trop imprécise. Rapprochez-vous d'une fenêtre ou sortez, puis réessayez."
     ),
     "guarantor_phone_invalid": "Numéro du garant invalide.",
-    "guarantor_phone_own": (
-        "Le garant ne peut pas être toi-même : indique le numéro d'une autre personne."
-    ),
+    "guarantor_phone_own": ("Le garant ne peut pas être toi-même : indique le numéro d'une autre personne."),
     "guarantor_name_required": "Indique le nom du garant.",
     "relationship_invalid": "Choisis le lien avec le garant.",
     "call_required": "Notez d'abord l'appel au garant.",

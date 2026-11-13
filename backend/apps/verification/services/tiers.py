@@ -3,7 +3,14 @@
 from django.conf import settings
 from django.utils import timezone
 
-from apps.verification.models import OPEN, AddressProof, HomeLocation, IdentityVerification, Status
+from apps.verification.models import (
+    OPEN,
+    AddressProof,
+    Guarantor,
+    HomeLocation,
+    IdentityVerification,
+    Status,
+)
 
 
 def current_record(model, user):
@@ -56,4 +63,28 @@ def checklist(user) -> dict:
             ),
         },
         "home_location": _step(current_record(HomeLocation, user)),
+    }
+
+
+def jobber_tier(user) -> str:
+    """J1 when every step named in JOBBER_REQUIRED_STEPS is confirmed; J0 otherwise."""
+    if user.role != "jobber":
+        return "J0"
+    models = {"identity": IdentityVerification, "guarantor": Guarantor}
+    for name in settings.JOBBER_REQUIRED_STEPS:
+        model = models.get(name)
+        # A step this version cannot check never grants the tier.
+        if model is None or _status(current_record(model, user)) != Status.CONFIRMED:
+            return "J0"
+    return "J1"
+
+
+def jobber_checklist(user) -> dict:
+    """Statuses only. Never the guarantor's name or phone, the bill or the identity fields."""
+    return {
+        "tier": jobber_tier(user),
+        "review_hours": settings.VERIFICATION_REVIEW_HOURS,
+        "required": list(settings.JOBBER_REQUIRED_STEPS),
+        "identity": _step(current_record(IdentityVerification, user)),
+        "guarantor": _step(current_record(Guarantor, user)),
     }

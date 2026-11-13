@@ -127,11 +127,10 @@ def test_confirm_requires_a_recorded_call(jpeg, verifier):
 def test_confirm_requires_the_name_to_match(jpeg, verifier):
     record = sent(new_jobber(jpeg, verifier), jpeg)
     call_done(record, verifier)
-    assert code(
-        lambda: review.confirm_guarantor(
-            record, staff=verifier, **confirm_values(name_matches=False)
-        )
-    ) == "checks_required"
+    assert (
+        code(lambda: review.confirm_guarantor(record, staff=verifier, **confirm_values(name_matches=False)))
+        == "checks_required"
+    )
 
 
 def test_confirm_sets_dates_and_encrypts_fields(jpeg, verifier):
@@ -150,9 +149,10 @@ def test_confirm_sets_dates_and_encrypts_fields(jpeg, verifier):
 def test_old_and_future_bills_are_refused(jpeg, verifier, issued):
     record = sent(new_jobber(jpeg, verifier), jpeg)
     call_done(record, verifier)
-    assert code(
-        lambda: review.confirm_guarantor(record, staff=verifier, **confirm_values(issued_on=issued))
-    ) == "proof_too_old"
+    assert (
+        code(lambda: review.confirm_guarantor(record, staff=verifier, **confirm_values(issued_on=issued)))
+        == "proof_too_old"
+    )
 
 
 def test_reference_cap_counts_confirmed_and_expired_of_other_users_only(jpeg, verifier, settings):
