@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
 import '../staff_api.dart';
+import 'staff_profile_screen.dart';
 import '../staff_controller.dart';
 import '../staff_copy.dart';
 
@@ -37,9 +38,13 @@ class QueueScreen extends StatelessWidget {
           title: const Text(StaffCopy.queueTitle),
           actions: [
             IconButton(
-              tooltip: StaffCopy.signOut,
-              onPressed: onSignOut,
-              icon: const Icon(Icons.logout),
+              tooltip: StaffCopy.profileTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => StaffProfileScreen(me: state.me, onSignOut: onSignOut),
+                ),
+              ),
+              icon: const Icon(Icons.account_circle_outlined),
             ),
           ],
           bottom: TabBar(

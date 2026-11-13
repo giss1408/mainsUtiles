@@ -22,6 +22,14 @@ abstract final class StaffCopy {
   static const retry = 'Réessayer';
 
   static const queueTitle = "Demandes d'enrôlement";
+  static const profileTitle = 'Mon compte';
+  static const permissionsLabel = 'Droits';
+  static const noPermissions = 'Aucun droit attribué.';
+  static const _permissions = {
+    'review_enrolment': 'Examiner les demandes',
+    'send_enrolment_code': 'Envoyer les numéros par WhatsApp',
+  };
+  static String permission(String value) => _permissions[value] ?? value;
   static const empty = 'Aucune demande.';
   static const flagged = 'Signalement';
   static const tabs = [
