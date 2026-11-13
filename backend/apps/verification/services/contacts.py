@@ -54,7 +54,7 @@ def awaiting_code(contact: TrustedContact) -> bool:
     )
 
 
-def _own(user, contact_id) -> TrustedContact:
+def own(user, contact_id) -> TrustedContact:
     try:
         contact = TrustedContact.objects.filter(pk=contact_id, user=user).first()
     except (ValidationError, ValueError):
@@ -141,7 +141,7 @@ def replace_contact(user, contact_id, *, name: str, phone: str, relationship: st
     _require_jobber(user)
     with transaction.atomic():
         User.objects.select_for_update().get(pk=user.pk)
-        target = _locked(_own(user, contact_id))
+        target = _locked(own(user, contact_id))
         if target.status not in LIVE:
             raise VerificationError("invalid_state")
         if target.status == ContactStatus.CONFIRMED and _replacement_of(target):
@@ -166,7 +166,7 @@ def request_code(user, contact_id) -> TrustedContact:
     """The jobber asks staff for a (new) code."""
     _require_jobber(user)
     with transaction.atomic():
-        contact = _locked(_own(user, contact_id))
+        contact = _locked(own(user, contact_id))
         if contact.status != ContactStatus.PENDING:
             raise VerificationError("invalid_state")
         wait = timedelta(seconds=settings.TRUSTED_CONTACT_RESEND_SECONDS)
@@ -182,7 +182,7 @@ def confirm_contact(user, contact_id, code: str) -> TrustedContact:
     _require_jobber(user)
     error = None
     with transaction.atomic():
-        contact = _locked(_own(user, contact_id))
+        contact = _locked(own(user, contact_id))
         if contact.status != ContactStatus.PENDING:
             raise VerificationError("invalid_state")
         if not contact.code_hash:
@@ -256,3 +256,10 @@ def apply_replacements(user=None) -> int:
     if user is not None:
         due = due.filter(user=user)
     return due.update(status=ContactStatus.REPLACED, replaced_at=now)
+
+
+def ends_at(contact: TrustedContact):
+    """When a confirmed contact stops counting: its replacement confirmed, its number was warned."""
+    if contact.status == ContactStatus.CONFIRMED and contact.old_notified_at:
+        return contact.old_notified_at + timedelta(hours=settings.TRUSTED_CONTACT_CHANGE_DELAY_HOURS)
+    return None

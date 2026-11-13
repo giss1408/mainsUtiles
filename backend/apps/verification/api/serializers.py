@@ -40,6 +40,17 @@ class StepSerializer(serializers.Serializer):
     reason = serializers.CharField(allow_blank=True)
 
 
+class ContactStepSerializer(StepSerializer):
+    confirmed = serializers.IntegerField()
+    pending = serializers.IntegerField()
+
+
+class BriefingStepSerializer(StepSerializer):
+    answered = serializers.IntegerField()
+    total = serializers.IntegerField()
+    new_cards = serializers.IntegerField()
+
+
 class AddressStepSerializer(StepSerializer):
     commune = serializers.CharField(allow_blank=True)
     quartier = serializers.CharField(allow_blank=True)
@@ -74,3 +85,60 @@ class JobberChecklistSerializer(serializers.Serializer):
     required = serializers.ListField(child=serializers.CharField())
     identity = StepSerializer()
     guarantor = StepSerializer()
+    trusted_contact = ContactStepSerializer()
+    briefing = BriefingStepSerializer()
+
+
+class ContactInputSerializer(serializers.Serializer):
+    """Only the shape is checked here; the service owns every rule and its error code."""
+
+    name = serializers.CharField(allow_blank=True, trim_whitespace=False, max_length=500)
+    phone = serializers.CharField(allow_blank=True, max_length=50)
+    relationship = serializers.CharField(allow_blank=True, max_length=30)
+
+
+class ContactCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(allow_blank=True, max_length=20)
+
+
+class ContactSerializer(serializers.Serializer):
+    """The jobber's own label for a contact. Never the phone, a code or a hash."""
+
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    relationship = serializers.CharField()
+    status = serializers.CharField()
+    replaces = serializers.UUIDField(allow_null=True)
+    awaiting_code = serializers.BooleanField()
+    ends_at = serializers.DateTimeField(allow_null=True)
+
+
+class ContactListSerializer(serializers.Serializer):
+    max = serializers.IntegerField()
+    contacts = ContactSerializer(many=True)
+
+
+class BriefingCardSerializer(serializers.Serializer):
+    """Never the right answer or the explanation."""
+
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    body = serializers.CharField()
+    question = serializers.CharField()
+    choices = serializers.ListField(child=serializers.CharField())
+    answered = serializers.BooleanField()
+
+
+class BriefingSerializer(serializers.Serializer):
+    progress = BriefingStepSerializer()
+    cards = BriefingCardSerializer(many=True)
+
+
+class AnswerInputSerializer(serializers.Serializer):
+    choice = serializers.IntegerField()
+
+
+class AnswerResultSerializer(serializers.Serializer):
+    correct = serializers.BooleanField()
+    explanation = serializers.CharField()
+    complete = serializers.BooleanField()

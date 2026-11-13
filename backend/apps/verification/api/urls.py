@@ -10,4 +10,11 @@ urlpatterns = [
     path("jobber/verification", jobber_views.JobberChecklistView.as_view()),
     path("jobber/verification/identity", jobber_views.JobberIdentityView.as_view()),
     path("jobber/verification/guarantor", jobber_views.JobberGuarantorView.as_view()),
+    path("jobber/verification/contacts", jobber_views.ContactsView.as_view()),
+    path("jobber/verification/contacts/<uuid:pk>", jobber_views.ContactDetailView.as_view()),
+    path("jobber/verification/contacts/<uuid:pk>/code", jobber_views.ContactCodeView.as_view()),
+    path("jobber/verification/contacts/<uuid:pk>/confirm", jobber_views.ContactConfirmView.as_view()),
+    path("jobber/verification/contacts/<uuid:pk>/replace", jobber_views.ContactReplaceView.as_view()),
+    path("jobber/verification/briefing", jobber_views.BriefingView.as_view()),
+    path("jobber/verification/briefing/<uuid:card_id>/answer", jobber_views.BriefingAnswerView.as_view()),
 ]
