@@ -27,6 +27,7 @@ Future<Harness> pumpShell(
   AppRole role = AppRole.jobber,
   Size? size,
   double textScale = 1,
+  FakeAdapter? adapter,
 }) async {
   final h = Harness();
   if (size != null) {
@@ -38,7 +39,7 @@ Future<Harness> pumpShell(
     ProviderScope(
       overrides: [
         appRoleProvider.overrideWithValue(role),
-        dioProvider.overrideWithValue(dioWith(FakeAdapter()..offline = true)),
+        dioProvider.overrideWithValue(dioWith(adapter ?? (FakeAdapter()..offline = true))),
         sessionProvider.overrideWithValue(SignedInSession()),
         positionReaderProvider.overrideWithValue(FakePositionReader()),
         photoCaptureProvider.overrideWithValue(FakePhotoCapture()),
@@ -102,6 +103,14 @@ void main() {
     expect(find.textContaining('à faire valider par un juriste'), findsOneWidget);
   });
 
+  testWidgets('the privacy notice has a section about the guarantor', (tester) async {
+    await pumpShell(tester);
+    await tap(tester, find.text('Profil'));
+    await tap(tester, find.text('Confidentialité et données'));
+    expect(find.text('Informations sur votre garant'), findsOneWidget);
+    expect(find.textContaining('numéro de téléphone'), findsWidgets);
+  });
+
   test('a rating is written with a comma, and says so when there is no review', () {
     expect(StarRating.label(4.5, 12), '4,5 sur 5 · 12 avis');
     expect(StarRating.label(0, 0), "Pas encore d'avis");
@@ -115,6 +124,32 @@ void main() {
     await tap(tester, find.text('Avis reçus'));
     expect(find.text('Aucun avis pour le moment'), findsOneWidget);
     expect(find.byType(ReviewCard), findsNothing);
+  });
+
+  testWidgets('jobber profile shows only the confirmed badges', (tester) async {
+    final adapter = FakeAdapter()
+      ..reply(
+        200,
+        jobberChecklistJson(identity: {'status': 'confirmed', 'reason': ''}),
+      );
+    await pumpShell(tester, adapter: adapter);
+    ProviderScope.containerOf(tester.element(find.byType(HomeShell)))
+        .read(verificationControllerProvider.notifier)
+        .load();
+    await settle(tester);
+    await tap(tester, find.text('Profil'));
+    expect(find.text('Téléphone confirmé'), findsOneWidget);
+    expect(find.text('Identité vérifiée'), findsOneWidget);
+    expect(find.text('Garant confirmé'), findsNothing);
+    expect(find.text('Garant confirmé : à compléter'), findsOneWidget);
+  });
+
+  testWidgets('jobber profile earns nothing before the checklist is known', (tester) async {
+    await pumpShell(tester);
+    await tap(tester, find.text('Profil'));
+    expect(find.text('Identité vérifiée'), findsNothing);
+    expect(find.text('Garant confirmé'), findsNothing);
+    expect(find.text('Identité vérifiée : à compléter'), findsOneWidget);
   });
 
   testWidgets('a review card shows the author, the words and its stars in words', (tester) async {

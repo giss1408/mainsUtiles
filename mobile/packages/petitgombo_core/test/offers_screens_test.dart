@@ -27,7 +27,9 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 Future<FakeAdapter> pumpOffers(WidgetTester tester, List<Object?> replies) async {
-  final adapter = FakeAdapter();
+  // The verification card asks for the checklist once the offers are in; when a test queues no
+  // reply for it, it fails like a lost connection and the card stays hidden.
+  final adapter = FakeAdapter()..offlineAfterReplies = true;
   for (final reply in replies) {
     adapter.reply(200, reply);
   }
@@ -36,6 +38,9 @@ Future<FakeAdapter> pumpOffers(WidgetTester tester, List<Object?> replies) async
       overrides: [
         dioProvider.overrideWithValue(dioWith(adapter)),
         sessionProvider.overrideWithValue(SignedInSession()),
+        appRoleProvider.overrideWithValue(AppRole.jobber),
+        positionReaderProvider.overrideWithValue(FakePositionReader()),
+        photoCaptureProvider.overrideWithValue(FakePhotoCapture()),
       ],
       child: MaterialApp(
         theme: buildAppTheme(),
@@ -73,6 +78,7 @@ void main() {
   testWidgets('choosing a commune reloads the list and shows its own empty state', (tester) async {
     final adapter = await pumpOffers(tester, [
       pageJson(results: [publicOfferJson()]),
+      jobberChecklistJson(), // asked for right after the first page
       pageJson(),
     ]);
     await tap(tester, find.byType(DropdownButtonFormField<String?>));
@@ -84,6 +90,7 @@ void main() {
   testWidgets('Voir plus loads the next page', (tester) async {
     final adapter = await pumpOffers(tester, [
       pageJson(results: [publicOfferJson()], next: 2),
+      jobberChecklistJson(),
       pageJson(results: [publicOfferJson(id: 'p-2')]),
     ]);
     await tap(tester, find.text('Voir plus'));
@@ -127,12 +134,16 @@ void main() {
     tester.view.physicalSize = const Size(320 * 3, 640 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    final adapter = FakeAdapter()..reply(200, pageJson(results: [publicOfferJson()]));
+    final adapter = FakeAdapter()
+      ..reply(200, pageJson(results: [publicOfferJson()]))
+      ..reply(200, jobberChecklistJson()); // the card is on screen too
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dioProvider.overrideWithValue(dioWith(adapter)),
           sessionProvider.overrideWithValue(SignedInSession()),
+          appRoleProvider.overrideWithValue(AppRole.jobber),
+          positionReaderProvider.overrideWithValue(FakePositionReader()),
         ],
         child: MediaQuery(
           data: const MediaQueryData(size: Size(320, 640), textScaler: TextScaler.linear(2)),
@@ -141,6 +152,50 @@ void main() {
       ),
     );
     await settle(tester);
+    expect(find.text('Fais vérifier ton compte'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('offers screen shows the verification card with progress', (tester) async {
+    await pumpOffers(tester, [
+      pageJson(results: [publicOfferJson()]),
+      jobberChecklistJson(identity: {'status': 'confirmed', 'reason': ''}),
+    ]);
+    expect(find.text('Fais vérifier ton compte'), findsOneWidget);
+    expect(find.text('1 étape sur 2'), findsOneWidget);
+    expect(find.text('Compte vérifié'), findsNothing);
+  });
+
+  testWidgets('at J1 the card says the account is verified', (tester) async {
+    await pumpOffers(tester, [
+      pageJson(),
+      jobberChecklistJson(
+        tier: 'J1',
+        identity: {'status': 'confirmed', 'reason': ''},
+        guarantor: {'status': 'confirmed', 'reason': ''},
+      ),
+    ]);
+    expect(find.text('Compte vérifié'), findsOneWidget);
+    expect(find.text('Fais vérifier ton compte'), findsNothing);
+  });
+
+  testWidgets('the card opens the checklist', (tester) async {
+    await pumpOffers(tester, [
+      pageJson(results: [publicOfferJson()]),
+      jobberChecklistJson(),
+      jobberChecklistJson(),
+    ]);
+    await tap(tester, find.text('Fais vérifier ton compte'));
+    expect(find.text('Vérifie ton compte'), findsOneWidget);
+    expect(find.text('Garant'), findsOneWidget);
+  });
+
+  testWidgets('a failed checklist load hides the card and offers still show', (tester) async {
+    await pumpOffers(tester, [
+      pageJson(results: [publicOfferJson()]),
+    ]);
+    expect(find.text('Fais vérifier ton compte'), findsNothing);
+    expect(find.text('Compte vérifié'), findsNothing);
+    expect(find.text('Ménage'), findsOneWidget);
   });
 }

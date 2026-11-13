@@ -71,5 +71,17 @@ abstract class PositionReader {
 final photoCaptureProvider =
     Provider<PhotoCapture>((ref) => throw UnimplementedError('photoCaptureProvider'));
 
-final positionReaderProvider =
-    Provider<PositionReader>((ref) => throw UnimplementedError('positionReaderProvider'));
+/// Used by apps that never read a position (the jobber app): building the verification
+/// controller must not fail there, and asking for a position says it is unavailable.
+class _NoPositionReader implements PositionReader {
+  const _NoPositionReader();
+
+  @override
+  Future<DevicePosition> current() async =>
+      throw const CaptureException(CaptureFailure.unavailable);
+
+  @override
+  Future<void> openSettings() async {}
+}
+
+final positionReaderProvider = Provider<PositionReader>((ref) => const _NoPositionReader());

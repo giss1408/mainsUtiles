@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/spacing.dart';
 import '../../app/theme.dart';
 import '../../widgets/message_banner.dart';
+import '../../verification/screens/verification_card.dart';
+import '../../verification/verification_controller.dart';
 import '../../widgets/ui_kit.dart';
 import '../offer_copy.dart';
 import '../offer_format.dart';
@@ -27,7 +29,7 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Future.microtask(_reload);
+    Future.microtask(_firstLoad);
   }
 
   @override
@@ -43,6 +45,12 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
 
   Future<void> _reload() async {
     if (mounted) await ref.read(offersControllerProvider.notifier).load();
+  }
+
+  /// Offers come first; the verification card is a bonus and never delays them.
+  Future<void> _firstLoad() async {
+    await _reload();
+    if (mounted) await ref.read(verificationControllerProvider.notifier).load();
   }
 
   @override
@@ -74,6 +82,7 @@ class _OffersScreenState extends ConsumerState<OffersScreen> with WidgetsBinding
                       style: theme.textTheme.bodyMedium!.copyWith(color: AppColors.textMuted),
                     ),
                     const SizedBox(height: Gaps.lg),
+                    const VerificationCard(),
                     DropdownButtonFormField<String?>(
                       value: state.commune,
                       isExpanded: true,

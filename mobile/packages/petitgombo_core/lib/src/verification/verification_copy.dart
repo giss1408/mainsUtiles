@@ -91,6 +91,12 @@ abstract final class VerificationCopy {
   static const positionUnavailable = 'Position indisponible. Activez la localisation et réessayez.';
   static const cameraUnavailable = "L'appareil photo est indisponible. Réessayez.";
 
+  // The card on Offres, jobber only.
+  static const cardTitle = 'Fais vérifier ton compte';
+  static const cardVerified = 'Compte vérifié';
+  static String cardProgress(int done, int total) =>
+      '$done ${done > 1 ? 'étapes' : 'étape'} sur $total';
+
   // Guarantor flow: only jobbers see it, so it is written in "tu".
   static const guarantorFlowTitle = 'Qui se porte garant pour toi ?';
   static const guarantorNameLabel = 'Nom du garant';

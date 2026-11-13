@@ -39,6 +39,7 @@ abstract final class ProfileCopy {
   static const phoneConfirmed = 'Téléphone confirmé';
   static const identityVerified = 'Identité vérifiée';
   static const addressVerified = 'Adresse vérifiée';
+  static const guarantorConfirmed = 'Garant confirmé';
   static const reviews = 'Avis reçus';
   static const noReview = 'Aucun avis pour le moment';
   static const noReviewBodyVous = 'Les avis apparaîtront ici après vos premières missions.';
@@ -66,13 +67,16 @@ class ProfileScreen extends ConsumerWidget {
     final me = ref.watch(meProvider);
     final phone = me.valueOrNull?.phone;
     final householder = role == AppRole.householder;
-    final checklist = householder ? ref.watch(verificationControllerProvider).checklist : null;
+    final checklist = ref.watch(verificationControllerProvider).checklist;
     final verified = checklist?.verified ?? false;
     final badges = [
       (ProfileCopy.phoneConfirmed, true),
       if (householder) ...[
         (ProfileCopy.identityVerified, checklist?.identity.status == StepStatus.confirmed),
         (ProfileCopy.addressVerified, checklist?.address.status == StepStatus.confirmed),
+      ] else ...[
+        (ProfileCopy.identityVerified, checklist?.identity.status == StepStatus.confirmed),
+        (ProfileCopy.guarantorConfirmed, checklist?.guarantor.status == StepStatus.confirmed),
       ],
     ];
 

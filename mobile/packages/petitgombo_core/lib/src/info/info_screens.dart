@@ -129,6 +129,16 @@ class PrivacyScreen extends StatelessWidget {
               "l'adresse, la position, le nom ni le numéro du ménage.",
         ),
         InfoSection(
+          Icons.people_outline,
+          'Informations sur votre garant',
+          'Un mini-jobber indique le nom et le numéro de téléphone de son garant, et envoie la '
+              "photo d'un justificatif à son nom (facture d'eau ou d'électricité, certificat de "
+              "résidence, abonnement prépayé). C'est demandé pour qu'une personne de confiance "
+              'réponde du mini-jobber : notre équipe appelle le garant, une seule fois, pour '
+              "confirmer. Le numéro n'est utilisé que pour cet appel. Seul le personnel habilité "
+              'voit ces informations, jamais les ménages ni les autres mini-jobbers.',
+        ),
+        InfoSection(
           Icons.enhanced_encryption_outlined,
           'Comment elles sont protégées',
           'Les photos et les informations sensibles sont chiffrées. La connexion est liée à votre '

@@ -154,8 +154,39 @@ is used and photos are written to `backend/verification_storage/` (git-ignored).
 settings, listed in `.env.example` under "Householder verification".
 
 Not built yet: the route for a bill in someone else's name, the mobile-money name match, automatic
-document and liveness checks, and jobber verification. Whether identity photos may lawfully be held
+document and liveness checks. Whether identity photos may lawfully be held
 is an open decision (see "Open decisions").
+
+## Jobber verification
+
+A jobber is tier J0 until the steps named in `JOBBER_REQUIRED_STEPS` (default `identity, guarantor`)
+are confirmed, then J1. The jobber app shows a card on "Offres" ("Fais vérifier ton compte", with its
+progress) that opens a checklist with two steps, written in "tu":
+
+1. **Identité** — the same photos as a householder (front, back, selfie), sent to
+   `POST /api/v1/jobber/verification/identity`.
+2. **Garant** — the name and phone of a guarantor, the link with them (parent, family, landlord,
+   other), and a photo of a bill in the guarantor's name (water, electricity, certificat de
+   résidence or prepaid subscription), sent to `POST /api/v1/jobber/verification/guarantor`.
+   `GET /api/v1/jobber/verification` returns statuses only, never the guarantor's name, phone or bill.
+
+Staff work in the web console under "Vérifications", queue "Garants" (permission
+`verification.view_guarantor`, group `verification_agent`):
+
+1. Read the script to the guarantor over the phone and record the three answers ("Connaît-il le jeune ?",
+   "Confirme son identité et son domicile ?", "Accepte d'être contacté ?"). All three must be yes.
+2. Confirm with the holder's name, the bill reference, the issue date and whether the name matches,
+   or refuse with a reason. The jobber's identity must be confirmed first, and the call recorded.
+
+Settings (environment variables): `GUARANTOR_DOCUMENT_TYPES`, `GUARANTOR_BILL_MAX_AGE_MONTHS` (3),
+`GUARANTOR_VALID_MONTHS` (12; an expired guarantor drops the jobber back to J0, swept hourly by
+`expire-guarantors`), `GUARANTOR_MAX_JOBBERS` (3 jobbers per bill reference), `JOBBER_REQUIRED_STEPS`.
+
+Open decisions: the lawful basis for holding a third party's name, phone and bill (the privacy notice
+has a draft section "Informations sur votre garant"); whether a guarantor must consent in writing;
+what staff do when a guarantor does not answer; whether J1 should be required to apply (applications
+do not exist yet). The jobber app has no camera implementation yet: only the householder app
+wires `photoCaptureProvider`, so photo steps cannot run in the jobber app until it does.
 
 ## Job offers
 
