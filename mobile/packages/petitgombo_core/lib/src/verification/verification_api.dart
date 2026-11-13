@@ -4,13 +4,15 @@ import '../api/api_client.dart';
 import 'capture.dart';
 import 'verification_models.dart';
 
-/// The householder verification endpoints.
+/// The verification endpoints of one role. The householder base is the default.
 class VerificationApi {
-  VerificationApi(this._dio);
+  VerificationApi(this._dio, {String base = householderBase}) : _base = base;
+
+  static const householderBase = '/api/v1/verification';
+  static const jobberBase = '/api/v1/jobber/verification';
 
   final Dio _dio;
-
-  static const _base = '/api/v1/verification';
+  final String _base;
 
   Options _bearer(String access) => Options(headers: {'Authorization': 'Bearer $access'});
 
@@ -79,6 +81,28 @@ class VerificationApi {
         });
         return _checklist(
           await _dio.post<dynamic>('$_base/address', data: form, options: _upload(access)),
+        );
+      });
+
+  Future<VerificationChecklist> submitGuarantor(
+    String access, {
+    required String documentType,
+    required CapturedPhoto photo,
+    required String guarantorName,
+    required String guarantorPhone,
+    required String relationship,
+  }) =>
+      guardApi(() async {
+        final form = FormData.fromMap({
+          'document_type': documentType,
+          'guarantor_name': guarantorName,
+          'guarantor_phone': guarantorPhone,
+          'relationship': relationship,
+          ..._captured(photo),
+          'photo': _jpeg(photo, 'photo'),
+        });
+        return _checklist(
+          await _dio.post<dynamic>('$_base/guarantor', data: form, options: _upload(access)),
         );
       });
 

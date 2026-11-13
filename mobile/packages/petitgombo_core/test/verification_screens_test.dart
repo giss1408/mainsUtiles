@@ -24,6 +24,7 @@ Future<Harness> pumpChecklist(WidgetTester tester, Map<String, dynamic> first) a
         sessionProvider.overrideWithValue(SignedInSession()),
         photoCaptureProvider.overrideWithValue(h.camera),
         positionReaderProvider.overrideWithValue(h.position),
+        appRoleProvider.overrideWithValue(AppRole.householder),
       ],
       child: MaterialApp(
         theme: buildAppTheme(),
@@ -124,6 +125,7 @@ void main() {
           sessionProvider.overrideWithValue(SignedInSession()),
           photoCaptureProvider.overrideWithValue(h.camera),
           positionReaderProvider.overrideWithValue(h.position),
+          appRoleProvider.overrideWithValue(AppRole.householder),
         ],
         child: MaterialApp(theme: buildAppTheme(), home: ChecklistScreen(onSignOut: () {})),
       ),

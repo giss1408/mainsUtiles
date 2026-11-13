@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_error.dart';
+import '../app/app_role.dart';
 import '../app/providers.dart';
+import '../enrolment/phone_format.dart';
 import '../auth/session.dart';
 import 'capture.dart';
 import 'verification_api.dart';
@@ -110,6 +112,31 @@ class VerificationController extends StateNotifier<VerificationState> {
         offline: VerificationCopy.offlinePhotosKept,
       );
 
+  Future<bool> sendGuarantor({
+    required String documentType,
+    required CapturedPhoto photo,
+    required String guarantorName,
+    required String guarantorPhone,
+    required String relationship,
+  }) {
+    final phone = normaliseIvorianPhone(guarantorPhone);
+    if (phone == null) {
+      state = state.copyWith(error: VerificationCopy.guarantorPhoneInvalid);
+      return Future.value(false);
+    }
+    return _send(
+      (access) => _api.submitGuarantor(
+        access,
+        documentType: documentType,
+        photo: photo,
+        guarantorName: guarantorName,
+        guarantorPhone: phone,
+        relationship: relationship,
+      ),
+      offline: VerificationCopy.offlinePhotosKept,
+    );
+  }
+
   /// Reads the phone's position, then sends it.
   Future<bool> recordHome() async {
     if (state.sending) return false;
@@ -168,8 +195,14 @@ class VerificationController extends StateNotifier<VerificationState> {
   }
 }
 
-final verificationApiProvider =
-    Provider<VerificationApi>((ref) => VerificationApi(ref.watch(dioProvider)));
+final verificationApiProvider = Provider<VerificationApi>(
+  (ref) => VerificationApi(
+    ref.watch(dioProvider),
+    base: ref.watch(appRoleProvider) == AppRole.jobber
+        ? VerificationApi.jobberBase
+        : VerificationApi.householderBase,
+  ),
+);
 
 final verificationControllerProvider =
     StateNotifierProvider<VerificationController, VerificationState>(

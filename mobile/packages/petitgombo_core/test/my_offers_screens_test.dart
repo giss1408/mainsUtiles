@@ -40,6 +40,7 @@ Future<FakeAdapter> pumpMine(
         dioProvider.overrideWithValue(dioWith(adapter)),
         sessionProvider.overrideWithValue(SignedInSession()),
         positionReaderProvider.overrideWithValue(FakePositionReader()),
+        appRoleProvider.overrideWithValue(AppRole.householder),
       ],
       child: MaterialApp(
         theme: buildAppTheme(),

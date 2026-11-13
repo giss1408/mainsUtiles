@@ -27,6 +27,28 @@ Map<String, dynamic> checklistJson({
       'home_location': homeLocation ?? {'status': 'not_started', 'reason': ''},
     };
 
+Map<String, dynamic> jobberChecklistJson({
+  String tier = 'J0',
+  Map<String, dynamic>? identity,
+  Map<String, dynamic>? guarantor,
+}) =>
+    {
+      'tier': tier,
+      'review_hours': 24,
+      'required': ['identity', 'guarantor'],
+      'identity': identity ?? {'status': 'not_started', 'reason': ''},
+      'guarantor': guarantor ?? {'status': 'not_started', 'reason': ''},
+    };
+
+VerificationChecklist jobberChecklist({
+  String tier = 'J0',
+  Map<String, dynamic>? identity,
+  Map<String, dynamic>? guarantor,
+}) =>
+    VerificationChecklist.fromJson(
+      jobberChecklistJson(tier: tier, identity: identity, guarantor: guarantor),
+    );
+
 VerificationChecklist checklist({
   String tier = 'H0',
   Map<String, dynamic>? identity,

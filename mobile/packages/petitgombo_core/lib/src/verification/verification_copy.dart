@@ -85,6 +85,7 @@ abstract final class VerificationCopy {
   static const positionUnavailable = 'Position indisponible. Activez la localisation et réessayez.';
   static const cameraUnavailable = "L'appareil photo est indisponible. Réessayez.";
 
+  static const guarantorPhoneInvalid = 'Numéro de téléphone invalide.';
   static const offline = 'Pas de connexion. Réessayez.';
   static const offlinePhotosKept = 'Pas de connexion. Vos photos sont gardées. Réessayez.';
   static const sessionExpired = "Votre session a expiré. Fermez puis rouvrez l'application.";

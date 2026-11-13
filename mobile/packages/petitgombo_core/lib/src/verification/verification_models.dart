@@ -70,6 +70,7 @@ class VerificationChecklist {
     required this.identity,
     required this.address,
     required this.homeLocation,
+    this.guarantor = const VerificationStep(status: StepStatus.notStarted),
   });
 
   factory VerificationChecklist.fromJson(Map<String, dynamic> json) => VerificationChecklist(
@@ -77,10 +78,22 @@ class VerificationChecklist {
         reviewHours: (json['review_hours'] as num?)?.toInt() ?? 24,
         communes: ((json['communes'] as List?) ?? const []).map((c) => '$c').toList(),
         identity: VerificationStep.fromJson(Map<String, dynamic>.from(json['identity'] as Map)),
-        address: AddressState.fromJson(Map<String, dynamic>.from(json['address'] as Map)),
-        homeLocation:
-            VerificationStep.fromJson(Map<String, dynamic>.from(json['home_location'] as Map)),
+        address: _optional(json['address'], AddressState.fromJson, const _NotStartedAddress()),
+        homeLocation: _optional(
+          json['home_location'],
+          VerificationStep.fromJson,
+          const VerificationStep(status: StepStatus.notStarted),
+        ),
+        guarantor: _optional(
+          json['guarantor'],
+          VerificationStep.fromJson,
+          const VerificationStep(status: StepStatus.notStarted),
+        ),
       );
+
+  /// A step the server does not report for this role counts as not started.
+  static T _optional<T>(Object? json, T Function(Map<String, dynamic>) parse, T fallback) =>
+      json is Map ? parse(Map<String, dynamic>.from(json)) : fallback;
 
   final String tier;
   final int reviewHours;
@@ -89,5 +102,15 @@ class VerificationChecklist {
   final AddressState address;
   final VerificationStep homeLocation;
 
-  bool get verified => tier == 'H1';
+  /// Reported for jobbers only.
+  final VerificationStep guarantor;
+
+  /// A jobber's tiers start with J, a householder's with H.
+  bool get forJobber => tier.startsWith('J');
+
+  bool get verified => tier == 'H1' || tier == 'J1';
+}
+
+class _NotStartedAddress extends AddressState {
+  const _NotStartedAddress() : super(status: StepStatus.notStarted);
 }
