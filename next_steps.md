@@ -1,7 +1,8 @@
 # Next steps
 
-State at c2e734d on `feat/jobber-verification` (pushed): jobber verification 3a (identity, guarantor)
-and 3b (trusted contact, safety briefing) are implemented and green. Nothing has been tried on a
+State on `feat/jobber-verification`: jobber verification 3a (identity, guarantor), 3b (trusted
+contact, safety briefing) and piece 4 stage 1 (applications and accepting one applicant) are
+implemented and green. Nothing has been tried on a
 real phone, and no reviewer other than the author has read the branch.
 
 ## Before merging
@@ -29,11 +30,18 @@ real phone, and no reviewer other than the author has read the branch.
 
 ## Build next
 
-- **Applications and bookings**, which will enforce J1 (nothing enforces it today; the tier is only
-  computed and shown). This is the next big plan.
+- **Applications and bookings, stage 2 of 3: payment and address release** (design:
+  `docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`). The householder pays the
+  platform first by mobile money (a mock provider behind `PaymentProvider`), the booking becomes
+  `confirmed`, the exact address is released shortly before the start, and either side can cancel.
+  Needs its own plan. Today an accepted booking waits for a payment that cannot be made yet.
+- **Stage 3:** check-in and check-out, householder confirmation, payout to the jobber, disputes in
+  the console, reviews and ratings.
+- **Before launch (business):** the payment provider and its settlement model, the platform fee, the
+  late-cancellation rule, and SMS or push for "you were accepted" and "pay now".
 - **Out of scope so far:** tier J2 and commune of service, linked-account detection (shared guarantor,
   bill or phone across accounts) and a banned-guarantor rule, automated guarantor call, real SMS,
-  liveness check, payment.
+  liveness check, cash with the QR code, live tracking, the door handshake, SOS, chat.
 
 ## Housekeeping
 
