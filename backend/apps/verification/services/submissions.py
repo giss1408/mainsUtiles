@@ -16,10 +16,12 @@ from apps.verification.models import (
     OPEN,
     UNDECIDED,
     AddressProof,
+    ContactStatus,
     Guarantor,
     HomeLocation,
     IdentityVerification,
     Status,
+    TrustedContact,
     VerificationPhoto,
 )
 
@@ -261,6 +263,11 @@ def submit_guarantor(
         raise VerificationError("guarantor_phone_invalid") from exc
     if user.phone and phone == normalise(user.phone):
         raise VerificationError("guarantor_phone_own")
+    # The guarantor and the trusted contact are two different people (the contact side checks the other way).
+    if TrustedContact.objects.filter(
+        user=user, phone_hash=keyed_hash(phone), status__in=(ContactStatus.PENDING, ContactStatus.CONFIRMED)
+    ).exists():
+        raise VerificationError("guarantor_phone_contact")
     expire_guarantors(user)
     _require_no_open(Guarantor, user)
     with _submission() as written:

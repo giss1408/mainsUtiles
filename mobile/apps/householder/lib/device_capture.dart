@@ -127,7 +127,9 @@ class _CameraPageState extends State<_CameraPage> {
       // The camera wrote a temporary file: remove it, the photo lives in memory only.
       unawaited(File(file.path).delete().catchError((_) => File(file.path)));
       if (mounted) Navigator.of(context).pop(bytes);
-    } on CameraException {
+    } catch (_) {
+      // A camera error, or the temporary file could not be read: leave with a clear failure
+      // instead of a shutter that stays disabled.
       if (mounted) Navigator.of(context).pop(const CaptureException(CaptureFailure.unavailable));
     }
   }

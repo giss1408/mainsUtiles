@@ -1,7 +1,9 @@
 import re
+from datetime import timedelta
 from urllib.parse import unquote
 
 import pytest
+from django.utils import timezone
 
 from apps.audit.models import AdminAction
 from apps.verification.models import ContactStatus, TrustedContact
@@ -54,6 +56,9 @@ def test_send_shows_the_link_once_with_the_code_and_the_number_and_audits(verifi
 
 def test_a_second_send_issues_a_new_code_and_the_old_one_stops_working(verifier_client, contact):
     first = code_in(verifier_client.post(f"{CONTACTS}/{contact.pk}/send/"))
+    aged = timezone.now() - timedelta(hours=1)
+    TrustedContact.objects.filter(pk=contact.pk).update(code_sent_at=aged, code_requested_at=aged)
+    contacts.request_code(contact.user, contact.pk)
     second = code_in(verifier_client.post(f"{CONTACTS}/{contact.pk}/send/"))
     if first == second:
         pytest.skip("same code twice")

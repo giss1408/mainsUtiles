@@ -4,6 +4,8 @@ The contact's number never leaves the server as text: it travels only inside the
 link, which is never cached."""
 
 from django.conf import settings
+from django.db import transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -92,6 +94,12 @@ class ContactDetailView(APIView):
     @extend_schema(responses=ContactDetailSerializer)
     def get(self, request, pk):
         contact = get_object_or_404(TrustedContact.objects.select_related("user"), pk=pk)
+        # Names are for acting on: only a contact that is waiting in a queue can be opened.
+        in_queue = (
+            contacts.send_queue().filter(pk=pk).exists() or contacts.notice_queue().filter(pk=pk).exists()
+        )
+        if not in_queue:
+            raise Http404
         audit(request.user, "verification.contact.view", contact)
         body = {**_item(contact), "name": decrypt_text(contact.name), "jobber_name": _jobber_name(contact)}
         return Response(body, headers=NO_STORE)
@@ -109,10 +117,12 @@ class ContactSendView(APIView):
     def post(self, request, pk):
         contact = get_object_or_404(TrustedContact, pk=pk)
         try:
-            code = contacts.send_code(contact, staff=request.user)
+            # The code and its link are one step: if the link cannot be built, the code is not issued.
+            with transaction.atomic():
+                code = contacts.send_code(contact, staff=request.user)
+                return _link(contact, contacts.CONTACT_MESSAGE.format(code=code))
         except VerificationError as exc:
             return error_response(exc.code)
-        return _link(contact, contacts.CONTACT_MESSAGE.format(code=code))
 
 
 class ContactNoticeView(APIView):
@@ -121,8 +131,10 @@ class ContactNoticeView(APIView):
     @extend_schema(request=None, responses=WhatsAppUrlSerializer)
     def post(self, request, pk):
         contact = get_object_or_404(TrustedContact, pk=pk)
+        message = contacts.NOTICE_MESSAGE.format(n=settings.TRUSTED_CONTACT_CHANGE_DELAY_HOURS)
         try:
-            contacts.record_notice(contact, staff=request.user)
+            with transaction.atomic():
+                contacts.record_notice(contact, staff=request.user)
+                return _link(contact, message)
         except VerificationError as exc:
             return error_response(exc.code)
-        return _link(contact, contacts.NOTICE_MESSAGE.format(n=settings.TRUSTED_CONTACT_CHANGE_DELAY_HOURS))

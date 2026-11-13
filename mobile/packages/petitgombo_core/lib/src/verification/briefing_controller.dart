@@ -77,11 +77,13 @@ class BriefingController extends StateNotifier<BriefingState> {
     try {
       final answer = await _session.authorized((access) => _api.answerCard(access, cardId, choice));
       final cards = state.cards;
+      final marked = answer.correct && cards != null
+          ? [for (final card in cards) card.id == cardId ? card.markAnswered() : card]
+          : null;
       state = state.copyWith(
         sending: false,
-        cards: answer.correct && cards != null
-            ? [for (final card in cards) card.id == cardId ? card.markAnswered() : card]
-            : null,
+        cards: marked,
+        progress: marked == null ? null : _progressAfter(marked, answer.complete),
       );
       if (answer.complete) await _refreshChecklist();
       return answer;
@@ -89,6 +91,24 @@ class BriefingController extends StateNotifier<BriefingState> {
       state = state.copyWith(sending: false, error: _message(e));
       return null;
     }
+  }
+
+  /// The counts the screen shows, kept in step with the cards just answered.
+  BriefingStep? _progressAfter(List<BriefingCard> cards, bool complete) {
+    final progress = state.progress;
+    if (progress == null) return null;
+    final answered = cards.where((card) => card.answered).length;
+    final status = complete || progress.status == StepStatus.confirmed
+        ? StepStatus.confirmed
+        : answered > 0
+            ? StepStatus.inProgress
+            : progress.status;
+    return BriefingStep(
+      status: status,
+      answered: answered,
+      total: progress.total,
+      newCards: progress.total - answered,
+    );
   }
 
   String _message(ApiError e) {

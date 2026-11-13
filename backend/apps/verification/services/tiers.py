@@ -15,6 +15,7 @@ from apps.verification.models import (
 )
 
 from . import briefing, contacts
+from .submissions import expire_guarantors
 
 
 def current_record(model, user):
@@ -79,36 +80,43 @@ def trusted_contact_step(user) -> dict:
     return {"status": status, "reason": "", "confirmed": confirmed, "pending": pending}
 
 
-def _confirmed(user, step: str) -> bool:
-    if step == "identity":
-        return _status(current_record(IdentityVerification, user)) == Status.CONFIRMED
-    if step == "guarantor":
-        return _status(current_record(Guarantor, user)) == Status.CONFIRMED
-    if step == "trusted_contact":
-        return trusted_contact_step(user)["status"] == "confirmed"
-    if step == "briefing":
-        return briefing.briefing_progress(user)["status"] == "confirmed"
-    return False  # a step this version cannot check never grants the tier
+def _settle(user) -> None:
+    """Apply what is overdue now, so a reading never waits for the periodic sweeps."""
+    contacts.apply_replacements(user)
+    expire_guarantors(user)
+
+
+def _checklist(user) -> dict:
+    return {
+        "identity": _step(current_record(IdentityVerification, user)),
+        "guarantor": _step(current_record(Guarantor, user)),
+        "trusted_contact": trusted_contact_step(user),
+        "briefing": briefing.briefing_progress(user),
+    }
+
+
+def _tier(steps: dict) -> str:
+    # A step this version cannot check never grants the tier.
+    ok = all(steps.get(step, {}).get("status") == "confirmed" for step in settings.JOBBER_REQUIRED_STEPS)
+    return "J1" if ok else "J0"
 
 
 def jobber_tier(user) -> str:
     """J1 when every step named in JOBBER_REQUIRED_STEPS is confirmed; J0 otherwise."""
     if user.role != "jobber":
         return "J0"
-    contacts.apply_replacements(user)
-    return "J1" if all(_confirmed(user, step) for step in settings.JOBBER_REQUIRED_STEPS) else "J0"
+    _settle(user)
+    return _tier(_checklist(user))
 
 
 def jobber_checklist(user) -> dict:
     """Statuses only. Never a guarantor's or contact's name or phone, the bill, an answer key or
     the identity fields."""
-    contacts.apply_replacements(user)
+    _settle(user)
+    steps = _checklist(user)
     return {
-        "tier": jobber_tier(user),
+        "tier": _tier(steps),
         "review_hours": settings.VERIFICATION_REVIEW_HOURS,
         "required": list(settings.JOBBER_REQUIRED_STEPS),
-        "identity": _step(current_record(IdentityVerification, user)),
-        "guarantor": _step(current_record(Guarantor, user)),
-        "trusted_contact": trusted_contact_step(user),
-        "briefing": briefing.briefing_progress(user),
+        **steps,
     }

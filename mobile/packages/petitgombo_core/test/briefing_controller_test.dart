@@ -73,6 +73,33 @@ void main() {
     expect(refreshed, 1);
   });
 
+  test('a correct answer moves the progress; a repeated one does not count twice', () async {
+    adapter.reply(200, {
+      'progress': briefingStepJson(total: 2),
+      'cards': [cardJson(), cardJson(id: 'k-2')],
+    });
+    await controller.load();
+    expect(controller.state.progress!.status, StepStatus.notStarted);
+
+    adapter.reply(200, {'correct': true, 'explanation': 'Oui.', 'complete': false});
+    await controller.answer('k-1', 1);
+    var progress = controller.state.progress!;
+    expect((progress.status, progress.answered, progress.newCards), (StepStatus.inProgress, 1, 1));
+
+    adapter.reply(200, {'correct': true, 'explanation': 'Oui.', 'complete': false});
+    await controller.answer('k-1', 1);
+    expect(controller.state.progress!.answered, 1);
+
+    adapter.reply(200, {'correct': false, 'explanation': 'Non.', 'complete': false});
+    await controller.answer('k-2', 0);
+    expect(controller.state.progress!.answered, 1);
+
+    adapter.reply(200, {'correct': true, 'explanation': 'Oui.', 'complete': true});
+    await controller.answer('k-2', 1);
+    progress = controller.state.progress!;
+    expect((progress.status, progress.answered, progress.newCards), (StepStatus.confirmed, 2, 0));
+  });
+
   test('errors show the French message and offline the retry message', () async {
     adapter.reply(400, {'error': 'choice_invalid', 'message': 'Choix invalide.'});
     expect(await controller.answer('k-1', 9), isNull);

@@ -231,7 +231,8 @@ def send_code(contact: TrustedContact, *, staff) -> str:
     _require_staff(staff)
     with transaction.atomic():
         row = _locked(contact)
-        if row.status != ContactStatus.PENDING:
+        # Only a code the jobber asked for: a double tap or a replay must not cancel the one already sent.
+        if row.status != ContactStatus.PENDING or not awaiting_code(row):
             raise VerificationError("invalid_state")
         code = f"{secrets.randbelow(10**6):06d}"
         now = timezone.now()

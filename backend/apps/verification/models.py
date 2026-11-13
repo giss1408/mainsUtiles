@@ -2,7 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 
 
@@ -277,6 +277,20 @@ class BriefingCard(models.Model):
             raise ValidationError({"choices": "Un choix ne peut pas être vide."})
         if self.correct_index is None or not 0 <= self.correct_index < len(choices):
             raise ValidationError({"correct_index": "La bonne réponse doit être l'un des choix."})
+
+    def save(self, *args, **kwargs):
+        """Changing the choices or the right answer withdraws every credit given for this card, and
+        the pass of those who had it: they answered a different question. A wording fix keeps both."""
+        with transaction.atomic():
+            if not self._state.adding:
+                before = BriefingCard.objects.filter(pk=self.pk).values("choices", "correct_index").first()
+                if before and (
+                    before["choices"] != self.choices or before["correct_index"] != self.correct_index
+                ):
+                    credited = BriefingCompletion.objects.filter(card=self).values("user_id")
+                    BriefingPass.objects.filter(user_id__in=credited).delete()
+                    BriefingCompletion.objects.filter(card=self).delete()
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

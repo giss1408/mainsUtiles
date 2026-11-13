@@ -123,9 +123,17 @@ def test_send_code_needs_the_permission_stores_only_the_hash_and_audits(jobber, 
     assert AdminAction.objects.filter(action="verification.contact.send_code", actor=verifier).count() == 1
 
 
+def ask_again(contact):
+    """The jobber asks for a new code once the wait has passed."""
+    aged = timezone.now() - timedelta(hours=1)
+    age(contact, code_sent_at=aged, code_requested_at=aged)
+    contacts.request_code(contact.user, contact.pk)
+
+
 def test_send_code_twice_replaces_the_first_code(jobber, verifier):
     contact = add(jobber)
     first = contacts.send_code(contact, staff=verifier)
+    ask_again(contact)
     second = contacts.send_code(contact, staff=verifier)
     if first == second:  # one in a million: make the test deterministic
         pytest.skip("same code twice")
@@ -150,6 +158,7 @@ def test_wrong_code_counts_attempts_then_locks_until_a_new_code(jobber, verifier
     for _ in range(5):
         assert code(lambda: contacts.confirm_contact(jobber, contact.pk, wrong)) == "contact_code_invalid"
     assert code(lambda: contacts.confirm_contact(jobber, contact.pk, value)) == "contact_locked"
+    ask_again(contact)
     fresh = contacts.send_code(contact, staff=verifier)
     assert contacts.confirm_contact(jobber, contact.pk, fresh).status == ContactStatus.CONFIRMED
 

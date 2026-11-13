@@ -101,7 +101,7 @@ def test_an_expired_guarantor_drops_to_j0_and_can_be_resubmitted(jpeg, verifier)
     Guarantor.objects.filter(pk=record.pk).update(expires_at=timezone.now() - timedelta(days=1))
     assert jobber_tier(user) == "J0"
     assert jobber_checklist(user)["guarantor"]["status"] == "expired"
-    assert submissions.expire_guarantors(user) == 1
+    assert submissions.expire_guarantors(user) == 0  # reading the checklist already swept it
     assert sent(user, jpeg, document_type="facture_eau").status == Status.SUBMITTED
 
 

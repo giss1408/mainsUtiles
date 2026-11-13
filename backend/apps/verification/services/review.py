@@ -4,7 +4,7 @@ import calendar
 from datetime import date, datetime
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 
 from apps.audit.services import record as audit
@@ -294,6 +294,9 @@ def confirm_guarantor(
             if issued_on > today or issued_on < oldest:
                 raise VerificationError("proof_too_old")
             reference_hash = keyed_hash(reference_number)
+            # Two confirmations on the same bill must not both pass the cap: serialise them.
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [reference_hash])
             backed = (
                 Guarantor.objects.filter(
                     status__in=(Status.CONFIRMED, Status.EXPIRED), reference_hash=reference_hash

@@ -22,6 +22,7 @@ STATUS = {
     # Jobber verification
     "guarantor_phone_invalid": 400,
     "guarantor_phone_own": 400,
+    "guarantor_phone_contact": 400,
     "guarantor_name_required": 400,
     "relationship_invalid": 400,
     "call_required": 400,

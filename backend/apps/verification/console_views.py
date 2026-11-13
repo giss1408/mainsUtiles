@@ -5,6 +5,7 @@ from datetime import date
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -236,7 +237,10 @@ def send_contact_code(request, pk):
     """Issue a code and show the WhatsApp link once."""
     contact = get_object_or_404(TrustedContact, pk=pk)
     try:
-        code = contacts.send_code(contact, staff=request.user)
+        # The code and its link are one step: if the link cannot be built, the code is not issued.
+        with transaction.atomic():
+            code = contacts.send_code(contact, staff=request.user)
+            link = _contact_link(contact, contacts.CONTACT_MESSAGE.format(code=code))
     except VerificationError as exc:
         return _contact_error(request, contact, exc, "Cette personne n'est plus à confirmer.")
     return _contact_page(
@@ -244,7 +248,7 @@ def send_contact_code(request, pk):
         contact,
         heading="Envoyer le code à la personne de confiance",
         intro=f"Personne : {decrypt_text(contact.name)}.",
-        link=_contact_link(contact, contacts.CONTACT_MESSAGE.format(code=code)),
+        link=link,
         warning="Ne recopiez pas ce code : il sera demandé au mini-jobber.",
     )
 
