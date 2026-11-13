@@ -122,6 +122,88 @@ class VerificationApi {
         return _checklist(response);
       });
 
+  Map<String, dynamic> _map(Response<dynamic> response) =>
+      Map<String, dynamic>.from(response.data as Map);
+
+  Future<({int max, List<TrustedContact> contacts})> contacts(String access) => guardApi(() async {
+        final data = _map(await _dio.get<dynamic>('$_base/contacts', options: _bearer(access)));
+        return (
+          max: (data['max'] as num?)?.toInt() ?? 2,
+          contacts: ((data['contacts'] as List?) ?? const [])
+              .map((c) => TrustedContact.fromJson(Map<String, dynamic>.from(c as Map)))
+              .toList(),
+        );
+      });
+
+  Future<TrustedContact> addContact(
+    String access, {
+    required String name,
+    required String phone,
+    required String relationship,
+  }) =>
+      guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '$_base/contacts',
+          data: {'name': name, 'phone': phone, 'relationship': relationship},
+          options: _bearer(access),
+        );
+        return TrustedContact.fromJson(_map(response));
+      });
+
+  Future<TrustedContact> replaceContact(
+    String access,
+    String id, {
+    required String name,
+    required String phone,
+    required String relationship,
+  }) =>
+      guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '$_base/contacts/$id/replace',
+          data: {'name': name, 'phone': phone, 'relationship': relationship},
+          options: _bearer(access),
+        );
+        return TrustedContact.fromJson(_map(response));
+      });
+
+  Future<TrustedContact> requestContactCode(String access, String id) => guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '$_base/contacts/$id/code',
+          options: _bearer(access),
+        );
+        return TrustedContact.fromJson(_map(response));
+      });
+
+  Future<TrustedContact> confirmContact(String access, String id, String code) =>
+      guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '$_base/contacts/$id/confirm',
+          data: {'code': code},
+          options: _bearer(access),
+        );
+        return TrustedContact.fromJson(_map(response));
+      });
+
+  Future<({BriefingStep progress, List<BriefingCard> cards})> briefing(String access) =>
+      guardApi(() async {
+        final data = _map(await _dio.get<dynamic>('$_base/briefing', options: _bearer(access)));
+        return (
+          progress: BriefingStep.fromJson(Map<String, dynamic>.from(data['progress'] as Map)),
+          cards: ((data['cards'] as List?) ?? const [])
+              .map((c) => BriefingCard.fromJson(Map<String, dynamic>.from(c as Map)))
+              .toList(),
+        );
+      });
+
+  Future<BriefingAnswer> answerCard(String access, String cardId, int choice) => guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '$_base/briefing/$cardId/answer',
+          data: {'choice': choice},
+          options: _bearer(access),
+        );
+        return BriefingAnswer.fromJson(_map(response));
+      });
+
   CapturedPhoto _withPosition(CapturedPhoto photo, (double, double)? position) =>
       CapturedPhoto(bytes: photo.bytes, capturedAt: photo.capturedAt, position: position);
 }

@@ -192,7 +192,10 @@ class _StepCard extends StatelessWidget {
 
   (IconData, Color) _icon(BuildContext context) => switch (step.status) {
         StepStatus.notStarted => (Icons.radio_button_unchecked, AppColors.textMuted),
-        StepStatus.submitted || StepStatus.inReview => (Icons.schedule, AppColors.textMuted),
+        StepStatus.submitted || StepStatus.inReview || StepStatus.inProgress => (
+            Icons.schedule,
+            AppColors.textMuted
+          ),
         StepStatus.confirmed => (Icons.check_circle, Theme.of(context).colorScheme.primary),
         StepStatus.refused || StepStatus.expired => (Icons.error_outline, AppColors.warning),
       };

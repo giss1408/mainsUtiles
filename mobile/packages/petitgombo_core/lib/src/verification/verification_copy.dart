@@ -22,6 +22,7 @@ abstract final class VerificationCopy {
   static const restart = 'Recommencer';
   static const retry = 'Réessayer';
   static const inReview = 'En cours de vérification.';
+  static const inProgress = 'En cours.';
   static const confirmed = 'Confirmé';
   static const expired = 'Justificatif expiré. Envoyez-en un nouveau.';
   static const refusedFallback = 'Refusé. Recommencez cette étape.';
@@ -33,6 +34,7 @@ abstract final class VerificationCopy {
         StepStatus.notStarted => '',
         StepStatus.submitted => submitted(reviewHours),
         StepStatus.inReview => inReview,
+        StepStatus.inProgress => inProgress,
         StepStatus.confirmed => confirmed,
         StepStatus.refused => step.reason.isEmpty ? refusedFallback : step.reason,
         StepStatus.expired => expired,
@@ -124,6 +126,7 @@ abstract final class VerificationCopy {
   static const captureGuarantorBill = 'Photo du justificatif';
   static const guarantorSummaryTitle = 'Vérifie les informations';
   static const guarantorPhoneInvalid = 'Numéro de téléphone invalide.';
+  static const contactPhoneInvalid = 'Numéro de téléphone invalide.';
   static const offline = 'Pas de connexion. Réessayez.';
   static const offlinePhotosKept = 'Pas de connexion. Vos photos sont gardées. Réessayez.';
   static const sessionExpired = "Votre session a expiré. Fermez puis rouvrez l'application.";

@@ -27,26 +27,86 @@ Map<String, dynamic> checklistJson({
       'home_location': homeLocation ?? {'status': 'not_started', 'reason': ''},
     };
 
+Map<String, dynamic> contactStepJson(
+        {String status = 'not_started', int confirmed = 0, int pending = 0}) =>
+    {'status': status, 'reason': '', 'confirmed': confirmed, 'pending': pending};
+
+Map<String, dynamic> briefingStepJson({
+  String status = 'not_started',
+  int answered = 0,
+  int total = 3,
+  int? newCards,
+}) =>
+    {
+      'status': status,
+      'reason': '',
+      'answered': answered,
+      'total': total,
+      'new_cards': newCards ?? total - answered,
+    };
+
 Map<String, dynamic> jobberChecklistJson({
   String tier = 'J0',
   Map<String, dynamic>? identity,
   Map<String, dynamic>? guarantor,
+  Map<String, dynamic>? contact,
+  Map<String, dynamic>? briefing,
 }) =>
     {
       'tier': tier,
       'review_hours': 24,
-      'required': ['identity', 'guarantor'],
+      'required': ['identity', 'guarantor', 'trusted_contact', 'briefing'],
       'identity': identity ?? {'status': 'not_started', 'reason': ''},
       'guarantor': guarantor ?? {'status': 'not_started', 'reason': ''},
+      'trusted_contact': contact ?? contactStepJson(),
+      'briefing': briefing ?? briefingStepJson(),
+    };
+
+Map<String, dynamic> contactJson({
+  String id = 'c-1',
+  String name = 'Awa Koné',
+  String relationship = 'parent',
+  String status = 'pending',
+  String? replaces,
+  bool awaitingCode = true,
+  String? endsAt,
+}) =>
+    {
+      'id': id,
+      'name': name,
+      'relationship': relationship,
+      'status': status,
+      'replaces': replaces,
+      'awaiting_code': awaitingCode,
+      'ends_at': endsAt,
+    };
+
+Map<String, dynamic> cardJson(
+        {String id = 'k-1', String title = 'Avant de partir', bool answered = false}) =>
+    {
+      'id': id,
+      'title': title,
+      'body': 'Prévenez votre personne de confiance.',
+      'question': 'Que fais-tu ?',
+      'choices': ['Je reste', 'Je préviens', 'Je me tais'],
+      'answered': answered,
     };
 
 VerificationChecklist jobberChecklist({
   String tier = 'J0',
   Map<String, dynamic>? identity,
   Map<String, dynamic>? guarantor,
+  Map<String, dynamic>? contact,
+  Map<String, dynamic>? briefing,
 }) =>
     VerificationChecklist.fromJson(
-      jobberChecklistJson(tier: tier, identity: identity, guarantor: guarantor),
+      jobberChecklistJson(
+        tier: tier,
+        identity: identity,
+        guarantor: guarantor,
+        contact: contact,
+        briefing: briefing,
+      ),
     );
 
 VerificationChecklist checklist({
