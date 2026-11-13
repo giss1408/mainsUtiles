@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db.models import F, Q
 from django.urls import path, reverse
 from django.utils.cache import patch_cache_control
 
@@ -263,15 +262,8 @@ class ContactQueueFilter(admin.SimpleListFilter):
         if self.value() == "all":
             return queryset
         if self.value() == "notice":
-            replaced = TrustedContact.objects.filter(
-                status=ContactStatus.CONFIRMED, replaces__isnull=False
-            ).values("replaces_id")
-            return queryset.filter(
-                status=ContactStatus.CONFIRMED, old_notified_at__isnull=True, pk__in=replaced
-            )
-        return queryset.filter(status=ContactStatus.PENDING).filter(
-            Q(code_sent_at__isnull=True) | Q(code_sent_at__lt=F("code_requested_at"))
-        )
+            return queryset.filter(pk__in=contacts.notice_queue().values("pk"))
+        return queryset.filter(pk__in=contacts.send_queue().values("pk"))
 
 
 @admin.register(TrustedContact)

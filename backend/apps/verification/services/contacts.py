@@ -10,6 +10,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import F, Q
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -62,6 +63,25 @@ def own(user, contact_id) -> TrustedContact:
     if contact is None:
         raise VerificationError("forbidden")
     return contact
+
+
+def send_queue():
+    """Pending contacts staff still have to send a code to, oldest first."""
+    return (
+        TrustedContact.objects.filter(status=ContactStatus.PENDING)
+        .filter(Q(code_sent_at__isnull=True) | Q(code_sent_at__lt=F("code_requested_at")))
+        .order_by("created_at", "pk")
+    )
+
+
+def notice_queue():
+    """Confirmed contacts being replaced whose number has not been warned yet, oldest first."""
+    replaced = TrustedContact.objects.filter(status=ContactStatus.CONFIRMED, replaces__isnull=False).values(
+        "replaces_id"
+    )
+    return TrustedContact.objects.filter(
+        status=ContactStatus.CONFIRMED, old_notified_at__isnull=True, pk__in=replaced
+    ).order_by("created_at", "pk")
 
 
 def _locked(contact: TrustedContact) -> TrustedContact:

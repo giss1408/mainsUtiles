@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import jobber_views, views
+from . import jobber_views, staff_views, views
 
 urlpatterns = [
     path("verification", views.ChecklistView.as_view()),
@@ -17,4 +17,8 @@ urlpatterns = [
     path("jobber/verification/contacts/<uuid:pk>/replace", jobber_views.ContactReplaceView.as_view()),
     path("jobber/verification/briefing", jobber_views.BriefingView.as_view()),
     path("jobber/verification/briefing/<uuid:card_id>/answer", jobber_views.BriefingAnswerView.as_view()),
+    path("staff/contacts", staff_views.ContactQueueView.as_view()),
+    path("staff/contacts/<uuid:pk>", staff_views.ContactDetailView.as_view()),
+    path("staff/contacts/<uuid:pk>/send", staff_views.ContactSendView.as_view()),
+    path("staff/contacts/<uuid:pk>/notice", staff_views.ContactNoticeView.as_view()),
 ]
