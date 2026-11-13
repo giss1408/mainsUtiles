@@ -2,16 +2,20 @@
 
 from datetime import date
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.cache import patch_cache_control
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.api.errors import MESSAGES
-from apps.verification.models import AddressProof, Guarantor, IdentityVerification
-from apps.verification.services import review
+from apps.providers import registry
+from apps.verification.models import AddressProof, Guarantor, IdentityVerification, TrustedContact
+from apps.verification.services import contacts, review
+from apps.verification.services.encryption import decrypt_text
 from apps.verification.services.submissions import VerificationError
 
 INVALID_DATE = "Date invalide."
@@ -194,3 +198,71 @@ def guarantor_photo(request, pk, photo_id):
     if record.photo.pk != photo_id:
         raise Http404
     return _photo_response(request, record.photo)
+
+
+def _contact_link(contact, message: str) -> str:
+    """The one-time WhatsApp link to the contact's number. The number is never written as text."""
+    return registry.get_messaging().whatsapp_link(decrypt_text(contact.phone), message)
+
+
+def _contact_page(request, contact, *, heading, intro, link, warning):
+    response = render(
+        request,
+        "console/contact_send.html",
+        {
+            "heading": heading,
+            "intro": intro,
+            "whatsapp_link": link,
+            "warning": warning,
+            "official_number": settings.OFFICIAL_WHATSAPP_NUMBER or "non configuré",
+            "back_url": reverse("admin:verification_trustedcontact_change", args=[contact.pk]),
+            "title": heading,
+        },
+    )
+    patch_cache_control(response, no_store=True)
+    return response
+
+
+def _contact_error(request, contact, exc: VerificationError, invalid_state: str):
+    if exc.code == "forbidden":
+        raise PermissionDenied from exc
+    text = invalid_state if exc.code == "invalid_state" else MESSAGES.get(exc.code, exc.code)
+    messages.error(request, text)
+    return _back(contact)
+
+
+@require_POST
+def send_contact_code(request, pk):
+    """Issue a code and show the WhatsApp link once."""
+    contact = get_object_or_404(TrustedContact, pk=pk)
+    try:
+        code = contacts.send_code(contact, staff=request.user)
+    except VerificationError as exc:
+        return _contact_error(request, contact, exc, "Cette personne n'est plus à confirmer.")
+    return _contact_page(
+        request,
+        contact,
+        heading="Envoyer le code à la personne de confiance",
+        intro=f"Personne : {decrypt_text(contact.name)}.",
+        link=_contact_link(contact, contacts.CONTACT_MESSAGE.format(code=code)),
+        warning="Ne recopiez pas ce code : il sera demandé au mini-jobber.",
+    )
+
+
+@require_POST
+def notify_old_contact(request, pk):
+    """Warn the number that is being replaced, and show the WhatsApp link once."""
+    contact = get_object_or_404(TrustedContact, pk=pk)
+    try:
+        contacts.record_notice(contact, staff=request.user)
+    except VerificationError as exc:
+        return _contact_error(request, contact, exc, "Il n'y a rien à prévenir pour cette personne.")
+    message = contacts.NOTICE_MESSAGE.format(n=settings.TRUSTED_CONTACT_CHANGE_DELAY_HOURS)
+    return _contact_page(
+        request,
+        contact,
+        heading="Prévenir l'ancienne personne de confiance",
+        intro=f"Personne remplacée : {decrypt_text(contact.name)}.",
+        link=_contact_link(contact, message),
+        warning=f"Le remplacement prendra effet dans {settings.TRUSTED_CONTACT_CHANGE_DELAY_HOURS} h.",
+    )

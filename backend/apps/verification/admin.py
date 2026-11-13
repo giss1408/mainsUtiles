@@ -1,11 +1,23 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
+from django.db.models import F, Q
 from django.urls import path, reverse
 from django.utils.cache import patch_cache_control
 
+from apps.audit.services import record as audit
+
 from . import console_views
-from .models import UNDECIDED, AddressProof, Guarantor, HomeLocation, IdentityVerification, Status
-from .services import review
+from .models import (
+    UNDECIDED,
+    AddressProof,
+    ContactStatus,
+    Guarantor,
+    HomeLocation,
+    IdentityVerification,
+    Status,
+    TrustedContact,
+)
+from .services import contacts, review
 from .services.encryption import decrypt_text
 from .services.submissions import VerificationError, location_coordinates
 from .services.tiers import current_record
@@ -221,3 +233,120 @@ class GuarantorAdmin(ReviewAdmin):
             "guarantor_phone": decrypt_text(record.guarantor_phone),
             "relationship_label": record.get_relationship_display(),
         }
+
+
+class ContactQueueFilter(admin.SimpleListFilter):
+    """What staff have to do: send a code (default), warn an old number, or everything."""
+
+    title = "à faire"
+    parameter_name = "file"
+
+    def lookups(self, request, model_admin):
+        return [("notice", "À prévenir"), ("all", "Toutes")]
+
+    def choices(self, changelist):
+        yield {
+            "selected": self.value() is None,
+            "query_string": changelist.get_query_string(remove=[self.parameter_name]),
+            "display": "À envoyer",
+        }
+        for lookup, title in self.lookup_choices:
+            yield {
+                "selected": self.value() == lookup,
+                "query_string": changelist.get_query_string({self.parameter_name: lookup}),
+                "display": title,
+            }
+
+    def queryset(self, request, queryset):
+        if self.value() == "all":
+            return queryset
+        if self.value() == "notice":
+            replaced = TrustedContact.objects.filter(
+                status=ContactStatus.CONFIRMED, replaces__isnull=False
+            ).values("replaces_id")
+            return queryset.filter(
+                status=ContactStatus.CONFIRMED, old_notified_at__isnull=True, pk__in=replaced
+            )
+        return queryset.filter(status=ContactStatus.PENDING).filter(
+            Q(code_sent_at__isnull=True) | Q(code_sent_at__lt=F("code_requested_at"))
+        )
+
+
+@admin.register(TrustedContact)
+class TrustedContactAdmin(admin.ModelAdmin):
+    """Staff send each trusted contact a code on WhatsApp. Nothing is edited here."""
+
+    change_form_template = "admin/verification/trustedcontact_review.html"
+    list_display = ("created_at", "jobber_phone", "relationship", "status", "state")
+    list_filter = (ContactQueueFilter,)
+    search_fields = ("user__phone",)
+    ordering = ("created_at",)
+    # Encrypted columns are deliberately left out: the name is shown on the review page only.
+    fields = ("user", "relationship", "status", "created_at", "code_sent_at", "confirmed_at")
+    readonly_fields = fields
+    list_select_related = ("user",)
+
+    @admin.display(description="téléphone du jeune", ordering="user__phone")
+    def jobber_phone(self, obj):
+        return obj.user.phone
+
+    @admin.display(description="à faire")
+    def state(self, obj):
+        if contacts.awaiting_code(obj):
+            return "Envoyer le code"
+        if obj.status == ContactStatus.CONFIRMED and obj.old_notified_at is None:
+            return "Confirmé"
+        return ""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_urls(self):
+        wrap = self.admin_site.admin_view
+        custom = [
+            path(
+                "<uuid:pk>/send/",
+                wrap(console_views.send_contact_code),
+                name="verification_trustedcontact_send",
+            ),
+            path(
+                "<uuid:pk>/notice/",
+                wrap(console_views.notify_old_contact),
+                name="verification_trustedcontact_notice",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        record = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if record is not None and request.method == "GET" and self.has_view_permission(request, record):
+            audit(request.user, "verification.contact.view", record)
+            identity = current_record(IdentityVerification, record.user)
+            confirmed = identity is not None and identity.status == Status.CONFIRMED
+            replacement_confirmed = TrustedContact.objects.filter(
+                replaces=record, status=ContactStatus.CONFIRMED
+            ).exists()
+            context.update(
+                contact_name=decrypt_text(record.name),
+                relationship_label=record.get_relationship_display(),
+                identity_name=decrypt_text(identity.full_name) if confirmed else None,
+                can_send=record.status == ContactStatus.PENDING,
+                awaiting=contacts.awaiting_code(record),
+                needs_notice=(
+                    record.status == ContactStatus.CONFIRMED
+                    and record.old_notified_at is None
+                    and replacement_confirmed
+                ),
+                replaces_a_contact=record.replaces_id is not None,
+            )
+        response = super().change_view(request, object_id, form_url, context)
+        # The page shows a name: it must never be cached.
+        patch_cache_control(response, no_store=True)
+        return response

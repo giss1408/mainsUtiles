@@ -1,0 +1,29 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+<div class="module" style="padding:12px">
+  <h2>Personne de confiance</h2>
+  <p>Jeune : <strong>{% if identity_name %}{{ identity_name }}{% else %}Identité non confirmée{% endif %}</strong></p>
+  <p>Personne : <strong>{{ contact_name }}</strong> ({{ relationship_label }})</p>
+  {% if replaces_a_contact %}<p>Elle remplace une personne déjà enregistrée.</p>{% endif %}
+  <p>Le numéro de la personne n'est pas affiché : il est dans le lien WhatsApp, après un clic sur le bouton ci-dessous.</p>
+</div>
+<div class="module" style="padding:12px">
+  <h2>À faire</h2>
+  {% if can_send %}
+    <form method="post" action="{% url 'admin:verification_trustedcontact_send' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <p>{% if awaiting %}Le jeune attend un code.{% else %}Un code a déjà été envoyé : en envoyer un autre remplace le précédent.{% endif %}</p>
+      <input type="submit" class="default" value="Envoyer le code par WhatsApp" style="float:none">
+    </form>
+  {% elif needs_notice %}
+    <form method="post" action="{% url 'admin:verification_trustedcontact_notice' original.pk %}" style="margin:10px 0">
+      {% csrf_token %}
+      <p>Son remplaçant est confirmé : prévenez cette personne. Le délai court à partir de l'envoi.</p>
+      <input type="submit" class="default" value="Prévenir l'ancienne personne" style="float:none">
+    </form>
+  {% else %}
+    <p>Rien à faire pour cette personne.</p>
+  {% endif %}
+</div>
+{% endblock %}
