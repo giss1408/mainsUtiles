@@ -275,7 +275,7 @@ class BriefingCard(models.Model):
             raise ValidationError({"choices": "Indiquez de 2 à 4 choix."})
         if any(not isinstance(choice, str) or not choice.strip() for choice in choices):
             raise ValidationError({"choices": "Un choix ne peut pas être vide."})
-        if self.correct_index is None or self.correct_index >= len(choices):
+        if self.correct_index is None or not 0 <= self.correct_index < len(choices):
             raise ValidationError({"correct_index": "La bonne réponse doit être l'un des choix."})
 
     def __str__(self):

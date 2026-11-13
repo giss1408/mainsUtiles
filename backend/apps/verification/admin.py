@@ -1,5 +1,6 @@
+from django import forms
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import F, Q
 from django.urls import path, reverse
 from django.utils.cache import patch_cache_control
@@ -10,6 +11,7 @@ from . import console_views
 from .models import (
     UNDECIDED,
     AddressProof,
+    BriefingCard,
     ContactStatus,
     Guarantor,
     HomeLocation,
@@ -350,3 +352,56 @@ class TrustedContactAdmin(admin.ModelAdmin):
         # The page shows a name: it must never be cached.
         patch_cache_control(response, no_store=True)
         return response
+
+
+class BriefingCardForm(forms.ModelForm):
+    """Choices are typed one per line; the right answer is the number of its line, from 1."""
+
+    choices = forms.CharField(
+        label="choix",
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text="Un choix par ligne (de 2 à 4).",
+    )
+    correct_index = forms.IntegerField(
+        label="bonne réponse (numéro de la ligne, à partir de 1)",
+        error_messages={"invalid": "Entrez un nombre entier."},
+    )
+
+    class Meta:
+        model = BriefingCard
+        fields = [
+            "title",
+            "body",
+            "question",
+            "choices",
+            "correct_index",
+            "explanation",
+            "position",
+            "active",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance._state.adding:
+            self.initial["choices"] = "\n".join(self.instance.choices)
+            self.initial["correct_index"] = self.instance.correct_index + 1
+
+    def clean_choices(self):
+        return [line.strip() for line in self.cleaned_data["choices"].splitlines() if line.strip()]
+
+    def clean_correct_index(self):
+        number = self.cleaned_data["correct_index"]
+        if number < 1:
+            raise ValidationError("La bonne réponse doit être l'un des choix.")
+        return number - 1
+
+
+@admin.register(BriefingCard)
+class BriefingCardAdmin(admin.ModelAdmin):
+    """The safety briefing, edited by staff. The first cards are placeholders."""
+
+    form = BriefingCardForm
+    list_display = ("title", "position", "active")
+    list_display_links = ("title",)
+    list_editable = ("position", "active")
+    ordering = ("position", "title")
