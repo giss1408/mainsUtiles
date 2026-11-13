@@ -109,9 +109,9 @@ def test_failure_on_third_photo_leaves_no_rows_and_no_files(householder, jpeg, s
     send_identity(householder, jpeg)  # the step is still open to a correct submission
 
 
-def test_jobber_and_staff_cannot_submit(enrolled, staff_user, jpeg):
+def test_staff_cannot_submit_and_jobbers_cannot_send_householder_steps(enrolled, staff_user, jpeg):
+    assert error_code(lambda: send_identity(staff_user, jpeg)) == "forbidden"
     for user in (enrolled.device.user, staff_user):
-        assert error_code(lambda user=user: send_identity(user, jpeg)) == "forbidden"
         assert error_code(lambda user=user: send_address(user, jpeg)) == "forbidden"
         assert error_code(lambda user=user: send_location(user)) == "forbidden"
 

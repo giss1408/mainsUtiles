@@ -10,18 +10,20 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.accounts.phones import InvalidPhone, normalise
 from apps.providers import registry
 from apps.verification.models import (
     OPEN,
     UNDECIDED,
     AddressProof,
+    Guarantor,
     HomeLocation,
     IdentityVerification,
     Status,
     VerificationPhoto,
 )
 
-from .encryption import decrypt_bytes, decrypt_text, encrypt_bytes, encrypt_text
+from .encryption import decrypt_bytes, decrypt_text, encrypt_bytes, encrypt_text, keyed_hash
 
 JPEG_MAGIC = b"\xff\xd8\xff"
 FLAG_PHOTO_REUSED = "photo_reused"
@@ -40,6 +42,17 @@ class VerificationError(Exception):
 
 def _require_householder(user) -> None:
     if not (user and user.is_active and user.role == "householder"):
+        raise VerificationError("forbidden")
+
+
+def _require_jobber(user) -> None:
+    if not (user and user.is_active and user.role == "jobber"):
+        raise VerificationError("forbidden")
+
+
+def _require_applicant(user) -> None:
+    """Identity is checked for both kinds of app user."""
+    if not (user and user.is_active and user.role in ("householder", "jobber")):
         raise VerificationError("forbidden")
 
 
@@ -133,7 +146,7 @@ def submit_identity(
     captured_at: datetime,
     position: Position | None = None,
 ) -> IdentityVerification:
-    _require_householder(user)
+    _require_applicant(user)
     if document_type not in settings.IDENTITY_DOCUMENT_TYPES:
         raise VerificationError("document_type_invalid")
     _require_no_open(IdentityVerification, user)
@@ -220,3 +233,54 @@ def record_home_location(
 def location_coordinates(location: HomeLocation) -> Position:
     """Decrypted coordinates. For the staff review page only."""
     return float(decrypt_text(location.latitude)), float(decrypt_text(location.longitude))
+
+
+def submit_guarantor(
+    user,
+    *,
+    document_type: str,
+    photo: bytes,
+    guarantor_name: str,
+    guarantor_phone: str,
+    relationship: str,
+    captured_at: datetime,
+    position: Position | None = None,
+) -> Guarantor:
+    """A jobber names someone who vouches for them and sends that person's bill."""
+    _require_jobber(user)
+    if document_type not in settings.GUARANTOR_DOCUMENT_TYPES:
+        raise VerificationError("document_type_invalid")
+    name = (guarantor_name or "").strip()
+    if not name:
+        raise VerificationError("guarantor_name_required")
+    if relationship not in Guarantor.Relationship.values:
+        raise VerificationError("relationship_invalid")
+    try:
+        phone = normalise(guarantor_phone)
+    except InvalidPhone as exc:
+        raise VerificationError("guarantor_phone_invalid") from exc
+    if user.phone and phone == normalise(user.phone):
+        raise VerificationError("guarantor_phone_own")
+    expire_guarantors(user)
+    _require_no_open(Guarantor, user)
+    with _submission() as written:
+        stored = store_photo(user, "guarantor_bill", photo, captured_at, position)
+        written.append(stored.storage_name)
+        return Guarantor.objects.create(
+            user=user,
+            photo=stored,
+            document_type=document_type,
+            guarantor_name=encrypt_text(name[:120]),
+            guarantor_phone=encrypt_text(phone),
+            guarantor_phone_hash=keyed_hash(phone),
+            relationship=relationship,
+            flags=_reused(user, [stored]),
+        )
+
+
+def expire_guarantors(user=None) -> int:
+    """Expire confirmed guarantors past their date. For one user, or for everyone."""
+    due = Guarantor.objects.filter(status=Status.CONFIRMED, expires_at__lte=timezone.now())
+    if user is not None:
+        due = due.filter(user=user)
+    return due.update(status=Status.EXPIRED)
