@@ -119,6 +119,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.verification.tasks.expire_guarantors",
         "schedule": 3600.0,
     },
+    "close-stale-applications": {
+        "task": "apps.bookings.tasks.close_stale_applications",
+        "schedule": 3600.0,
+    },
     "apply-contact-replacements": {
         "task": "apps.verification.tasks.apply_contact_replacements",
         "schedule": 3600.0,

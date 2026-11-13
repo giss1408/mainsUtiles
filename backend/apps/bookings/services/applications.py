@@ -107,3 +107,115 @@ def my_applications(user):
     """The jobber's applications, newest first."""
     _require_jobber(user)
     return Application.objects.filter(jobber=user).select_related("offer", "booking").order_by("-created_at")
+
+
+def _first_name(user) -> str:
+    """The first word of the name staff confirmed on the identity document."""
+    from apps.verification.models import IdentityVerification, Status
+    from apps.verification.services.encryption import decrypt_text
+    from apps.verification.services.tiers import current_record
+
+    identity = current_record(IdentityVerification, user)
+    if identity is None or identity.status != Status.CONFIRMED:
+        return "Jobber"
+    words = decrypt_text(identity.full_name).split()
+    return words[0] if words else "Jobber"
+
+
+def _jobs_done(**who) -> int:
+    return Booking.objects.filter(status=Booking.Status.COMPLETED, **who).count()
+
+
+def _owned_offer(user, offer_id) -> Offer:
+    if not (user and user.is_active and user.role == "householder"):
+        raise BookingError("forbidden")
+    try:
+        offer = Offer.objects.filter(pk=offer_id, author=user).first()
+    except (ValidationError, ValueError):
+        offer = None
+    if offer is None:
+        raise BookingError("forbidden")
+    return offer
+
+
+def applicants(user, offer_id) -> list[dict]:
+    """What a householder sees of the people who applied: a first name, never a contact."""
+    offer = _owned_offer(user, offer_id)
+    pending = offer.applications.filter(status=Application.Status.PENDING).select_related("jobber")
+    return [
+        {
+            "id": application.pk,
+            "first_name": _first_name(application.jobber),
+            "tier": "J1",
+            "jobs_done": _jobs_done(jobber=application.jobber),
+            "rating": None,
+            "message": application.message,
+            "created_at": application.created_at,
+        }
+        for application in pending.order_by("created_at")
+    ]
+
+
+def householder_trust(householder) -> dict:
+    """What a jobber sees of the householder before applying. No name, no contact."""
+    from apps.verification.services.tiers import householder_tier
+
+    return {
+        "tier": householder_tier(householder),
+        "jobs_done": _jobs_done(householder=householder),
+        "rating": None,
+    }
+
+
+def accept(user, application_id) -> Booking:
+    """The householder picks one applicant: one booking, the others declined, the offer booked."""
+    if not (user and user.is_active and user.role == "householder"):
+        raise BookingError("forbidden")
+    try:
+        found = Application.objects.select_related("offer").filter(pk=application_id).first()
+    except (ValidationError, ValueError):
+        found = None
+    if found is None or found.offer.author_id != user.pk:
+        raise BookingError("forbidden")
+    with transaction.atomic():
+        offer = _offer_locked(found.offer_id)
+        application = Application.objects.select_for_update().select_related("jobber").get(pk=found.pk)
+        if application.status != Application.Status.PENDING:
+            raise BookingError("invalid_state")
+        if offer.status != Offer.Status.PUBLISHED or offer.starts_at <= timezone.now():
+            raise BookingError("offer_unavailable")
+        if jobber_tier(application.jobber) != "J1":
+            raise BookingError("applicant_not_verified")
+        now = timezone.now()
+        booking = Booking.objects.create(
+            offer=offer,
+            application=application,
+            householder=user,
+            jobber=application.jobber,
+            category_name=offer.category_name,
+            duties=list(offer.duties),
+            starts_at=offer.starts_at,
+            duration_minutes=offer.duration_minutes,
+            pay_xof=offer.pay_xof,
+            commune=offer.commune,
+            quartier=offer.quartier,
+        )
+        application.status = Application.Status.ACCEPTED
+        application.decided_at = now
+        application.save(update_fields=["status", "decided_at"])
+        offer.applications.filter(status=Application.Status.PENDING).update(
+            status=Application.Status.DECLINED, decided_at=now
+        )
+        offer.status = Offer.Status.BOOKED
+        offer.save(update_fields=["status", "updated_at"])
+        audit(user, "booking.accept", booking)
+    return booking
+
+
+def close_stale() -> int:
+    """Decline the pending applications of offers that are gone or have started."""
+    now = timezone.now()
+    gone = Application.objects.filter(status=Application.Status.PENDING).exclude(
+        offer__status=Offer.Status.PUBLISHED, offer__starts_at__gt=now
+    )
+    return gone.update(status=Application.Status.DECLINED, decided_at=now)
