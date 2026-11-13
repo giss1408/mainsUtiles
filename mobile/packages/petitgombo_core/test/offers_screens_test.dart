@@ -115,7 +115,7 @@ void main() {
     expect(find.text('Pas de connexion. Réessayez.'), findsNothing);
   });
 
-  testWidgets('the detail shows the duties, the place and the address notice, with no way to apply',
+  testWidgets('the detail shows the duties, the place and the address notice, and a way to apply',
       (tester) async {
     await pumpOffers(tester, [
       pageJson(results: [publicOfferJson()])
@@ -126,7 +126,7 @@ void main() {
     expect(find.text('Cocody · Angré'), findsOneWidget);
     expect(find.text("L'adresse exacte est communiquée seulement après une réservation confirmée."),
         findsOneWidget);
-    expect(find.text('Postuler'), findsNothing);
+    expect(find.text('Postuler'), findsOneWidget);
     expect(find.textContaining('+225'), findsNothing);
   });
 
