@@ -11,6 +11,7 @@ from apps.audit.services import record as audit
 from apps.verification.models import (
     UNDECIDED,
     AddressProof,
+    Guarantor,
     HomeLocation,
     IdentityVerification,
     Status,
@@ -73,7 +74,9 @@ def _decided(row, staff, status: str, now: datetime) -> None:
 
 
 def _kind(record) -> str:
-    return "identity" if isinstance(record, IdentityVerification) else "address"
+    if isinstance(record, IdentityVerification):
+        return "identity"
+    return "guarantor" if isinstance(record, Guarantor) else "address"
 
 
 @transaction.atomic
@@ -243,3 +246,88 @@ def read_photo(photo: VerificationPhoto, *, staff) -> bytes:
     data = read_photo_bytes(photo)
     audit(staff, "verification.view_photo", photo, kind=photo.kind)
     return data
+
+
+@transaction.atomic
+def record_call(
+    record: Guarantor, *, staff, knows_jobber: bool, confirms_residence: bool, agrees_contact: bool
+) -> None:
+    """Note that staff phoned the guarantor and what the guarantor answered."""
+    _require(staff, REVIEW)
+    row = _locked(record)
+    _require_undecided(row)
+    if not (knows_jobber and confirms_residence and agrees_contact):
+        raise VerificationError("checks_required")
+    now = timezone.now()
+    row.contacted_at = now
+    row.contacted_by = staff
+    row.status = Status.IN_REVIEW
+    row.save(update_fields=["contacted_at", "contacted_by", "status"])
+    audit(staff, "verification.guarantor.call", row)
+    record.refresh_from_db()
+
+
+def confirm_guarantor(
+    record: Guarantor,
+    *,
+    staff,
+    holder_name: str,
+    reference_number: str,
+    issued_on: date,
+    name_matches: bool,
+) -> None:
+    _require(staff, REVIEW)
+    today = timezone.localdate()
+    try:
+        with transaction.atomic():
+            row = _locked(record)
+            _require_undecided(row)
+            identity = current_record(IdentityVerification, row.user)
+            if identity is None or identity.status != Status.CONFIRMED:
+                raise VerificationError("identity_not_confirmed")
+            if row.contacted_at is None:
+                raise VerificationError("call_required")
+            holder_name, reference_number = _text(holder_name), _text(reference_number)
+            if not name_matches:
+                raise VerificationError("checks_required")
+            oldest = _shift_months(today, -settings.GUARANTOR_BILL_MAX_AGE_MONTHS)
+            if issued_on > today or issued_on < oldest:
+                raise VerificationError("proof_too_old")
+            reference_hash = keyed_hash(reference_number)
+            backed = (
+                Guarantor.objects.filter(
+                    status__in=(Status.CONFIRMED, Status.EXPIRED), reference_hash=reference_hash
+                )
+                .exclude(user=row.user)
+                .values("user_id")
+                .distinct()
+                .count()
+            )
+            if backed >= settings.GUARANTOR_MAX_JOBBERS:
+                raise VerificationError("bill_reference_cap")
+            now = timezone.now()
+            row.holder_name = encrypt_text(holder_name)
+            row.reference_number = encrypt_text(reference_number)
+            row.reference_hash = reference_hash
+            row.issued_on = issued_on
+            row.confirmed_at = now
+            row.expires_at = _shift_months(now, settings.GUARANTOR_VALID_MONTHS)
+            _decided(row, staff, Status.CONFIRMED, now)
+            row.save()
+            audit(staff, "verification.guarantor.confirm", row)
+    except IntegrityError as exc:
+        raise VerificationError("invalid_state") from exc
+    record.refresh_from_db()
+
+
+@transaction.atomic
+def refuse_guarantor(record: Guarantor, *, staff, reason: str) -> None:
+    _require(staff, REVIEW)
+    reason = _reason(reason)
+    row = _locked(record)
+    _require_undecided(row)
+    row.reason = reason
+    _decided(row, staff, Status.REFUSED, timezone.now())
+    row.save(update_fields=["reason", "status", "reviewed_by", "reviewed_at"])
+    audit(staff, "verification.guarantor.refuse", row, reason=reason)
+    record.refresh_from_db()
