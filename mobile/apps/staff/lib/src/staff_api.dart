@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
@@ -92,6 +94,56 @@ class ContactItem {
   /// Only known once the detail is open.
   final String? name;
   final String? jobberName;
+}
+
+/// A payment waiting for staff. The list carries no reference; the detail does.
+class PaymentItem {
+  const PaymentItem({
+    required this.id,
+    required this.categoryName,
+    required this.startsAt,
+    required this.amountXof,
+    required this.methodLabel,
+    required this.submittedAt,
+    required this.late,
+    required this.action,
+    this.feeXof,
+    this.reference,
+    this.methodNumber,
+    this.seenBefore,
+  });
+
+  factory PaymentItem.fromJson(Map<String, dynamic> json) => PaymentItem(
+        id: json['id'] as String,
+        categoryName: (json['category_name'] as String?) ?? '',
+        startsAt: DateTime.parse(json['starts_at'] as String).toLocal(),
+        amountXof: (json['amount_xof'] as num).toInt(),
+        methodLabel: (json['method_label'] as String?) ?? '',
+        submittedAt: DateTime.parse(json['submitted_at'] as String).toLocal(),
+        late: json['late'] == true,
+        action: (json['action'] as String?) ?? 'check',
+        feeXof: (json['fee_xof'] as num?)?.toInt(),
+        reference: json['reference'] as String?,
+        methodNumber: json['method_number'] as String?,
+        seenBefore: json['seen_before'] as bool?,
+      );
+
+  final String id;
+  final String categoryName;
+  final DateTime startsAt;
+  final int amountXof;
+  final String methodLabel;
+  final DateTime submittedAt;
+  final bool late;
+
+  /// `check` (a proof to verify) or `refund` (money to send back).
+  final String action;
+
+  /// Only on the detail.
+  final int? feeXof;
+  final String? reference;
+  final String? methodNumber;
+  final bool? seenBefore;
 }
 
 class StaffMe {
@@ -262,5 +314,67 @@ class StaffApi {
         final response =
             await _dio.post<dynamic>('$_contacts/$id/notice', options: _bearer(access));
         return Uri.parse(_json(response)['whatsapp_url'] as String);
+      });
+
+  static const _payments = '$_base/staff/payments';
+
+  /// The oldest payments in [file] (`check` or `refund`), first page. No reference, no name.
+  Future<List<PaymentItem>> payments(String access, {String file = 'check'}) => guardApi(() async {
+        final response = await _dio.get<dynamic>(
+          _payments,
+          queryParameters: {'file': file},
+          options: _bearer(access),
+        );
+        final results = (_json(response)['results'] as List?) ?? const [];
+        return results
+            .map((row) => PaymentItem.fromJson(Map<String, dynamic>.from(row as Map)))
+            .toList();
+      });
+
+  /// The reference and the method's number. Opening it is audited by the server.
+  Future<PaymentItem> payment(String access, String id) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_payments/$id', options: _bearer(access));
+        return PaymentItem.fromJson(_json(response));
+      });
+
+  Future<Uint8List> paymentProof(String access, String id) => guardApi(() async {
+        final response = await _dio.get<List<int>>(
+          '$_payments/$id/proof',
+          options: Options(
+            headers: {'Authorization': 'Bearer $access'},
+            responseType: ResponseType.bytes,
+          ),
+        );
+        return Uint8List.fromList(response.data ?? const []);
+      });
+
+  Future<void> confirmPayment(
+    String access,
+    String id, {
+    required bool amountMatches,
+    required bool referenceMatches,
+  }) =>
+      guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_payments/$id/confirm',
+          data: {'amount_matches': amountMatches, 'reference_matches': referenceMatches},
+          options: _bearer(access),
+        );
+      });
+
+  Future<void> refusePayment(String access, String id, String reason) => guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_payments/$id/refuse',
+          data: {'reason': reason},
+          options: _bearer(access),
+        );
+      });
+
+  Future<void> refundPayment(String access, String id, String reference) => guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_payments/$id/refund',
+          data: {'reference': reference},
+          options: _bearer(access),
+        );
       });
 }

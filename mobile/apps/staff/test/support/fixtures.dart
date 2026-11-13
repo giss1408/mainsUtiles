@@ -108,3 +108,29 @@ Map<String, dynamic> page(List<Map<String, dynamic>> rows) =>
     {'count': rows.length, 'next': null, 'previous': null, 'results': rows};
 
 const contactPermissions = ['send_contact_code'];
+
+Map<String, dynamic> paymentJson({
+  String id = 'p1',
+  String action = 'check',
+  bool late = false,
+  bool detail = false,
+}) =>
+    {
+      'id': id,
+      'category_name': 'Ménage',
+      'starts_at': '2026-11-14T08:00:00Z',
+      'amount_xof': 3500,
+      'method_label': 'Wave',
+      'submitted_at': '2026-11-13T10:00:00Z',
+      'late': late,
+      'action': action,
+      if (detail) ...{
+        'fee_xof': 0,
+        'reference': 'WAVE-123456',
+        'method_number': '+2250101010101',
+        'seen_before': false,
+        'status': action == 'refund' ? 'refund_due' : 'submitted',
+      },
+    };
+
+const paymentPermissions = ['verify_payment', 'make_refund'];

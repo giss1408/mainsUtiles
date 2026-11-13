@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
@@ -8,7 +10,7 @@ import 'staff_session.dart';
 enum StaffStage { login, devicePending, queue }
 
 /// Which queue the agent is working.
-enum StaffSection { enrolments, contacts }
+enum StaffSection { enrolments, contacts, payments }
 
 const _keep = Object();
 
@@ -26,6 +28,10 @@ class StaffState {
     this.contactTab = 'send',
     this.contacts,
     this.contactSelected,
+    this.paymentTab = 'check',
+    this.payments,
+    this.paymentSelected,
+    this.proof,
   });
 
   final StaffStage stage;
@@ -56,6 +62,18 @@ class StaffState {
   final List<ContactItem>? contacts;
   final ContactItem? contactSelected;
 
+  /// `check` or `refund`.
+  final String paymentTab;
+
+  /// The payments queue; null while it loads. Items carry no reference.
+  final List<PaymentItem>? payments;
+
+  /// The payment open in the detail screen, with its reference. Cleared on close.
+  final PaymentItem? paymentSelected;
+
+  /// The receipt image of the open payment. Cleared on close.
+  final Uint8List? proof;
+
   StaffState copyWith({
     bool? busy,
     Object? error = _keep,
@@ -67,6 +85,10 @@ class StaffState {
     String? contactTab,
     Object? contacts = _keep,
     Object? contactSelected = _keep,
+    String? paymentTab,
+    Object? payments = _keep,
+    Object? paymentSelected = _keep,
+    Object? proof = _keep,
   }) =>
       StaffState(
         stage: stage,
@@ -76,6 +98,12 @@ class StaffState {
         contactSelected: identical(contactSelected, _keep)
             ? this.contactSelected
             : contactSelected as ContactItem?,
+        paymentTab: paymentTab ?? this.paymentTab,
+        payments: identical(payments, _keep) ? this.payments : payments as List<PaymentItem>?,
+        paymentSelected: identical(paymentSelected, _keep)
+            ? this.paymentSelected
+            : paymentSelected as PaymentItem?,
+        proof: identical(proof, _keep) ? this.proof : proof as Uint8List?,
         busy: busy ?? this.busy,
         error: identical(error, _keep) ? this.error : error as String?,
         me: me,
@@ -101,12 +129,17 @@ class StaffController extends StateNotifier<StaffState> {
     state = const StaffState(busy: true);
     try {
       final me = await _session.signIn(username, password);
-      // An agent who may only send contact codes starts on that queue.
-      final contactsOnly = !me.can('review_enrolment') && me.can('send_contact_code');
+      // An agent starts on the first queue they may work: enrolments, contacts, then payments.
+      final section = !me.can('review_enrolment') && me.can('send_contact_code')
+          ? StaffSection.contacts
+          : !me.can('review_enrolment') && _worksPayments(me)
+              ? StaffSection.payments
+              : StaffSection.enrolments;
       state = StaffState(
         stage: StaffStage.queue,
         me: me,
-        section: contactsOnly ? StaffSection.contacts : StaffSection.enrolments,
+        section: section,
+        paymentTab: me.can('verify_payment') ? 'check' : 'refund',
       );
     } on ApiError catch (e) {
       state = e.code == 'device_pending'
@@ -114,7 +147,7 @@ class StaffController extends StateNotifier<StaffState> {
           : StaffState(error: StaffCopy.loginError(e));
       return;
     }
-    await (state.section == StaffSection.contacts ? refreshContacts() : refresh());
+    await _refreshSection();
   }
 
   /// Back to the login screen, where the password is typed again.
@@ -123,16 +156,100 @@ class StaffController extends StateNotifier<StaffState> {
     state = StaffState(error: message);
   }
 
+  static bool _worksPayments(StaffMe me) => me.can('verify_payment') || me.can('make_refund');
+
+  Future<void> _refreshSection() => switch (state.section) {
+        StaffSection.contacts => refreshContacts(),
+        StaffSection.payments => refreshPayments(),
+        StaffSection.enrolments => refresh(),
+      };
+
   Future<void> selectSection(StaffSection section) async {
     if (state.stage != StaffStage.queue || section == state.section) return;
-    state = state.copyWith(section: section, error: null);
-    if (section == StaffSection.contacts) {
-      state = state.copyWith(contacts: null, listError: null);
-      await refreshContacts();
-    } else {
-      state = state.copyWith(items: null, listError: null);
-      await refresh();
+    state = state.copyWith(section: section, error: null, listError: null);
+    switch (section) {
+      case StaffSection.contacts:
+        state = state.copyWith(contacts: null);
+      case StaffSection.payments:
+        state = state.copyWith(payments: null);
+      case StaffSection.enrolments:
+        state = state.copyWith(items: null);
     }
+    await _refreshSection();
+  }
+
+  Future<void> selectPaymentTab(String file) async {
+    if (state.stage != StaffStage.queue || file == state.paymentTab) return;
+    state = state.copyWith(paymentTab: file, payments: null, listError: null);
+    await refreshPayments();
+  }
+
+  Future<void> refreshPayments() async {
+    final tab = state.paymentTab;
+    final rows = await _guard((access) => _api.payments(access, file: tab), onError: (message) {
+      if (state.paymentTab == tab) {
+        state = state.copyWith(payments: state.payments ?? const [], listError: message);
+      }
+    });
+    if (rows != null && state.stage == StaffStage.queue && state.paymentTab == tab) {
+      state = state.copyWith(payments: rows, listError: null);
+    }
+  }
+
+  /// Opens a payment: its reference (the server audits it), then its receipt image.
+  /// Both are dropped by [closePayment] and never written anywhere.
+  Future<void> openPayment(PaymentItem item) async {
+    state = state.copyWith(paymentSelected: item, proof: null, error: null);
+    final detail = await _guard((access) => _api.payment(access, item.id), onError: (_) {});
+    if (detail == null || state.paymentSelected?.id != item.id) return;
+    state = state.copyWith(paymentSelected: detail);
+    final proof = await _guard((access) => _api.paymentProof(access, item.id), onError: (_) {});
+    if (proof != null && state.paymentSelected?.id == item.id) state = state.copyWith(proof: proof);
+  }
+
+  void closePayment() => state = state.copyWith(paymentSelected: null, proof: null, error: null);
+
+  Future<bool> confirmPayment({required bool amountMatches, required bool referenceMatches}) =>
+      _decide((access, id) => _api.confirmPayment(
+            access,
+            id,
+            amountMatches: amountMatches,
+            referenceMatches: referenceMatches,
+          ));
+
+  Future<bool> refusePayment(String reason) =>
+      _decide((access, id) => _api.refusePayment(access, id, reason));
+
+  Future<bool> refundPayment(String reference) =>
+      _decide((access, id) => _api.refundPayment(access, id, reference));
+
+  /// A decision on the open payment. On success the row leaves the list and the detail closes;
+  /// on a refusal from the server (someone else decided first) the list is reloaded.
+  Future<bool> _decide(Future<void> Function(String access, String id) call) async {
+    final selected = state.paymentSelected;
+    if (selected == null || state.busy) return false;
+    state = state.copyWith(busy: true, error: null);
+    String? failure;
+    final done = await _guard<bool>((access) async {
+      await call(access, selected.id);
+      return true;
+    }, onError: (message) => failure = message);
+    if (done == true) {
+      state = state.copyWith(
+        busy: false,
+        payments: state.payments?.where((p) => p.id != selected.id).toList(),
+        paymentSelected: null,
+        proof: null,
+      );
+      return true;
+    }
+    state = state.copyWith(busy: false, error: failure);
+    if (failure != null) {
+      final message = failure;
+      await refreshPayments();
+      state = state.copyWith(error: message);
+    }
+    return false;
   }
 
   Future<void> selectContactTab(String file) async {

@@ -8,6 +8,8 @@ import 'src/screens/contacts_queue_screen.dart';
 import 'src/screens/device_pending_screen.dart';
 import 'src/screens/enrolment_detail_screen.dart';
 import 'src/screens/login_screen.dart';
+import 'src/screens/payment_detail_screen.dart';
+import 'src/screens/payments_queue_screen.dart';
 import 'src/screens/queue_screen.dart';
 import 'src/staff_controller.dart';
 import 'src/staff_copy.dart';
@@ -38,8 +40,9 @@ class _Root extends ConsumerWidget {
 
     // A dialog left open must not survive a sign-out or a return to the queue.
     ref.listen(
-        staffControllerProvider.select((s) => (s.stage, s.selected?.id, s.contactSelected?.id)),
-        (_, __) {
+        staffControllerProvider.select(
+          (s) => (s.stage, s.selected?.id, s.contactSelected?.id, s.paymentSelected?.id),
+        ), (_, __) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     });
 
@@ -49,6 +52,30 @@ class _Root extends ConsumerWidget {
       case StaffStage.devicePending:
         return DevicePendingScreen(onRetry: controller.signOut);
       case StaffStage.queue:
+        if (state.section == StaffSection.payments) {
+          final payment = state.paymentSelected;
+          if (payment == null) {
+            return PaymentsQueueScreen(
+              state: state,
+              onTab: controller.selectPaymentTab,
+              onRefresh: controller.refreshPayments,
+              onOpen: controller.openPayment,
+              onSignOut: controller.signOut,
+              onSection: controller.selectSection,
+            );
+          }
+          return PaymentDetailScreen(
+            item: payment,
+            me: state.me!,
+            proof: state.proof,
+            busy: state.busy,
+            error: state.error,
+            onBack: controller.closePayment,
+            onConfirm: controller.confirmPayment,
+            onRefuse: controller.refusePayment,
+            onRefund: controller.refundPayment,
+          );
+        }
         if (state.section == StaffSection.contacts) {
           final contact = state.contactSelected;
           if (contact == null) {

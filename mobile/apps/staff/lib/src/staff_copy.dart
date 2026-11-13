@@ -29,6 +29,8 @@ abstract final class StaffCopy {
     'review_enrolment': 'Examiner les demandes',
     'send_enrolment_code': 'Envoyer les numéros par WhatsApp',
     'send_contact_code': 'Envoyer les codes aux personnes de confiance',
+    'verify_payment': 'Vérifier les paiements',
+    'make_refund': 'Enregistrer les remboursements',
   };
   static String permission(String value) => _permissions[value] ?? value;
   static const empty = 'Aucune demande.';
@@ -63,6 +65,28 @@ abstract final class StaffCopy {
   static String contactRelationship(String value) => _relationships[value] ?? value;
   static String contactAction(String value) =>
       value == 'notice' ? "À prévenir (ancienne personne)" : 'Code à envoyer';
+
+  static const paymentsTitle = 'Paiements';
+  static const paymentsEmpty = 'Aucun paiement à traiter.';
+  static const paymentTabs = [
+    ('check', 'À vérifier'),
+    ('refund', 'Remboursements'),
+  ];
+  static const paymentDetailTitle = 'Paiement';
+  static const fieldAmount = 'Montant attendu';
+  static const fieldMethod = 'Envoyé sur';
+  static const fieldReference = 'Référence tapée';
+  static const checkHistory =
+      "Vérifiez le montant et la référence dans l'historique réel du compte : la capture ne suffit pas.";
+  static const seenBefore = 'Cette image a déjà été envoyée pour un autre paiement.';
+  static const amountMatches = 'Le montant correspond';
+  static const referenceMatches = 'La référence correspond';
+  static const confirmPayment = 'Confirmer le paiement';
+  static const refusePayment = 'Refuser le paiement';
+  static const recordRefund = 'Enregistrer le remboursement';
+  static const refundReference = 'Référence du remboursement';
+  static const late = 'En retard';
+  static const proofMissing = "L'image n'a pas pu être affichée.";
 
   static const detailTitle = 'Demande';
   static const back = 'Retour';
