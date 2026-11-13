@@ -66,6 +66,7 @@ abstract final class OfferCopy {
   static const withdrawAction = "Retirer l'offre";
   static const withdrawTitle = 'Retirer cette offre ?';
   static const withdrawBody = 'Les mini-jobbers ne la verront plus.';
+  static const withdrawBookedBody = 'La réservation avec le jobber choisi sera annulée.';
   static const copyAction = 'Créer une offre semblable';
   static const reasonLabel = 'Motif';
 }

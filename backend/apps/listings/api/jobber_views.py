@@ -53,7 +53,7 @@ class OfferView(APIView):
 
     @extend_schema(responses=PublicOfferSerializer)
     def get(self, request, pk):
-        offer = get_object_or_404(offers.visible_to_jobbers(), pk=pk)
+        offer = get_object_or_404(offers.visible_to_jobbers().select_related("author"), pk=pk)
         mine = offer.applications.filter(jobber=request.user, status__in=("pending", "accepted")).first()
         return Response(
             {

@@ -78,7 +78,10 @@ enum OfferStatus {
 
   /// The author may withdraw the offer.
   bool get canWithdraw =>
-      this == OfferStatus.draft || this == OfferStatus.inReview || this == OfferStatus.published;
+      this == OfferStatus.draft ||
+      this == OfferStatus.inReview ||
+      this == OfferStatus.published ||
+      this == OfferStatus.booked;
 
   /// The author may make a similar offer from it.
   bool get canCopy =>

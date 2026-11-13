@@ -115,6 +115,26 @@ void main() {
     expect(find.text('Awa'), findsNothing);
   });
 
+  testWidgets('a booked offer can be withdrawn, and the dialog says the booking ends',
+      (tester) async {
+    final adapter = await pumpMine(tester, [
+      myOfferJson(
+        status: 'booked',
+        booking: {'id': 'b-1', 'status': 'accepted', 'jobber_first_name': 'Awa'},
+      ),
+    ]);
+    await tap(tester, find.text('Ménage'));
+    await tap(tester, find.text("Retirer l'offre"));
+    expect(find.text('La réservation avec le jobber choisi sera annulée.'), findsOneWidget);
+    adapter
+      ..reply(200, myOfferJson(status: 'withdrawn'))
+      ..reply(200, mineJson([myOfferJson(status: 'withdrawn')]))
+      ..reply(200, catalogueJson());
+    await tap(tester, find.text('Retirer'));
+    expect(adapter.requests.any((r) => r.path == '/api/v1/my-offers/o-1/withdraw'), isTrue);
+    expect(find.text('Retirée'), findsWidgets);
+  });
+
   testWidgets('an offer with no applicant says so', (tester) async {
     final adapter = await pumpMine(tester, [myOfferJson(status: 'published')]);
     await tap(tester, find.text('Ménage'));

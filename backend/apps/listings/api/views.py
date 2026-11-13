@@ -58,13 +58,30 @@ class MyOffersView(_HouseholderView):
     @extend_schema(responses=MyOfferSerializer(many=True))
     def get(self, request):
         from django.conf import settings
+        from django.db.models import Count, Prefetch, Q
 
-        mine = Offer.objects.filter(author=request.user).order_by("-created_at")
+        from apps.bookings.models import Booking
+        from apps.bookings.services.applications import first_names
+
+        # One query for the offers and the counts, one for the live bookings, one for the names.
+        mine = list(
+            Offer.objects.filter(author=request.user)
+            .annotate(applicants_pending=Count("applications", filter=Q(applications__status="pending")))
+            .prefetch_related(
+                Prefetch(
+                    "bookings",
+                    queryset=Booking.objects.filter(status__in=Booking.LIVE),
+                    to_attr="live_bookings",
+                )
+            )
+            .order_by("-created_at")
+        )
+        names = first_names({b.jobber_id for offer in mine for b in offer.live_bookings})
         return Response(
             {
                 "can_publish": householder_tier(request.user) == "H1",
                 "review_hours": settings.OFFER_REVIEW_HOURS,
-                "offers": MyOfferSerializer(mine, many=True).data,
+                "offers": MyOfferSerializer(mine, many=True, context={"first_names": names}).data,
             }
         )
 

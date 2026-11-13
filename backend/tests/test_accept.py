@@ -96,7 +96,7 @@ def test_second_accept_is_invalid_state_and_one_booking_exists(
     assert Booking.objects.filter(offer=offer).count() == 1
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 def test_two_devices_accepting_at_once_make_one_booking(verified_householder, jpeg, verifier):
     offer = make_offer(verified_householder)
     first, second = j1_jobber(jpeg, verifier), j1_jobber(jpeg, verifier)

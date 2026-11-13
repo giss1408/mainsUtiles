@@ -2,7 +2,9 @@ from rest_framework import serializers
 
 
 class ApplyBodySerializer(serializers.Serializer):
-    message = serializers.CharField(required=False, allow_blank=True, default="", max_length=2000)
+    # The length limit (APPLICATION_MESSAGE_MAX) is enforced by the service, which answers with a
+    # French message; the schema does not repeat it.
+    message = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 class OfferLineSerializer(serializers.Serializer):

@@ -165,7 +165,9 @@ class MyOfferDetailScreen extends ConsumerWidget {
         ),
       ];
     }
-    if (offer.status == OfferStatus.inReview || offer.status == OfferStatus.published) {
+    if (offer.status == OfferStatus.inReview ||
+        offer.status == OfferStatus.published ||
+        offer.status == OfferStatus.booked) {
       return [
         OutlinedButton(
           onPressed: () async {
@@ -173,7 +175,9 @@ class MyOfferDetailScreen extends ConsumerWidget {
               context,
               title: OfferCopy.withdrawTitle,
               action: 'Retirer',
-              body: OfferCopy.withdrawBody,
+              body: offer.status == OfferStatus.booked
+                  ? OfferCopy.withdrawBookedBody
+                  : OfferCopy.withdrawBody,
             );
             if (confirmed) await controller.withdraw(offer.id);
           },

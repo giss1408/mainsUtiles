@@ -30,20 +30,25 @@ class MyOfferSerializer(serializers.ModelSerializer):
     booking = serializers.SerializerMethodField()
 
     def get_applicants_count(self, offer) -> int:
-        return offer.applications.filter(status="pending").count()
+        counted = getattr(offer, "applicants_pending", None)
+        return counted if counted is not None else offer.applications.filter(status="pending").count()
 
     def get_booking(self, offer) -> dict | None:
         """The jobber chosen for this offer: a first name, never a contact."""
         from apps.bookings.models import Booking
-        from apps.bookings.services.applications import first_name
+        from apps.bookings.services.applications import first_names
 
-        booking = offer.bookings.filter(status__in=Booking.LIVE).select_related("jobber").first()
-        if booking is None:
+        live = getattr(offer, "live_bookings", None)
+        if live is None:
+            live = list(offer.bookings.filter(status__in=Booking.LIVE)[:1])
+        if not live:
             return None
+        booking = live[0]
+        names = self.context.get("first_names") or first_names([booking.jobber_id])
         return {
             "id": str(booking.pk),
             "status": booking.status,
-            "jobber_first_name": first_name(booking.jobber),
+            "jobber_first_name": names.get(booking.jobber_id, ""),
         }
 
     class Meta:

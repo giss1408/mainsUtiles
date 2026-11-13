@@ -192,12 +192,35 @@ def withdraw(offer: Offer, *, user) -> Offer:
     with transaction.atomic():
         row = Offer.objects.select_for_update().get(pk=offer.pk)
         _require_owner(row, user)
-        if row.status not in (Offer.Status.DRAFT, Offer.Status.IN_REVIEW, Offer.Status.PUBLISHED):
+        if row.status not in (
+            Offer.Status.DRAFT,
+            Offer.Status.IN_REVIEW,
+            Offer.Status.PUBLISHED,
+            Offer.Status.BOOKED,
+        ):
             raise OfferError("invalid_state")
+        if row.status == Offer.Status.BOOKED:
+            _cancel_unpaid_booking(row, user)
         row.status = Offer.Status.WITHDRAWN
         row.save(update_fields=["status", "updated_at"])
     offer.refresh_from_db()
     return offer
+
+
+def _cancel_unpaid_booking(offer: Offer, user) -> None:
+    """Withdrawing a booked offer cancels its booking while nothing was paid. Once the booking has
+    moved on (payment, check-in), only the booking's own rules can end it."""
+    from apps.audit.services import record as audit
+    from apps.bookings.models import Booking
+
+    booking = Booking.objects.select_for_update().filter(offer=offer, status__in=Booking.LIVE).first()
+    if booking is None:
+        return
+    if booking.status != Booking.Status.ACCEPTED:
+        raise OfferError("invalid_state")
+    booking.status = Booking.Status.CANCELLED
+    booking.save(update_fields=["status"])
+    audit(user, "booking.cancel", booking, reason="offer withdrawn")
 
 
 def copy_as_draft(offer: Offer, *, user) -> Offer:
@@ -232,6 +255,7 @@ def tidy() -> dict:
     closed = Offer.objects.filter(status=Offer.Status.PUBLISHED, starts_at__lte=now).update(
         status=Offer.Status.CLOSED
     )
+    expired = _expire_unpaid_bookings(now)
     withdrawn = 0
     open_offers = (
         Offer.objects.filter(status__in=Offer.OPEN_STATUSES).values("author_id").annotate(n=Count("id"))
@@ -245,4 +269,18 @@ def tidy() -> dict:
             withdrawn += Offer.objects.filter(author_id=user_pk, status__in=Offer.OPEN_STATUSES).update(
                 status=Offer.Status.WITHDRAWN, reason=WITHDRAWN_UNVERIFIED, updated_at=now
             )
-    return {"closed": closed, "withdrawn": withdrawn}
+    return {"closed": closed, "withdrawn": withdrawn, "expired": expired}
+
+
+def _expire_unpaid_bookings(now) -> int:
+    """A booked offer whose start has passed with nothing paid is over: the booking expires and the
+    offer closes. A booking that moved on is left to its own rules."""
+    from apps.bookings.models import Booking
+
+    unpaid = Booking.objects.filter(
+        offer__status=Offer.Status.BOOKED, offer__starts_at__lte=now, status=Booking.Status.ACCEPTED
+    )
+    offer_ids = list(unpaid.values_list("offer_id", flat=True))
+    count = unpaid.update(status=Booking.Status.EXPIRED)
+    Offer.objects.filter(pk__in=offer_ids).update(status=Offer.Status.CLOSED, updated_at=now)
+    return count
