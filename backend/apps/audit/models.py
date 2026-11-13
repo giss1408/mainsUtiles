@@ -5,7 +5,10 @@ from django.db import models
 class AdminAction(models.Model):
     """Append-only record of a staff action."""
 
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    # Empty when the system acted by itself (a periodic task).
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
     action = models.CharField(max_length=80)
     target_type = models.CharField(max_length=80)
     target_id = models.CharField(max_length=64)

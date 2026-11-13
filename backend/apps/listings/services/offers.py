@@ -208,19 +208,18 @@ def withdraw(offer: Offer, *, user) -> Offer:
 
 
 def _cancel_unpaid_booking(offer: Offer, user) -> None:
-    """Withdrawing a booked offer cancels its booking while nothing was paid. Once the booking has
-    moved on (payment, check-in), only the booking's own rules can end it."""
-    from apps.audit.services import record as audit
+    """Withdrawing a booked offer cancels its booking while the booking is not confirmed: an unpaid
+    one, or one whose proof is still under review (the payment then becomes a refund to make).
+    Once the booking is confirmed, only cancelling the booking itself can end it."""
     from apps.bookings.models import Booking
+    from apps.bookings.services import bookings
 
     booking = Booking.objects.select_for_update().filter(offer=offer, status__in=Booking.LIVE).first()
     if booking is None:
         return
-    if booking.status != Booking.Status.ACCEPTED:
+    if booking.status not in (Booking.Status.ACCEPTED, Booking.Status.PAYMENT_REVIEW):
         raise OfferError("invalid_state")
-    booking.status = Booking.Status.CANCELLED
-    booking.save(update_fields=["status"])
-    audit(user, "booking.cancel", booking, reason="offer withdrawn")
+    bookings.cancel(user, booking.pk, reason="offre retirée")
 
 
 def copy_as_draft(offer: Offer, *, user) -> Offer:

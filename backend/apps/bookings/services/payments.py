@@ -205,3 +205,22 @@ def read_proof(payment: Payment, *, staff) -> bytes:
 def proof_seen_before(payment: Payment) -> bool:
     """The same image was sent for another payment: a reason to look closer."""
     return VerificationPhoto.objects.filter(sha256=payment.proof.sha256).exclude(pk=payment.proof_id).exists()
+
+
+def record_refund(payment: Payment, *, staff, reference: str) -> None:
+    """Staff sent the money back and note the reference of that transfer."""
+    _require_staff(staff, "bookings.make_refund")
+    text = (reference or "").strip()
+    with transaction.atomic():
+        row = Payment.objects.select_for_update().get(pk=payment.pk)
+        if row.status != Payment.Status.REFUND_DUE:
+            raise BookingError("invalid_state")
+        if not text:
+            raise BookingError("reference_invalid")
+        row.status = Payment.Status.REFUNDED
+        row.refund_reference = encrypt_text(text)
+        row.refunded_by = staff
+        row.refunded_at = timezone.now()
+        row.save(update_fields=["status", "refund_reference", "refunded_by", "refunded_at"])
+        audit(staff, "booking.payment.refund", row, booking=str(row.booking_id))
+    payment.refresh_from_db()
