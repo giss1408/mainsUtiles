@@ -15,7 +15,7 @@ from apps.verification.models import Guarantor
 from tests.helpers import j1_jobber, make_offer
 from tests.test_booking_models import booking_for
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("payment_method")]
 
 
 @pytest.fixture

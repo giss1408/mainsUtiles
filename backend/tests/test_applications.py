@@ -12,7 +12,7 @@ from tests.helpers import j1_jobber, make_offer
 from tests.test_booking_models import booking_for
 from tests.test_guarantor_review import new_jobber
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("payment_method")]
 
 
 @pytest.fixture

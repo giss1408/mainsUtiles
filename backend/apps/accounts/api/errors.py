@@ -60,6 +60,7 @@ STATUS = {
     "message_contact_details": 400,
     "message_too_long": 400,
     "applicant_not_verified": 409,
+    "payment_unavailable": 409,
     "reason_required": 400,
 }
 
@@ -132,6 +133,7 @@ MESSAGES = {
     "message_contact_details": "Ne mets pas de numéro ni de contact dans ton message.",
     "message_too_long": "Ton message est trop long.",
     "applicant_not_verified": "Ce candidat n'est plus vérifié.",
+    "payment_unavailable": "Le paiement n'est pas disponible pour le moment.",
 }
 
 

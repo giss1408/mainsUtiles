@@ -1,6 +1,10 @@
+from django import forms
 from django.contrib import admin
 
-from .models import Application, Booking
+from apps.accounts.phones import InvalidPhone, normalise
+from apps.audit.services import record as audit
+
+from .models import Application, Booking, PaymentMethod
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -62,3 +66,48 @@ class BookingAdmin(ReadOnlyAdmin):
     @admin.display(description="jobber")
     def jobber_phone(self, obj):
         return obj.jobber.phone
+
+
+class PaymentMethodForm(forms.ModelForm):
+    class Meta:
+        model = PaymentMethod
+        fields = ["provider", "number", "account_name", "active", "position"]
+
+    def clean_number(self):
+        raw = (self.cleaned_data.get("number") or "").strip()
+        if not raw:
+            return ""
+        try:
+            return normalise(raw)
+        except InvalidPhone as exc:
+            raise forms.ValidationError("Numéro invalide.") from exc
+
+    def clean(self):
+        data = super().clean()
+        if data.get("active") and not data.get("number"):
+            raise forms.ValidationError("Un moyen de paiement actif doit avoir un numéro.")
+        return data
+
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    """Where householders pay. With no active method, nobody can apply or be accepted."""
+
+    form = PaymentMethodForm
+    list_display = ("provider", "number", "account_name", "active", "position")
+    list_editable = ()
+    ordering = ("position", "provider")
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        audit(
+            request.user,
+            "bookings.payment_method.change",
+            obj,
+            provider=obj.provider,
+            active=obj.active,
+            number=obj.number,
+        )

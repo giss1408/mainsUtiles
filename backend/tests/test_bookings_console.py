@@ -4,7 +4,7 @@ from django.test import Client
 from apps.bookings.services import applications
 from tests.helpers import j1_jobber, make_offer
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("payment_method")]
 
 
 @pytest.fixture

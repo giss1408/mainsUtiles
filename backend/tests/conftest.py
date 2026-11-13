@@ -263,3 +263,13 @@ def submissions_location_id(user):
     from apps.verification.models import UNDECIDED, HomeLocation
 
     return HomeLocation.objects.get(user=user, status__in=UNDECIDED).pk
+
+
+@pytest.fixture
+def payment_method(db):
+    """An active Wave account: without one, nobody can apply or be accepted."""
+    from apps.bookings.models import PaymentMethod
+
+    return PaymentMethod.objects.create(
+        provider="wave", number="+2250101010101", account_name="petitGombo", active=True
+    )

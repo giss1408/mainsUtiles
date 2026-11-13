@@ -16,6 +16,8 @@ from apps.listings.models import Offer
 from apps.listings.services.screening import contact_in
 from apps.verification.services.tiers import jobber_tier
 
+from . import payments
+
 
 class BookingError(Exception):
     """A rule was broken. `code` is mapped to a status and a French message by the callers."""
@@ -66,6 +68,8 @@ def _free(jobber, offer: Offer) -> None:
 def apply(user, offer_id, message: str) -> Application:
     """A J1 jobber applies to a published offer that has not started."""
     _require_jobber(user)
+    if not payments.available():
+        raise BookingError("payment_unavailable")
     if jobber_tier(user) != "J1":
         raise BookingError("jobber_verification_required")
     text = (message or "").strip()
@@ -214,6 +218,8 @@ def accept(user, application_id, *, offer_id=None) -> Booking:
         found = None
     if found is None or found.offer.author_id != user.pk:
         raise BookingError("forbidden")
+    if not payments.available():
+        raise BookingError("payment_unavailable")
     if offer_id is not None and str(found.offer_id) != str(offer_id):
         raise BookingError("forbidden")
     with transaction.atomic():
