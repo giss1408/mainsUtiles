@@ -61,6 +61,9 @@ STATUS = {
     "message_too_long": 400,
     "applicant_not_verified": 409,
     "payment_unavailable": 409,
+    "payment_window_closed": 409,
+    "method_invalid": 400,
+    "reference_invalid": 400,
     "reason_required": 400,
 }
 
@@ -134,6 +137,9 @@ MESSAGES = {
     "message_too_long": "Ton message est trop long.",
     "applicant_not_verified": "Ce candidat n'est plus vérifié.",
     "payment_unavailable": "Le paiement n'est pas disponible pour le moment.",
+    "payment_window_closed": "Le délai pour payer est dépassé.",
+    "method_invalid": "Choisissez un moyen de paiement proposé.",
+    "reference_invalid": "Indiquez la référence de la transaction.",
 }
 
 

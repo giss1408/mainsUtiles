@@ -68,3 +68,33 @@ def j1_jobber(jpeg, verifier):
     from tests.test_jobber_tier import verified_jobber
 
     return verified_jobber(jpeg, verifier)[0]
+
+
+def accepted_booking(householder, jpeg, verifier, days=2):
+    """A booking in state `accepted`: a published offer, a J1 applicant, accepted."""
+    from apps.bookings.services import applications
+
+    offer = make_offer(householder, days=days)
+    jobber = j1_jobber(jpeg, verifier)
+    return applications.accept(householder, applications.apply(jobber, offer.pk, "").pk)
+
+
+def paid_booking(householder, jpeg, verifier, reference="WAVE-123456", days=2, seed=7):
+    """A booking in `payment_review` with its submitted payment."""
+    from django.utils import timezone
+
+    from apps.bookings.models import PaymentMethod
+    from apps.bookings.services import payments
+
+    booking = accepted_booking(householder, jpeg, verifier, days=days)
+    method = PaymentMethod.objects.available().first()
+    payment = payments.submit_proof(
+        householder,
+        booking.pk,
+        method_id=method.pk,
+        reference=reference,
+        screenshot=jpeg(seed),
+        captured_at=timezone.now(),
+    )
+    booking.refresh_from_db()
+    return booking, payment
