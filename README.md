@@ -190,8 +190,9 @@ Staff also work two more queues in the console under "Vérifications":
 
 - **"Personnes de confiance"** (permission `verification.send_contact_code`, group `verification_agent`):
   "À envoyer" lists the contacts waiting for a code. "Envoyer le code par WhatsApp" shows an
-  "Ouvrir WhatsApp" link once; the message is already written; send it from the official number
-  (`OFFICIAL_WHATSAPP_NUMBER`). The contact's number appears only inside that link, and every view and
+  "Ouvrir WhatsApp" link once; the message is already written. Messages are always sent from the
+  admin app, on the device that holds the official number (`OFFICIAL_WHATSAPP_NUMBER`); never from a
+  personal phone. The contact's number appears only inside that link, and every view and
   send is audited. "À prévenir" lists confirmed contacts being replaced: warn the old number the same
   way; the delay starts then. Without that notice the old contact stays.
 - **"Cartes de briefing"** (group `briefing_manager`): write each card (title, text, question, one
@@ -209,8 +210,9 @@ Settings (environment variables): `GUARANTOR_DOCUMENT_TYPES`, `GUARANTOR_BILL_MA
 Open decisions: the lawful basis for holding a third party's name, phone and bill (the privacy notice
 has a draft section "Informations sur votre garant"); whether a guarantor must consent in writing;
 what staff do when a guarantor does not answer; the lawful basis for holding a trusted contact's number
-(section "Informations sur votre personne de confiance" in the privacy notice); who sends the
-WhatsApp messages, from which number, and the staff workload of sending every code; how a contact who
+(section "Informations sur votre personne de confiance" in the privacy notice); the staff
+workload of sending every code (messages are decided: always sent from the admin app, on the device
+with the official number); how a contact who
 says "I did not agree" gets off the list, since a contact can be replaced by the jobber but never
 removed; whether the briefing needs videos; whether J1 should be required to apply (applications
 do not exist yet). The jobber app takes its photos with the same in-app camera as the householder
