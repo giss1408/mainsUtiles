@@ -2,12 +2,19 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 
-/// The jobber app. Everything it shows lives in petitgombo_core.
+import 'device_capture.dart';
+
+/// The jobber app. Its screens live in petitgombo_core; the camera, which only the apps with
+/// verification photos need, is supplied here. It reads no GPS position.
 PetitGomboApp buildApp({
   DeviceDescription device = const DeviceDescription.unknown(),
   List<Override> overrides = const [],
 }) =>
-    PetitGomboApp(role: AppRole.jobber, device: device, overrides: overrides);
+    PetitGomboApp(
+      role: AppRole.jobber,
+      device: device,
+      overrides: [photoCaptureProvider.overrideWithValue(CameraPhotoCapture()), ...overrides],
+    );
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

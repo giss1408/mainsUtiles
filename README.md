@@ -185,8 +185,8 @@ Settings (environment variables): `GUARANTOR_DOCUMENT_TYPES`, `GUARANTOR_BILL_MA
 Open decisions: the lawful basis for holding a third party's name, phone and bill (the privacy notice
 has a draft section "Informations sur votre garant"); whether a guarantor must consent in writing;
 what staff do when a guarantor does not answer; whether J1 should be required to apply (applications
-do not exist yet). The jobber app has no camera implementation yet: only the householder app
-wires `photoCaptureProvider`, so photo steps cannot run in the jobber app until it does.
+do not exist yet). The jobber app takes its photos with the same in-app camera as the householder
+app; it asks for the camera permission only, never for the location.
 
 ## Job offers
 
