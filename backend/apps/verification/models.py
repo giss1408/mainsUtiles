@@ -31,6 +31,7 @@ class VerificationPhoto(models.Model):
         ID_BACK = "id_back", "Verso du document"
         SELFIE = "selfie", "Visage"
         ADDRESS_PROOF = "address_proof", "Justificatif de domicile"
+        GUARANTOR_BILL = "guarantor_bill", "Facture du garant"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
@@ -149,3 +150,41 @@ class HomeLocation(Reviewed):
 
     def __str__(self):
         return f"Position de {self.user} ({self.get_status_display()})"
+
+
+class Guarantor(Reviewed):
+    """Someone who vouches for a jobber, and the bill that ties them to a fixed address."""
+
+    class Relationship(models.TextChoices):
+        PARENT = "parent", "Parent"
+        RELATIVE = "relative", "Famille"
+        LANDLORD = "landlord", "Propriétaire"
+        OTHER = "other", "Autre"
+
+    photo = models.ForeignKey(VerificationPhoto, on_delete=models.PROTECT, related_name="+")
+    document_type = models.CharField(max_length=30)
+    # Typed by the jobber, stored encrypted: they belong to a person who is not a user.
+    guarantor_name = models.TextField()
+    guarantor_phone = models.TextField()
+    guarantor_phone_hash = models.CharField(max_length=64, db_index=True)
+    relationship = models.CharField(max_length=20, choices=Relationship.choices)
+    # Recorded by staff from the bill, stored encrypted.
+    holder_name = models.TextField(blank=True)
+    reference_number = models.TextField(blank=True)
+    reference_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    issued_on = models.DateField(null=True, blank=True)
+    contacted_at = models.DateTimeField(null=True, blank=True)
+    contacted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(Reviewed.Meta):
+        verbose_name = "garant"
+        verbose_name_plural = "garants"
+        indexes = [models.Index(fields=["status", "created_at"])]
+        constraints = [_one_open_per_user("one_open_guarantor_per_user")]
+
+    def __str__(self):
+        return f"Garant de {self.user} ({self.get_status_display()})"

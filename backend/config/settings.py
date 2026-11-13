@@ -114,6 +114,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.verification.tasks.expire_address_proofs",
         "schedule": 3600.0,
     },
+    "expire-guarantors": {
+        "task": "apps.verification.tasks.expire_guarantors",
+        "schedule": 3600.0,
+    },
     "tidy-offers": {
         "task": "apps.listings.tasks.tidy_offers",
         "schedule": 900.0,
@@ -229,6 +233,18 @@ IDENTITY_DOCUMENT_TYPES = env.list(
 ADDRESS_PROOF_TYPES = env.list(
     "ADDRESS_PROOF_TYPES", default=["facture_eau", "facture_electricite", "certificat_residence"]
 )
+
+# Jobber verification
+GUARANTOR_DOCUMENT_TYPES = env.list(
+    "GUARANTOR_DOCUMENT_TYPES",
+    default=["facture_eau", "facture_electricite", "certificat_residence", "abonnement_prepaye"],
+)
+GUARANTOR_BILL_MAX_AGE_MONTHS = env.int("GUARANTOR_BILL_MAX_AGE_MONTHS", default=3)
+GUARANTOR_VALID_MONTHS = env.int("GUARANTOR_VALID_MONTHS", default=12)
+# How many jobbers one bill (customer number) may vouch for.
+GUARANTOR_MAX_JOBBERS = env.int("GUARANTOR_MAX_JOBBERS", default=3)
+# Steps a jobber must have confirmed to reach tier J1.
+JOBBER_REQUIRED_STEPS = env.list("JOBBER_REQUIRED_STEPS", default=["identity", "guarantor"])
 
 # Job offers. Categories and moderation terms are edited in the console, not here.
 OFFER_EARLIEST_START = env.str("OFFER_EARLIEST_START", default="06:00")
