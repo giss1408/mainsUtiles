@@ -5,4 +5,5 @@ urlpatterns = [
     path("staff/", include("apps.accounts.api.staff_urls")),
     path("", include("apps.verification.api.urls")),
     path("", include("apps.listings.api.urls")),
+    path("", include("apps.bookings.api.urls")),
 ]

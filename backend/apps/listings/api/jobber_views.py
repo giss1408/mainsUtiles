@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.api.errors import error_response
+from apps.bookings.services import applications
 from apps.listings.services import offers
 
 from .jobber_serializers import PublicOfferSerializer
@@ -53,4 +54,12 @@ class OfferView(APIView):
     @extend_schema(responses=PublicOfferSerializer)
     def get(self, request, pk):
         offer = get_object_or_404(offers.visible_to_jobbers(), pk=pk)
-        return Response(PublicOfferSerializer(offer).data)
+        mine = offer.applications.filter(jobber=request.user, status__in=("pending", "accepted")).first()
+        return Response(
+            {
+                **PublicOfferSerializer(offer).data,
+                # A trust line, never a name, a phone or an id.
+                "householder": applications.householder_trust(offer.author),
+                "my_application": {"id": str(mine.pk), "status": mine.status} if mine else None,
+            }
+        )

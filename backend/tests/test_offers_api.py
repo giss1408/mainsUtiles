@@ -165,4 +165,6 @@ def test_detail_of_a_visible_offer_is_200(api_client, jobber, author):
     # Control for the 404 tests above: a visible offer is found at the same address.
     offer = make(author, "published", days=2)
     response = api_client.get(f"{BASE}/{offer.pk}", HTTP_AUTHORIZATION=bearer_for_user(jobber))
-    assert response.status_code == 200 and set(response.json()) == PUBLIC_KEYS
+    # The detail adds the householder's trust line and the caller's own application, nothing else.
+    assert response.status_code == 200
+    assert set(response.json()) == PUBLIC_KEYS | {"householder", "my_application"}
