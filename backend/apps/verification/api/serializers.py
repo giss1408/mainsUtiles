@@ -55,3 +55,22 @@ class ChecklistSerializer(serializers.Serializer):
     identity = StepSerializer()
     address = AddressStepSerializer()
     home_location = StepSerializer()
+
+
+class GuarantorSubmissionSerializer(_Captured):
+    document_type = serializers.CharField(max_length=30)
+    photo = serializers.FileField()
+    # Length is checked by the service, which strips blanks first.
+    guarantor_name = serializers.CharField(allow_blank=True, trim_whitespace=True)
+    guarantor_phone = serializers.CharField(max_length=30)
+    relationship = serializers.CharField(max_length=20)
+
+
+class JobberChecklistSerializer(serializers.Serializer):
+    """Statuses only: never the guarantor's name or phone, the bill or the identity fields."""
+
+    tier = serializers.CharField()
+    review_hours = serializers.IntegerField()
+    required = serializers.ListField(child=serializers.CharField())
+    identity = StepSerializer()
+    guarantor = StepSerializer()
