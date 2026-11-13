@@ -7,15 +7,16 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.audit.services import record as audit
 from apps.bookings.models import Booking, Payment, PaymentMethod
+from apps.verification.models import VerificationPhoto
 from apps.verification.services import submissions
 from apps.verification.services.encryption import encrypt_text, keyed_hash
 
-from .applications import BookingError
+from .errors import BookingError
 
 REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .\-]{2,38}[A-Za-z0-9]$")
 
@@ -122,3 +123,85 @@ def submit_proof(
 
 def _is_int(value) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+# ---- Staff ------------------------------------------------------------------------------------
+
+VERIFY = "bookings.verify_payment"
+
+
+def _require_staff(staff, permission: str) -> None:
+    if not (staff and staff.is_active and staff.is_staff and staff.has_perm(permission)):
+        raise BookingError("forbidden")
+
+
+def _locked(payment: Payment) -> tuple[Payment, Booking]:
+    """Both rows under a lock, so two staff members cannot decide the same payment."""
+    row = Payment.objects.select_for_update().get(pk=payment.pk)
+    booking = Booking.objects.select_for_update().get(pk=row.booking_id)
+    return row, booking
+
+
+def _undecided(row: Payment, booking: Booking) -> None:
+    if row.status != Payment.Status.SUBMITTED or booking.status != Booking.Status.PAYMENT_REVIEW:
+        raise BookingError("invalid_state")
+
+
+def confirm_payment(payment: Payment, *, staff, amount_matches: bool, reference_matches: bool) -> None:
+    """Staff checked the amount and the reference against the platform account's own history."""
+    _require_staff(staff, VERIFY)
+    try:
+        with transaction.atomic():
+            row, booking = _locked(payment)
+            _undecided(row, booking)
+            if not (amount_matches and reference_matches):
+                raise BookingError("checks_required")
+            used = Payment.objects.filter(
+                reference_hash=row.reference_hash,
+                status__in=(Payment.Status.CONFIRMED, Payment.Status.REFUND_DUE, Payment.Status.REFUNDED),
+            ).exclude(pk=row.pk)
+            if used.exists():
+                raise BookingError("reference_used")
+            row.status = Payment.Status.CONFIRMED
+            row.decided_by = staff
+            row.decided_at = timezone.now()
+            row.save(update_fields=["status", "decided_by", "decided_at"])
+            booking.status = Booking.Status.CONFIRMED
+            booking.save(update_fields=["status"])
+            audit(staff, "booking.payment.confirm", row, booking=str(booking.pk))
+    except IntegrityError as exc:
+        raise BookingError("reference_used") from exc
+    payment.refresh_from_db()
+
+
+def refuse_payment(payment: Payment, *, staff, reason: str) -> None:
+    """The proof does not match: the booking goes back to waiting for a payment."""
+    _require_staff(staff, VERIFY)
+    text = (reason or "").strip()
+    with transaction.atomic():
+        row, booking = _locked(payment)
+        _undecided(row, booking)
+        if not text:
+            raise BookingError("reason_required")
+        row.status = Payment.Status.REFUSED
+        row.reason = text
+        row.decided_by = staff
+        row.decided_at = timezone.now()
+        row.save(update_fields=["status", "reason", "decided_by", "decided_at"])
+        booking.status = Booking.Status.ACCEPTED
+        booking.save(update_fields=["status"])
+        audit(staff, "booking.payment.refuse", row, booking=str(booking.pk), reason=text)
+    payment.refresh_from_db()
+
+
+def read_proof(payment: Payment, *, staff) -> bytes:
+    """The decrypted screenshot. Every view leaves an audit row."""
+    _require_staff(staff, VERIFY)
+    data = submissions.read_photo_bytes(payment.proof)
+    audit(staff, "booking.payment.view_proof", payment, booking=str(payment.booking_id))
+    return data
+
+
+def proof_seen_before(payment: Payment) -> bool:
+    """The same image was sent for another payment: a reason to look closer."""
+    return VerificationPhoto.objects.filter(sha256=payment.proof.sha256).exclude(pk=payment.proof_id).exists()

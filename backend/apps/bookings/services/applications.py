@@ -17,14 +17,7 @@ from apps.listings.services.screening import contact_in
 from apps.verification.services.tiers import jobber_tier
 
 from . import payments
-
-
-class BookingError(Exception):
-    """A rule was broken. `code` is mapped to a status and a French message by the callers."""
-
-    def __init__(self, code: str):
-        super().__init__(code)
-        self.code = code
+from .errors import BookingError  # noqa: F401 - re-exported for the callers
 
 
 def _require_jobber(user) -> None:

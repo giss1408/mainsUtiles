@@ -144,6 +144,56 @@ def test_concurrent_requests_stay_consistent(verified_householder, jpeg, verifie
         worker.join()
     assert sorted(outcomes) == ["ok", "too_many_applications"]
 
+    # Two proofs at once make one payment; two staff deciding the same payment: one wins.
+    from django.contrib.auth.models import Group
+    from django.utils import timezone
+
+    from apps.accounts.models import User
+    from apps.bookings.models import Payment, PaymentMethod
+    from apps.bookings.services import payments
+    from tests.helpers import accepted_booking
+
+    booking = accepted_booking(verified_householder, jpeg, verifier, days=8)
+    method = PaymentMethod.objects.available().first()
+    cashier = User.objects.create_user(username="cashier", password="pw", role="staff", is_staff=True)
+    cashier.groups.add(Group.objects.get(name="payment_agent"))
+
+    def race(call):
+        results = []
+
+        def run():
+            try:
+                call()
+                results.append("ok")
+            except BookingError as exc:
+                results.append(exc.code)
+            finally:
+                connection.close()
+
+        pair = [threading.Thread(target=run) for _ in range(2)]
+        for thread in pair:
+            thread.start()
+        for thread in pair:
+            thread.join()
+        return sorted(results)
+
+    proofs = race(
+        lambda: payments.submit_proof(
+            verified_householder,
+            booking.pk,
+            method_id=method.pk,
+            reference="RACE-123456",
+            screenshot=jpeg(3),
+            captured_at=timezone.now(),
+        )
+    )
+    assert proofs == ["invalid_state", "ok"] and Payment.objects.filter(booking=booking).count() == 1
+    payment = Payment.objects.get(booking=booking)
+    decisions = race(
+        lambda: payments.confirm_payment(payment, staff=cashier, amount_matches=True, reference_matches=True)
+    )
+    assert decisions == ["invalid_state", "ok"]
+
 
 def test_accept_refused_when_the_applicant_lost_j1(offer, verified_householder, jobber):
     application = applications.apply(jobber, offer.pk, "")
