@@ -56,6 +56,12 @@ Map<String, dynamic> jobberBookingJson() => {
       'quartier': 'Angré',
       'address_available_from': '2026-11-14T05:00:00Z',
       'payment': 'pending',
+      'checkin_from': '2026-11-14T07:30:00Z',
+      'checked_in_at': null,
+      'checked_out_at': null,
+      'auto_confirm_at': null,
+      'payout': 'none',
+      'reviewable': false,
     };
 
 Map<String, dynamic> methodJson({int id = 1, String provider = 'wave'}) => {
@@ -82,6 +88,11 @@ Map<String, dynamic> bookingDetailJson({
       'payment': payment,
       'jobber': jobber ?? {'first_name': 'Awa'},
       'cancellable': cancellable,
+      'checked_in_at': null,
+      'checked_out_at': null,
+      'auto_confirm_at': null,
+      'reviewable': false,
+      'jobber_rating': null,
     };
 
 Map<String, dynamic> addressJson() => {

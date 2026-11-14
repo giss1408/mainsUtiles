@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../app/providers.dart';
 import '../verification/capture.dart';
 import 'application_models.dart';
+import 'review_models.dart';
 
 /// The application endpoints, for the jobber and the householder.
 class ApplicationsApi {
@@ -145,6 +146,74 @@ class ApplicationsApi {
           data: {'reason': reason},
           options: _bearer(access),
         );
+      });
+
+  // ---- The job and after ----
+
+  /// The jobber says they arrived. The position is sent when the phone gave one.
+  Future<void> checkIn(String access, String bookingId, {DevicePosition? position}) =>
+      guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_base/my-bookings/$bookingId/check-in',
+          data: position == null
+              ? <String, dynamic>{}
+              : {'lat': position.lat, 'lng': position.lng, 'accuracy_m': position.accuracyM},
+          options: _bearer(access),
+        );
+      });
+
+  Future<void> checkOut(String access, String bookingId) => guardApi(() async {
+        await _dio.post<dynamic>('$_base/my-bookings/$bookingId/check-out',
+            options: _bearer(access));
+      });
+
+  Future<void> confirmDone(String access, String offerId) => guardApi(() async {
+        await _dio.post<dynamic>('$_base/my-offers/$offerId/booking/confirm',
+            options: _bearer(access));
+      });
+
+  String _jobPath(String id, {required bool householder}) =>
+      householder ? '$_base/my-offers/$id/booking' : '$_base/my-bookings/$id';
+
+  /// [id] is the offer for the householder and the booking for the jobber.
+  Future<void> report(
+    String access,
+    String id, {
+    required bool householder,
+    required String text,
+    required bool dispute,
+  }) =>
+      guardApi(() async {
+        await _dio.post<dynamic>(
+          '${_jobPath(id, householder: householder)}/report',
+          data: {'text': text, 'dispute': dispute},
+          options: _bearer(access),
+        );
+      });
+
+  Future<ReviewState> review(String access, String id, {required bool householder}) =>
+      guardApi(() async {
+        final response = await _dio.get<dynamic>(
+          '${_jobPath(id, householder: householder)}/review',
+          options: _bearer(access),
+        );
+        return ReviewState.fromJson(Map<String, dynamic>.from(response.data as Map));
+      });
+
+  Future<ReviewState> submitReview(
+    String access,
+    String id, {
+    required bool householder,
+    required int stars,
+    required String comment,
+  }) =>
+      guardApi(() async {
+        final response = await _dio.post<dynamic>(
+          '${_jobPath(id, householder: householder)}/review',
+          data: {'stars': stars, 'comment': comment},
+          options: _bearer(access),
+        );
+        return ReviewState.fromJson(Map<String, dynamic>.from(response.data as Map));
       });
 }
 

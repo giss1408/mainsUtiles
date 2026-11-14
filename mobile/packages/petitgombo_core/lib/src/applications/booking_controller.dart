@@ -10,6 +10,7 @@ import '../verification/capture.dart';
 import 'application_models.dart';
 import 'applications_api.dart';
 import 'applications_controller.dart';
+import 'review_models.dart';
 
 const _keep = Object();
 
@@ -17,6 +18,7 @@ class BookingState {
   const BookingState({
     this.detail,
     this.photo,
+    this.review,
     this.loading = false,
     this.sending = false,
     this.error,
@@ -27,6 +29,9 @@ class BookingState {
 
   /// The jobber's verified photo, once the payment is confirmed and the screen asked for it.
   final Uint8List? photo;
+
+  /// Both reviews, once the screen asked for them.
+  final ReviewState? review;
   final bool loading;
   final bool sending;
   final String? error;
@@ -34,6 +39,7 @@ class BookingState {
   BookingState copyWith({
     Object? detail = _keep,
     Uint8List? photo,
+    ReviewState? review,
     bool? loading,
     bool? sending,
     Object? error = _keep,
@@ -41,6 +47,7 @@ class BookingState {
       BookingState(
         detail: identical(detail, _keep) ? this.detail : detail as BookingDetail?,
         photo: photo ?? this.photo,
+        review: review ?? this.review,
         loading: loading ?? this.loading,
         sending: sending ?? this.sending,
         error: identical(error, _keep) ? this.error : error as String?,
@@ -118,6 +125,56 @@ class BookingController extends StateNotifier<BookingState> {
       state = state.copyWith(sending: false);
       await load();
       await _onChanged();
+      return true;
+    } on ApiError catch (e) {
+      state = state.copyWith(sending: false, error: applicationMessage(e));
+      return false;
+    }
+  }
+
+  /// Runs one change of the job, then reloads. False when the server refused.
+  Future<bool> _change(Future<void> Function(String access) call) async {
+    if (state.sending) return false;
+    state = state.copyWith(sending: true, error: null);
+    try {
+      await _session.authorized(call);
+      state = state.copyWith(sending: false);
+      await load();
+      await _onChanged();
+      return true;
+    } on ApiError catch (e) {
+      state = state.copyWith(sending: false, error: applicationMessage(e));
+      return false;
+    }
+  }
+
+  /// "Confirmer que c'est fait": the job is completed and the jobber will be paid.
+  Future<bool> confirmDone() => _change((access) => _api.confirmDone(access, offerId));
+
+  Future<bool> report(String text, {required bool dispute}) => _change(
+        (access) => _api.report(access, offerId, householder: true, text: text, dispute: dispute),
+      );
+
+  Future<void> loadReview() async {
+    try {
+      final review =
+          await _session.authorized((access) => _api.review(access, offerId, householder: true));
+      state = state.copyWith(review: review);
+    } on ApiError catch (e) {
+      state = state.copyWith(error: applicationMessage(e));
+    }
+  }
+
+  Future<bool> submitReview(int stars, String comment) async {
+    if (state.sending) return false;
+    state = state.copyWith(sending: true, error: null);
+    try {
+      final review = await _session.authorized(
+        (access) =>
+            _api.submitReview(access, offerId, householder: true, stars: stars, comment: comment),
+      );
+      state = state.copyWith(sending: false, review: review);
+      await load();
       return true;
     } on ApiError catch (e) {
       state = state.copyWith(sending: false, error: applicationMessage(e));

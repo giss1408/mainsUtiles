@@ -25,6 +25,7 @@ export 'src/applications/applicants_controller.dart';
 export 'src/applications/applications_api.dart';
 export 'src/applications/booking_controller.dart';
 export 'src/applications/proof_picker.dart';
+export 'src/applications/review_models.dart';
 export 'src/applications/applications_controller.dart';
 export 'src/applications/screens/applicants_screen.dart';
 export 'src/applications/screens/apply_screen.dart';

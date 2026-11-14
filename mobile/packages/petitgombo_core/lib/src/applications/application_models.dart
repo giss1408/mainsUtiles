@@ -1,3 +1,5 @@
+DateTime? _when(Object? value) => value is String ? DateTime.parse(value).toLocal() : null;
+
 enum ApplicationStatus {
   pending,
   accepted,
@@ -184,6 +186,12 @@ class JobberBooking {
     required this.quartier,
     required this.addressAvailableFrom,
     required this.payment,
+    required this.checkinFrom,
+    this.checkedInAt,
+    this.checkedOutAt,
+    this.autoConfirmAt,
+    this.payout = 'none',
+    this.reviewable = false,
   });
 
   factory JobberBooking.fromJson(Map<String, dynamic> json) => JobberBooking(
@@ -197,6 +205,15 @@ class JobberBooking {
         quartier: (json['quartier'] as String?) ?? '',
         addressAvailableFrom: DateTime.parse(json['address_available_from'] as String).toLocal(),
         payment: (json['payment'] as String?) ?? 'pending',
+        checkinFrom: _when(json['checkin_from']) ??
+            DateTime.parse(json['starts_at'] as String).toLocal().subtract(
+                  const Duration(minutes: 30),
+                ),
+        checkedInAt: _when(json['checked_in_at']),
+        checkedOutAt: _when(json['checked_out_at']),
+        autoConfirmAt: _when(json['auto_confirm_at']),
+        payout: (json['payout'] as String?) ?? 'none',
+        reviewable: json['reviewable'] == true,
       );
 
   final String id;
@@ -213,6 +230,22 @@ class JobberBooking {
 
   /// `pending` (not paid yet), `review` (staff are checking) or `confirmed`.
   final String payment;
+
+  /// From when "Je suis arrivé(e)" is offered.
+  final DateTime checkinFrom;
+  final DateTime? checkedInAt;
+  final DateTime? checkedOutAt;
+
+  /// While the householder has not confirmed: when the job completes by itself.
+  final DateTime? autoConfirmAt;
+
+  /// `none`, `due` (being prepared) or `paid`.
+  final String payout;
+
+  /// The jobber may still send a review.
+  final bool reviewable;
+
+  DateTime get endsAt => startsAt.add(Duration(minutes: durationMinutes));
 }
 
 /// One way to pay, as staff set it up: the platform's number to send the money to.
@@ -269,6 +302,11 @@ class BookingDetail {
     this.jobberFullName,
     this.hasPhoto = false,
     this.payment,
+    this.checkedInAt,
+    this.checkedOutAt,
+    this.autoConfirmAt,
+    this.reviewable = false,
+    this.jobberRating,
   });
 
   factory BookingDetail.fromJson(Map<String, dynamic> json) {
@@ -290,6 +328,11 @@ class BookingDetail {
       jobberFullName: jobber['full_name'] as String?,
       hasPhoto: jobber['has_photo'] == true,
       cancellable: json['cancellable'] == true,
+      checkedInAt: _when(json['checked_in_at']),
+      checkedOutAt: _when(json['checked_out_at']),
+      autoConfirmAt: _when(json['auto_confirm_at']),
+      reviewable: json['reviewable'] == true,
+      jobberRating: (json['jobber_rating'] as num?)?.toDouble(),
     );
   }
 
@@ -306,6 +349,21 @@ class BookingDetail {
   final String? jobberFullName;
   final bool hasPhoto;
   final bool cancellable;
+  final DateTime? checkedInAt;
+  final DateTime? checkedOutAt;
+
+  /// While the job waits for a confirmation: when it completes by itself.
+  final DateTime? autoConfirmAt;
+
+  /// The householder may still send a review.
+  final bool reviewable;
+
+  /// Null until the jobber has published reviews.
+  final double? jobberRating;
+
+  /// A problem can be reported from the jobber's arrival on.
+  bool get reportable =>
+      const {'checked_in', 'completion_pending', 'disputed', 'completed'}.contains(status);
 }
 
 /// The exact pin of the home, shown to the booked jobber in the release window only.
