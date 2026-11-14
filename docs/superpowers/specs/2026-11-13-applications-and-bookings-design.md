@@ -203,3 +203,11 @@ given; the shape of the mock provider's webhook; query and index choices.
 - Check-in has no geofence yet; the door handshake is a later piece.
 - One application cannot overlap another booking of the same jobber.
 - A late cancellation refunds in full for now and records a strike.
+
+## Addendum, 2026-11-15: messages and alerts
+
+Decided by the owner: no SMS and no push for now. Every message to a householder or a jobber is
+queued for the staff app and sent by staff on WhatsApp from the official number; alerts for staff
+are shown in the staff app. This replaces the open point on SMS or push. The message list, the rules
+and the limits are in the README, section "Messages and alerts"; it is built as stage 4, together
+with payouts and disputes in the staff app.

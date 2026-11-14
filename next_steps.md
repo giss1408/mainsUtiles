@@ -1,6 +1,6 @@
 # Next steps
 
-Updated 2026-11-14 (night). Branch `feat/jobber-verification` is pushed up to 4104c10. Everything
+Updated 2026-11-15. Branch `feat/jobber-verification` is pushed up to 4104c10. Everything
 after it is local and **not pushed**: the stage 3 plan and all 12 tasks of stage 3.
 
 ## What is built
@@ -69,9 +69,10 @@ payment stage, the staff payments queue and all of stage 3 have had a self-revie
   mobile-money number.
 - **Dispute rules.** What staff look at and how they choose between pay, refund and share; how long
   they have to answer. The review wording too.
-- **Messages.** SMS or push for "you were accepted", "pay now", "your payment was refused" and "the
-  address is available". Today the apps only show the state when opened or refreshed, and many phones
-  rarely open an app.
+- **Messages: decided (2026-11-15).** No SMS and no push for now. Every message goes to the staff app
+  and is sent by staff on WhatsApp; alerts for staff are in the staff app too (README "Messages and
+  alerts"). Still to settle for stage 4: who is on duty and at what hours, and the exact wording of
+  each message.
 - **Real briefing cards.** The three cards seeded by migration `0006` are placeholders; write the real
   ones in the console ("Cartes de briefing") before launch. Decide whether videos are needed.
 - **A contact who says "I never agreed".** Contacts can only be replaced, never removed, so define how
@@ -79,25 +80,63 @@ payment stage, the staff payments queue and all of stage 3 have had a self-revie
 - Guarantor open points: written consent, what staff do when a guarantor does not answer, the call
   script and the number staff call from, bills accepted without a utility bill.
 
-## Build next
+## Build next: stage 4, the staff app runs the operations
 
-In the order I would take them:
+Everything staff must do or send, on the staff phone. Not started: no design and no plan yet. Start
+with the design (`superpowers:brainstorming`, then a spec in `docs/superpowers/specs/` and a plan in
+`docs/superpowers/plans/`), on a new branch once this one is merged.
 
-1. Payouts and disputes in the staff app (today: console only).
-2. Messages (push or SMS) for "you were accepted", "pay now", "confirm the job", "you were paid": the
-   apps only show a state when opened.
-3. Alerts for a payment or a payout waiting too long (a late marker exists for payments; nothing
-   pushes it).
-4. Strikes for repeated cancellations and no-shows, shown to staff.
-5. Fake-GPS detection at check-in (the distance is recorded but trusts the phone).
-6. Two stage 2 minors: an audit row is written at every view of the booking once the jobber's name is
+**Scope**
+
+1. **Messages by WhatsApp.** The backend queues a message at each event (the list is in the README,
+   "Messages and alerts"); the staff app shows "Messages à envoyer", oldest first; "Ouvrir WhatsApp"
+   opens the written message and marks it sent. Same rules as the contact codes: the number only
+   inside a one-time link, a permission, an audit row, nothing cached or kept on the phone.
+2. **Alerts for staff.** Counts on the staff home screen and markers in the queues: a payment, a
+   payout or a refund waiting too long, an open dispute, a far check-in, a message not sent.
+3. **Payouts in the staff app.** "Paiements à verser": the amount, the jobber's phone (audited, never
+   cached), record the reference. Today console only.
+4. **Disputes in the staff app.** "Litiges": the report, the times and the distance, the three
+   decisions with a reason. Today console only.
+
+**What exists to build on**
+
+- The WhatsApp link pattern: `apps/verification/services/contacts.py`, `apps/accounts/api/staff_views.py`
+  (`whatsapp_url`, `OFFICIAL_WHATSAPP_NUMBER`), and the staff app's contacts and enrolment queues.
+- The staff payments queue (`apps/bookings/api/staff_views.py`, staff app "Paiements") as the model
+  for the payouts and disputes queues.
+- The services are done and tested: `services/payouts.py`, `services/reports.py`. Stage 4 adds staff
+  API routes and screens over them, not new rules.
+- Every event already writes an audit row (`booking.accept`, `booking.payment.confirm`,
+  `booking.check_out`, `booking.complete`, `booking.payout.pay`, `booking.dispute.resolve`...): the
+  message queue hooks into the same places.
+
+**Questions the design must answer**
+
+- One message per event, or grouped when several wait for the same person?
+- What happens to a message that is no longer true when staff get to it (the booking was cancelled
+  meanwhile): dropped, or replaced?
+- Night and weekends: which messages can wait, which cannot ("the address is available" a few hours
+  before a job).
+- A new permission and group for sending messages, or the existing `payment_agent` and
+  `enrolment_agent`?
+- How many messages a day one phone can send before WhatsApp restricts the number, and what the
+  queue does then.
+- Does a person have to agree to be written to on WhatsApp (wording at enrolment, privacy notice)?
+
+**After stage 4**, in the order I would take them:
+
+1. Strikes for repeated cancellations and no-shows, shown to staff.
+2. Fake-GPS detection at check-in (the distance is recorded but trusts the phone).
+3. Two stage 2 minors: an audit row is written at every view of the booking once the jobber's name is
    shown, and a refused proof returns the booking to "accepted" with its original time, which can leave
    little time to send another.
 
 ## Out of scope so far
 
 Tier J2 and commune of service; linked-account detection (a guarantor, bill or phone shared across
-accounts) and a banned-guarantor rule; automated guarantor call; real SMS; liveness check; cash with
+accounts) and a banned-guarantor rule; automated guarantor call; SMS and push (messages go through the staff app and WhatsApp for now);
+liveness check; cash with
 the QR code; live tracking, the door handshake, the dead-man timer, SOS and chat; recurring offers;
 several jobbers on one offer.
 

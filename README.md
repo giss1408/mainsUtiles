@@ -45,7 +45,9 @@ These are not settled by the code and must be supplied by the business:
 
 - Payment provider(s) and whether holding funds needs a licensed partner.
 - Identity verification provider.
-- SMS and call provider; the official WhatsApp Business number.
+- The official WhatsApp Business number. **Decided (2026-11-15):** for now there is no SMS and no
+  push; every message to a user is sent by staff on WhatsApp from the staff app (see "Messages and
+  alerts"). An SMS and call provider is only needed later (automated guarantor call, SOS).
 - Data-protection registration (ARTCI), biometric processing and hosting location.
 - Lawful basis for holding identity photos and selfies ourselves. Until an identity provider is
   contracted they are stored by the backend, encrypted. This must be settled before launch.
@@ -375,3 +377,47 @@ other than the account phone, strikes for repeated cancellations.
 
 **What staff must know.** Pay only from the "À verser" queue and record the reference straight away.
 The jobber app now asks for the location permission, once, at the first check-in.
+
+## Messages and alerts
+
+**Decision (2026-11-15).** For now the platform sends no SMS and no push notification. Every message
+to a householder or a jobber goes through the **staff app** and is sent by a staff member on
+**WhatsApp**, from the phone that holds the official number (`OFFICIAL_WHATSAPP_NUMBER`), exactly as
+confirmation numbers and trusted-contact codes are sent today. Alerts for staff (something waiting
+too long, something that needs a human) are shown in the staff app too.
+
+**How it will work (stage 4, not built yet).** When something happens that a person must hear about,
+the backend adds a line to a queue "Messages à envoyer" in the staff app. The staff member opens the
+line and taps "Ouvrir WhatsApp": the message is already written, the number is only inside the
+one-time link, never shown, stored on the phone or logged, and the line is marked sent. The same
+rules as the existing WhatsApp sends apply: the right holder only, every send audited, the response
+never cached, screenshots blocked.
+
+| Message | To | When |
+|---------|----|------|
+| Vous avez un candidat | Householder | A first application arrives on an offer |
+| Tu as été accepté(e) | Jobber | The householder accepts the application |
+| Paiement à envoyer | Householder | Accepted and unpaid, some hours before the payment window ends |
+| Paiement confirmé / refusé | Householder | Staff decide the payment (the reason when refused) |
+| Le job est confirmé | Jobber | The payment is confirmed |
+| L'adresse est disponible | Jobber | The address release window opens |
+| Job à confirmer | Householder | The jobber checked out |
+| Tu as été payé(e) | Jobber | Staff record the payout |
+| Réservation annulée / remboursement envoyé | The other side / householder | A cancellation, a no-show, a refund recorded |
+| Litige ouvert / tranché | Both | A dispute is raised, then decided |
+| Donnez votre avis | Both | The job is completed |
+
+A private remark never produces a message to the other side. A message never contains an address, a
+full name, the other side's number, or a payment reference.
+
+**Alerts for staff (stage 4).** In the staff app, as counts on the home screen and markers in the
+queues: a payment waiting more than `PAYMENT_REVIEW_LATE_HOURS`, a payout or a refund waiting too
+long, an open dispute, a check-in far from the home pin, a message not sent after some time.
+
+**Until stage 4 is built** the apps only show a state when opened or refreshed, and staff tell people
+by hand.
+
+**Limits to keep in mind.** Every message costs staff time and depends on someone being on duty with
+the official phone; a message can be late or missed at night. WhatsApp may restrict a number that
+sends many similar messages to people who did not write first. Revisit push or SMS when the volume
+makes this unworkable.
