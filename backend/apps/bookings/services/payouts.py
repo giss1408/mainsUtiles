@@ -39,6 +39,16 @@ def _payment_of(payout: Payout) -> Payment:
     return found
 
 
+def payable(payout: Payout) -> bool:
+    """The money for this payout is still held: False once the booking was refunded in full."""
+    payment = (
+        Payment.objects.filter(booking_id=payout.booking_id)
+        .exclude(status__in=(Payment.Status.SUBMITTED, Payment.Status.REFUSED))
+        .first()
+    )
+    return payment is not None and _payable(payment)
+
+
 def payout_queue(*, staff):
     """Payouts waiting for staff, oldest first."""
     _require_staff(staff, PAY)

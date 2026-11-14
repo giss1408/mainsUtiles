@@ -12,8 +12,9 @@ from apps.audit.services import record as audit
 from apps.verification.services.encryption import decrypt_text
 
 from . import console_views
-from .models import Application, Booking, Payment, PaymentMethod
-from .services import payments
+from .models import Application, Booking, Payment, PaymentMethod, Payout, Report
+from .services import jobs, payments, payouts
+from .services.applications import first_names
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -218,5 +219,166 @@ class PaymentAdmin(admin.ModelAdmin):
             )
         response = super().change_view(request, object_id, form_url, context)
         # The page shows a reference: it must never be cached.
+        patch_cache_control(response, no_store=True)
+        return response
+
+
+def queue_filter(default_label: str, lookups: list, pick):
+    """A list filter with a default queue (no parameter) and named ones. `pick(value, queryset)`."""
+
+    class QueueFilter(admin.SimpleListFilter):
+        title = "à faire"
+        parameter_name = "file"
+
+        def lookups(self, request, model_admin):
+            return lookups
+
+        def choices(self, changelist):
+            yield {
+                "selected": self.value() is None,
+                "query_string": changelist.get_query_string(remove=[self.parameter_name]),
+                "display": default_label,
+            }
+            for lookup, title in self.lookup_choices:
+                yield {
+                    "selected": self.value() == lookup,
+                    "query_string": changelist.get_query_string({self.parameter_name: lookup}),
+                    "display": title,
+                }
+
+        def queryset(self, request, queryset):
+            return pick(self.value(), queryset)
+
+    return QueueFilter
+
+
+class _WorkedOnItsPage(admin.ModelAdmin):
+    """Nothing is added, edited or deleted with the admin forms: decisions go through the services."""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+def _pick_payout(value, queryset):
+    if value == "all":
+        return queryset
+    return queryset.filter(status=Payout.Status.PAID if value == "paid" else Payout.Status.DUE)
+
+
+@admin.register(Payout)
+class PayoutAdmin(_WorkedOnItsPage):
+    """Staff send each jobber their pay by hand, then record the reference of the transfer."""
+
+    change_form_template = "admin/bookings/payout_review.html"
+    list_display = ("due_at", "category", "amount_xof", "status")
+    list_filter = (queue_filter("À verser", [("paid", "Versés"), ("all", "Tous")], _pick_payout),)
+    ordering = ("due_at",)
+    list_select_related = ("booking",)
+    # The jobber's phone and the reference are shown on the payout page only, never in the list.
+    fields = ("booking", "amount_xof", "status", "due_at", "paid_at")
+    readonly_fields = fields
+
+    @admin.display(description="réservation")
+    def category(self, obj):
+        return obj.booking.category_name
+
+    def get_urls(self):
+        wrap = self.admin_site.admin_view
+        custom = [path("<uuid:pk>/pay/", wrap(console_views.record_payout), name="bookings_payout_pay")]
+        return custom + super().get_urls()
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        record = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if record is not None and request.method == "GET" and self.has_view_permission(request, record):
+            if request.user.has_perm(payouts.PAY):
+                details = payouts.payout_details(record, staff=request.user)  # audited there
+                context.update(
+                    details,
+                    can_pay=record.status == Payout.Status.DUE,
+                    payable=payouts.payable(record),
+                    paid_reference=decrypt_text(record.reference) if record.reference else "",
+                )
+        response = super().change_view(request, object_id, form_url, context)
+        # The page shows a phone number: it must never be cached.
+        patch_cache_control(response, no_store=True)
+        return response
+
+
+def _pick_report(value, queryset):
+    if value == "all":
+        return queryset
+    if value == "concerns":
+        return queryset.filter(kind=Report.Kind.CONCERN)
+    return queryset.filter(kind=Report.Kind.DISPUTE, status=Report.Status.OPEN)
+
+
+@admin.register(Report)
+class ReportAdmin(_WorkedOnItsPage):
+    """Problems reported on bookings. Staff decide the open disputes; concerns are only read."""
+
+    change_form_template = "admin/bookings/report_review.html"
+    list_display = ("created_at", "category", "kind", "status", "outcome")
+    list_filter = (
+        queue_filter("Litiges ouverts", [("concerns", "Remarques"), ("all", "Tous")], _pick_report),
+    )
+    ordering = ("created_at",)
+    list_select_related = ("booking",)
+    # What was written is shown on the report's page only, never in the list.
+    fields = ("booking", "kind", "status", "outcome", "jobber_xof", "created_at", "resolved_at")
+    readonly_fields = fields
+
+    @admin.display(description="réservation")
+    def category(self, obj):
+        return obj.booking.category_name
+
+    def get_urls(self):
+        wrap = self.admin_site.admin_view
+        custom = [
+            path("<uuid:pk>/resolve/", wrap(console_views.resolve_report), name="bookings_report_resolve")
+        ]
+        return custom + super().get_urls()
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        record = self.get_object(request, object_id)
+        context = dict(extra_context or {})
+        if record is not None and request.method == "GET" and self.has_view_permission(request, record):
+            booking = record.booking
+            audit(request.user, "booking.report.view", record, booking=str(booking.pk))
+            names = first_names([booking.jobber_id, booking.householder_id])
+            payment = (
+                booking.payments.exclude(status=Payment.Status.REFUSED).order_by("-submitted_at").first()
+            )
+            context.update(
+                category=booking.category_name,
+                starts_at=booking.starts_at,
+                pay_xof=booking.pay_xof,
+                booking_status=booking.get_status_display(),
+                jobber_name=names.get(booking.jobber_id, "(inconnu)"),
+                householder_name=names.get(booking.householder_id, "(inconnu)"),
+                author_side="le jobber" if record.author_id == booking.jobber_id else "le ménage",
+                text=record.text,
+                note=record.note,
+                checked_in_at=booking.checked_in_at,
+                checked_out_at=booking.checked_out_at,
+                distance_m=booking.checkin_distance_m,
+                far=jobs.needs_a_look(booking),
+                payment_state=payment.get_status_display() if payment else "Aucun paiement",
+                is_dispute=record.kind == Report.Kind.DISPUTE,
+                can_resolve=(
+                    record.kind == Report.Kind.DISPUTE
+                    and record.status == Report.Status.OPEN
+                    and request.user.has_perm("bookings.resolve_dispute")
+                ),
+                outcomes=Report.Outcome.choices,
+            )
+        response = super().change_view(request, object_id, form_url, context)
+        # The page shows what a person wrote: it must never be cached.
         patch_cache_control(response, no_store=True)
         return response

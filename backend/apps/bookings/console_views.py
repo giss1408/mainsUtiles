@@ -10,24 +10,24 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.api.errors import MESSAGES
 
-from .models import Payment
-from .services import payments
+from .models import Payment, Payout, Report
+from .services import payments, payouts, reports
 from .services.errors import BookingError
 
 DECIDED = "Ce paiement a déjà été traité."
 
 
-def _back(payment):
-    return redirect(reverse("admin:bookings_payment_change", args=[payment.pk]))
+def _back(record):
+    return redirect(reverse(f"admin:bookings_{record._meta.model_name}_change", args=[record.pk]))
 
 
-def _run(request, payment, action, success):
+def _run(request, payment, action, success, decided=DECIDED):
     try:
         action()
     except BookingError as exc:
         if exc.code == "forbidden":
             raise PermissionDenied from exc
-        messages.error(request, DECIDED if exc.code == "invalid_state" else MESSAGES.get(exc.code, exc.code))
+        messages.error(request, decided if exc.code == "invalid_state" else MESSAGES.get(exc.code, exc.code))
     else:
         messages.success(request, success)
     return _back(payment)
@@ -84,3 +84,37 @@ def proof_image(request, pk):
     # A payment receipt must never be kept by a browser or a proxy.
     patch_cache_control(response, no_store=True)
     return response
+
+
+@require_POST
+def record_payout(request, pk):
+    payout = get_object_or_404(Payout, pk=pk)
+    return _run(
+        request,
+        payout,
+        lambda: payouts.record_payout(
+            payout, staff=request.user, reference=request.POST.get("reference", "")
+        ),
+        "Paiement au jobber enregistré.",
+        decided="Ce paiement ne peut pas être versé : il l'a déjà été, ou la réservation a été remboursée.",
+    )
+
+
+@require_POST
+def resolve_report(request, pk):
+    report = get_object_or_404(Report, pk=pk)
+    raw = (request.POST.get("jobber_xof") or "").strip()
+    amount = int(raw) if raw.isdigit() else None
+    return _run(
+        request,
+        report,
+        lambda: reports.resolve_dispute(
+            report,
+            staff=request.user,
+            outcome=request.POST.get("outcome", ""),
+            note=request.POST.get("note", ""),
+            jobber_xof=amount,
+        ),
+        "Litige tranché.",
+        decided="Ce litige a déjà été tranché.",
+    )

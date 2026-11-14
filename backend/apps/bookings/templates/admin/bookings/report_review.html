@@ -1,0 +1,32 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+{% if category %}
+<div class="module" style="padding:12px">
+  <h2>{% if is_dispute %}Litige{% else %}Remarque{% endif %}</h2>
+  <p>Réservation : <strong>{{ category }}</strong>, {{ starts_at|date:"d/m/Y H:i" }}, {{ pay_xof }} FCFA ({{ booking_status }})</p>
+  <p>Ménage : <strong>{{ householder_name }}</strong>. Jobber : <strong>{{ jobber_name }}</strong>.</p>
+  <p>Écrit par {{ author_side }} :</p>
+  <blockquote style="margin:8px 0;padding:8px;border-left:3px solid #ccc">{{ text|linebreaksbr }}</blockquote>
+  <p>Arrivée : {% if checked_in_at %}{{ checked_in_at|date:"d/m/Y H:i" }}{% else %}non enregistrée{% endif %}.
+     Départ : {% if checked_out_at %}{{ checked_out_at|date:"d/m/Y H:i" }}{% else %}non enregistré{% endif %}.</p>
+  <p>Distance à l'arrivée : {% if distance_m is not None %}{{ distance_m }} m{% if far %} <strong style="color:#b00">(loin du domicile)</strong>{% endif %}{% else %}inconnue{% endif %}.</p>
+  <p>Paiement du ménage : <strong>{{ payment_state }}</strong></p>
+  {% if note %}<p>Décision notée : {{ note }}</p>{% endif %}
+</div>
+{% if can_resolve %}
+<div class="module" style="padding:12px">
+  <h2>Décision</h2>
+  <form method="post" action="{% url 'admin:bookings_report_resolve' original.pk %}" style="margin:10px 0">
+    {% csrf_token %}
+    {% for value, label in outcomes %}
+    <p><label><input type="radio" name="outcome" value="{{ value }}"> {{ label }}</label></p>
+    {% endfor %}
+    <p><label>Part du jobber en FCFA (pour un partage) :<br><input type="number" name="jobber_xof" min="1" max="{{ pay_xof }}"></label></p>
+    <p><label>Motif de la décision :<br><input type="text" name="note" size="60" maxlength="500"></label></p>
+    <input type="submit" class="default" value="Trancher le litige" style="float:none">
+  </form>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

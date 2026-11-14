@@ -1,0 +1,28 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{{ block.super }}
+{% if jobber_phone %}
+<div class="module" style="padding:12px">
+  <h2>Paiement au jobber</h2>
+  <p>Réservation : <strong>{{ category_name }}</strong>{% if completed_at %}, terminée le {{ completed_at|date:"d/m/Y H:i" }}{% endif %}</p>
+  <p>Montant à envoyer : <strong>{{ amount_xof }} FCFA</strong></p>
+  <p>Numéro du jobber : <strong>{{ jobber_phone }}</strong></p>
+  {% if paid_reference %}<p>Référence du transfert : <strong>{{ paid_reference }}</strong></p>{% endif %}
+</div>
+{% if can_pay and payable %}
+<div class="module" style="padding:12px">
+  <h2>Enregistrer le versement</h2>
+  <p>Envoyez {{ amount_xof }} FCFA au jobber depuis le compte de la plateforme, puis notez la référence du transfert.</p>
+  <form method="post" action="{% url 'admin:bookings_payout_pay' original.pk %}" style="margin:10px 0">
+    {% csrf_token %}
+    <p><label>Référence du transfert :<br><input type="text" name="reference" size="40" maxlength="40"></label></p>
+    <input type="submit" class="default" value="Enregistrer le versement" style="float:none">
+  </form>
+</div>
+{% elif can_pay %}
+<div class="module" style="padding:12px">
+  <p style="color:#b00"><strong>Ne versez rien : cette réservation a été remboursée.</strong></p>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
