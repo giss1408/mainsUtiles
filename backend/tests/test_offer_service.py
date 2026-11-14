@@ -250,9 +250,9 @@ def test_copy_as_draft_moves_the_date_to_the_future(verified_householder, menage
         offers.withdraw(original, user=verified_householder)
     with freeze_time("2026-11-13 12:00:00"):
         copy = offers.copy_as_draft(original, user=verified_householder)
+        assert copy.starts_at > timezone.now()
     assert copy.status == "draft" and copy.pk != original.pk
     assert copy.duties == original.duties and copy.pay_xof == original.pay_xof
-    assert copy.starts_at > timezone.now()
     assert copy.starts_at.astimezone(ABIDJAN).hour == 9
 
 
