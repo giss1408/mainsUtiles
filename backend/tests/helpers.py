@@ -98,3 +98,20 @@ def paid_booking(householder, jpeg, verifier, reference="WAVE-123456", days=2, s
     )
     booking.refresh_from_db()
     return booking, payment
+
+
+def confirmed_booking(householder, jpeg, verifier, *, days=2, seed=7, reference="WAVE-123456"):
+    """A booking whose payment staff confirmed, with the staff member who did it."""
+    from django.contrib.auth.models import Group
+
+    from apps.accounts.models import User
+    from apps.bookings.services import payments
+
+    cashier = User.objects.filter(username="cashier").first()
+    if cashier is None:
+        cashier = User.objects.create_user(username="cashier", password="pw", role="staff", is_staff=True)
+        cashier.groups.add(Group.objects.get(name="payment_agent"))
+    booking, payment = paid_booking(householder, jpeg, verifier, reference=reference, days=days, seed=seed)
+    payments.confirm_payment(payment, staff=cashier, amount_matches=True, reference_matches=True)
+    booking.refresh_from_db()
+    return booking

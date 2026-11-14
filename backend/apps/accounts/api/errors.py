@@ -67,6 +67,8 @@ STATUS = {
     "reference_used": 409,
     "address_not_yet": 409,
     "address_closed": 409,
+    "checkin_too_early": 409,
+    "checkin_closed": 409,
     "reason_required": 400,
 }
 
@@ -146,6 +148,8 @@ MESSAGES = {
     "reference_used": "Cette référence a déjà servi pour une autre réservation.",
     "address_not_yet": "L'adresse sera communiquée quelques heures avant le début.",
     "address_closed": "L'adresse n'est plus disponible.",
+    "checkin_too_early": "Tu pourras confirmer ton arrivée peu avant le début.",
+    "checkin_closed": "Le job est déjà terminé.",
 }
 
 
