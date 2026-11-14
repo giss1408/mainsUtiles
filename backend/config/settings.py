@@ -292,6 +292,16 @@ ADDRESS_RELEASE_HOURS = env.int("ADDRESS_RELEASE_HOURS", default=3)
 PLATFORM_FEE_PERCENT = env.int("PLATFORM_FEE_PERCENT", default=0)
 CANCEL_FREE_HOURS = env.int("CANCEL_FREE_HOURS", default=24)
 PAYMENT_REVIEW_LATE_HOURS = env.int("PAYMENT_REVIEW_LATE_HOURS", default=2)
+
+# The job and after: the householder's time to confirm, how early the jobber may check in, how far
+# from the home pin a check-in is flagged, the grace before an unfinished job goes to staff, and the
+# reviews' window and length.
+RELEASE_TIMEOUT_HOURS = env.int("RELEASE_TIMEOUT_HOURS", default=24)
+CHECKIN_EARLY_MINUTES = env.int("CHECKIN_EARLY_MINUTES", default=30)
+CHECKIN_FLAG_METERS = env.int("CHECKIN_FLAG_METERS", default=500)
+CHECKOUT_GRACE_HOURS = env.int("CHECKOUT_GRACE_HOURS", default=6)
+REVIEW_WINDOW_DAYS = env.int("REVIEW_WINDOW_DAYS", default=7)
+REVIEW_COMMENT_MAX = env.int("REVIEW_COMMENT_MAX", default=300)
 OFFER_NOTE_MAX_LENGTH = env.int("OFFER_NOTE_MAX_LENGTH", default=300)
 OFFER_REVIEW_HOURS = env.int("OFFER_REVIEW_HOURS", default=24)
 

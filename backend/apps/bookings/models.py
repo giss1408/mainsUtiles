@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
@@ -74,6 +75,13 @@ class Booking(models.Model):
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.ACCEPTED)
     accepted_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # The job itself: when the jobber arrived and left, how it ended, how far the check-in was.
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    # `householder` (confirmed), `timeout` (nobody answered) or `staff` (a dispute was decided).
+    completion = models.CharField(max_length=12, blank=True)
+    checkin_distance_m = models.PositiveIntegerField(null=True, blank=True)
     cancelled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
@@ -168,6 +176,9 @@ class Payment(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
     decided_at = models.DateTimeField(null=True, blank=True)
+    # What goes back to the householder when it is not the whole price (a split dispute). Null means
+    # the whole `pay_xof`; the platform keeps its fee.
+    refund_xof = models.PositiveIntegerField(null=True, blank=True)
     refund_reference = models.TextField(blank=True)  # encrypted
     refunded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
@@ -198,3 +209,105 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.booking_id} / {self.get_status_display()}"
+
+
+class Payout(models.Model):
+    """What staff owe the jobber for a completed booking, and the record that it was sent."""
+
+    class Status(models.TextChoices):
+        DUE = "due", "À verser"
+        PAID = "paid", "Versé"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.OneToOneField(Booking, on_delete=models.PROTECT, related_name="payout")
+    amount_xof = models.PositiveIntegerField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.DUE)
+    due_at = models.DateTimeField(auto_now_add=True)
+    reference = models.TextField(blank=True)  # encrypted
+    paid_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "paiement au jobber"
+        verbose_name_plural = "paiements aux jobbers"
+        ordering = ["due_at"]
+        permissions = [("make_payout", "Peut enregistrer un paiement au jobber")]
+
+    def __str__(self):
+        return f"{self.booking_id} / {self.get_status_display()}"
+
+
+class Report(models.Model):
+    """A problem reported on a booking. A dispute freezes the money; a concern only informs staff."""
+
+    class Kind(models.TextChoices):
+        DISPUTE = "dispute", "Litige"
+        CONCERN = "concern", "Remarque"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Ouvert"
+        RESOLVED = "resolved", "Traité"
+
+    class Outcome(models.TextChoices):
+        RELEASE = "release", "Payer le jobber"
+        REFUND = "refund", "Rembourser le ménage"
+        SPLIT = "split", "Partager"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.ForeignKey(Booking, on_delete=models.PROTECT, related_name="reports")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    text = models.TextField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.OPEN)
+    outcome = models.CharField(max_length=10, choices=Outcome.choices, blank=True)
+    jobber_xof = models.PositiveIntegerField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "signalement"
+        verbose_name_plural = "signalements"
+        ordering = ["created_at"]
+        permissions = [("resolve_dispute", "Peut trancher un litige")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["booking"],
+                condition=Q(kind="dispute", status="open"),
+                name="one_open_dispute_per_booking",
+            )
+        ]
+        indexes = [models.Index(fields=["kind", "status", "created_at"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.booking_id}"
+
+
+class Review(models.Model):
+    """What one side thinks of the other after a completed booking. Hidden until both are in."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.ForeignKey(Booking, on_delete=models.PROTECT, related_name="reviews")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    about = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    stars = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "avis"
+        verbose_name_plural = "avis"
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["booking", "author"], name="one_review_per_author_and_booking")
+        ]
+        indexes = [models.Index(fields=["about", "published_at"])]
+
+    def __str__(self):
+        return f"{self.stars}/5 ({self.booking_id})"
