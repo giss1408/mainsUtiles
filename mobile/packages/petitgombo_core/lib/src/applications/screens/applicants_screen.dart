@@ -101,6 +101,11 @@ class _ApplicantsScreenState extends ConsumerState<ApplicantsScreen> {
                           icon: Icons.work_outline,
                           label: ApplicationCopy.jobsDone(applicant.jobsDone),
                         ),
+                        if (applicant.rating != null)
+                          MetaChip(
+                            icon: Icons.star_outline,
+                            label: ApplicationCopy.ratingLabel(applicant.rating!),
+                          ),
                       ],
                     ),
                     if (applicant.message.isNotEmpty) ...[

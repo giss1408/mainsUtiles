@@ -90,21 +90,72 @@ abstract final class ApplicationCopy {
 
   static String bookingStatusLine(BookingDetail detail) {
     final payment = detail.payment;
+    final arrived = detail.checkedInAt;
+    final limit = detail.autoConfirmAt;
     return switch (detail.status) {
       'accepted' when payment != null && payment.refused => 'Paiement refusé : ${payment.reason}',
       'accepted' => 'Paiement à envoyer avant ${formatClock(detail.payDeadline)}',
       'payment_review' => 'Paiement en cours de vérification',
       'confirmed' || 'address_released' => 'Réservation confirmée',
+      'checked_in' when arrived != null => 'Le jobber est arrivé à ${formatClock(arrived)}',
       'checked_in' => 'Job en cours',
+      'completion_pending' when limit != null => 'Job à confirmer avant ${formatDeadline(limit)}',
       'completion_pending' => 'Job à confirmer',
       'completed' => 'Job terminé',
+      'disputed' => 'Problème signalé : notre équipe vous répond',
       _ => 'Réservation en cours',
     };
   }
 
+  /// "le 15 nov. à 11:00", for a limit that may fall on another day.
+  static String formatDeadline(DateTime value) => 'le ${formatDay(value)} à ${formatClock(value)}';
+
+  // The job and after, householder side
+  static const confirmDone = "Confirmer que c'est fait";
+  static const confirmDoneTitle = 'Le job est bien fait ?';
+  static const confirmDoneBody =
+      'Le jobber sera payé. Après votre confirmation, le paiement ne peut plus être gelé.';
+  static const notYet = 'Pas encore';
+
+  // Problems, both sides
+  static const reportProblem = 'Signaler un problème';
+  static const reportTitle = 'Signaler un problème';
+  static const reportLabel = "Que s'est-il passé ?";
+  static const reportHint = 'Entre 3 et 500 caractères.';
+  static const reportDispute = "Faire geler le paiement et prévenir l'équipe";
+  static const reportConcern = 'Remarque privée';
+  static const reportConcernNote =
+      "Une remarque privée est lue par notre équipe seulement. L'autre personne n'est pas prévenue.";
+  static const reportSend = 'Envoyer';
+  static const reportSent = 'Signalement envoyé. Notre équipe le lit.';
+
+  // Reviews, both sides
+  static const reviewAsk = 'Donnez votre avis';
+  static const reviewAskJobber = 'Donne ton avis';
+  static const reviewTitle = 'Votre avis';
+  static const reviewTitleJobber = 'Ton avis';
+  static const reviewStarsLabel = 'Note';
+  static const reviewCommentLabel = 'Commentaire (facultatif)';
+  static const reviewCommentHint = 'Pas de numéro ni de contact.';
+  static const reviewWhen = "Publié quand l'autre personne aura donné le sien, ou après 7 jours.";
+  static const reviewSend = "Envoyer l'avis";
+  static const reviewSent = 'Avis envoyé';
+  static const reviewOfJobber = "L'avis du jobber";
+  static const reviewOfHousehold = "L'avis du ménage";
+  static const reviewClosed = "Le délai pour donner un avis est dépassé.";
+
+  static String starsLabel(int stars) => '$stars sur 5';
+
+  static String ratingLabel(double rating) =>
+      '${rating.toStringAsFixed(1).replaceAll('.', ',')} sur 5';
+
   static String bookingLineFor(String name, String status) => switch (status) {
         'payment_review' => '$name · paiement à vérifier',
         'confirmed' || 'address_released' => '$name · réservation confirmée',
+        'checked_in' => '$name · job en cours',
+        'completion_pending' => '$name · job à confirmer',
+        'completed' => '$name · job terminé',
+        'disputed' => '$name · problème signalé',
         _ => '$name · $bookedLine',
       };
 
@@ -121,10 +172,39 @@ abstract final class ApplicationCopy {
   static const waitingPayment = 'En attente du paiement du ménage';
   static const paymentChecking = 'Le ménage a payé : nous vérifions';
 
+  static const arrived = 'Je suis arrivé(e)';
+  static const finished = "J'ai terminé";
+  static const finishedTitle = 'Tu as terminé le job ?';
+  static const finishedBody =
+      'Le ménage va confirmer. Sans réponse de sa part, le job est validé tout seul.';
+  static const arrivedWithoutPosition =
+      "Arrivée enregistrée, sans ta position : ton téléphone ne l'a pas donnée.";
+  static const payoutDue = 'Paiement en préparation';
+  static const payoutPaid = 'Paiement envoyé';
+  static const jobRunning = 'Job en cours';
+  static const jobDisputed = 'Problème signalé : notre équipe regarde';
+
+  static String confirmWait(DateTime? limit) => limit == null
+      ? 'En attente de la confirmation du ménage'
+      : "Le ménage a jusqu'au ${formatDay(limit)} à ${formatClock(limit)} pour confirmer";
+
+  /// Null when there is nothing to say about the pay yet.
+  static String? payoutLine(JobberBooking booking) => switch (booking.payout) {
+        'due' => payoutDue,
+        'paid' => payoutPaid,
+        _ => null,
+      };
+
   static String jobStatus(JobberBooking booking, DateTime now) {
     if (booking.status == 'cancelled') return 'Annulé';
     if (booking.status == 'expired') return 'Expiré';
-    if (booking.status == 'completed') return 'Terminé';
+    if (booking.status == 'completed') {
+      final pay = payoutLine(booking);
+      return pay == null ? 'Terminé' : 'Terminé · ${pay.toLowerCase()}';
+    }
+    if (booking.status == 'checked_in') return jobRunning;
+    if (booking.status == 'completion_pending') return confirmWait(booking.autoConfirmAt);
+    if (booking.status == 'disputed') return jobDisputed;
     if (booking.payment == 'pending') return waitingPayment;
     if (booking.payment == 'review') return paymentChecking;
     if (now.isBefore(booking.addressAvailableFrom)) {
@@ -132,6 +212,15 @@ abstract final class ApplicationCopy {
     }
     return 'Adresse disponible';
   }
+
+  /// "Je suis arrivé(e)" is offered from a little before the start until the end.
+  static bool canCheckIn(JobberBooking booking, DateTime now) =>
+      const {'confirmed', 'address_released'}.contains(booking.status) &&
+      !now.isBefore(booking.checkinFrom) &&
+      now.isBefore(booking.endsAt);
+
+  static bool jobReportable(JobberBooking booking) =>
+      const {'checked_in', 'completion_pending', 'disputed', 'completed'}.contains(booking.status);
 
   static bool jobCancellable(JobberBooking booking) => const {
         'accepted',

@@ -9,7 +9,10 @@ import '../../widgets/message_banner.dart';
 import '../../widgets/ui_kit.dart';
 import '../application_copy.dart';
 import '../booking_controller.dart';
+import '../job_target.dart';
 import 'payment_screen.dart';
+import 'report_screen.dart';
+import 'review_screen.dart';
 
 /// The booking of one offer: who is coming, what to pay, and the actions its state allows.
 class MyBookingScreen extends ConsumerStatefulWidget {
@@ -30,7 +33,31 @@ class _MyBookingScreenState extends ConsumerState<MyBookingScreen> {
       await controller.load();
       final detail = ref.read(bookingControllerProvider(widget.offerId)).detail;
       if (mounted && detail != null && detail.hasPhoto) await controller.loadPhoto();
+      if (mounted && detail != null && detail.status == 'completed') await controller.loadReview();
     });
+  }
+
+  Future<void> _confirmDone() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(ApplicationCopy.confirmDoneTitle),
+        content: const Text(ApplicationCopy.confirmDoneBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(ApplicationCopy.notYet),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(ApplicationCopy.confirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final controller = ref.read(bookingControllerProvider(widget.offerId).notifier);
+    if (await controller.confirmDone() && mounted) await controller.loadReview();
   }
 
   Future<void> _cancel() async {
@@ -120,6 +147,13 @@ class _MyBookingScreenState extends ConsumerState<MyBookingScreen> {
                         style: theme.textTheme.titleMedium),
                     if (detail.hasPhoto)
                       Text(ApplicationCopy.photoLabel, style: theme.textTheme.bodySmall),
+                    if (detail.jobberRating != null) ...[
+                      const SizedBox(height: Gaps.xs),
+                      MetaChip(
+                        icon: Icons.star_outline,
+                        label: ApplicationCopy.ratingLabel(detail.jobberRating!),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -147,6 +181,33 @@ class _MyBookingScreenState extends ConsumerState<MyBookingScreen> {
                   ? ApplicationCopy.payAgain
                   : ApplicationCopy.pay,
             ),
+          ),
+          const SizedBox(height: Gaps.md),
+        ],
+        if (detail.status == 'completion_pending') ...[
+          FilledButton(
+            onPressed: state.sending ? null : _confirmDone,
+            child: const Text(ApplicationCopy.confirmDone),
+          ),
+          const SizedBox(height: Gaps.md),
+        ],
+        if (detail.status == 'completed')
+          ReviewSection(
+            target: JobTarget.householder(widget.offerId),
+            reviewable: detail.reviewable,
+          ),
+        if (detail.reportable) ...[
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => ReportScreen(
+                  target: JobTarget.householder(widget.offerId),
+                  canDispute:
+                      detail.status == 'checked_in' || detail.status == 'completion_pending',
+                ),
+              ),
+            ),
+            child: const Text(ApplicationCopy.reportProblem),
           ),
           const SizedBox(height: Gaps.md),
         ],
