@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.api.errors import error_response
 from apps.bookings.models import Booking
-from apps.bookings.services import applications, bookings
+from apps.bookings.services import applications, bookings, jobs, reviews
 from apps.bookings.services.applications import BookingError
 from apps.listings.api.jobber_views import IsJobberRole
 
@@ -110,6 +110,12 @@ class MyBookingsView(APIView):
                 "quartier": booking.quartier,
                 "address_available_from": bookings.available_from(booking),
                 "payment": bookings.jobber_payment_state(booking),
+                "checkin_from": jobs.checkin_from(booking),
+                "checked_in_at": booking.checked_in_at,
+                "checked_out_at": booking.checked_out_at,
+                "auto_confirm_at": bookings.auto_confirm_at(booking),
+                "payout": bookings.payout_state(booking),
+                "reviewable": reviews.reviewable(booking, request.user),
             }
             for booking in Booking.objects.filter(jobber=request.user).order_by("starts_at")
         ]

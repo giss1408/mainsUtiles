@@ -52,6 +52,12 @@ class JobberBookingSerializer(serializers.Serializer):
     quartier = serializers.CharField()
     address_available_from = serializers.DateTimeField()
     payment = serializers.CharField()
+    checkin_from = serializers.DateTimeField()
+    checked_in_at = serializers.DateTimeField(allow_null=True)
+    checked_out_at = serializers.DateTimeField(allow_null=True)
+    auto_confirm_at = serializers.DateTimeField(allow_null=True)
+    payout = serializers.ChoiceField(choices=["none", "due", "paid"])
+    reviewable = serializers.BooleanField()
 
 
 class ApplicantSerializer(serializers.Serializer):
@@ -96,6 +102,11 @@ class HouseholderBookingSerializer(serializers.Serializer):
     payment = PaymentStateSerializer(allow_null=True)
     jobber = serializers.DictField(child=serializers.JSONField())
     cancellable = serializers.BooleanField()
+    checked_in_at = serializers.DateTimeField(allow_null=True)
+    checked_out_at = serializers.DateTimeField(allow_null=True)
+    auto_confirm_at = serializers.DateTimeField(allow_null=True)
+    reviewable = serializers.BooleanField()
+    jobber_rating = serializers.FloatField(allow_null=True)
 
 
 class PaymentBodySerializer(serializers.Serializer):
@@ -158,3 +169,40 @@ class RefuseBodySerializer(serializers.Serializer):
 
 class RefundBodySerializer(serializers.Serializer):
     reference = serializers.CharField(allow_blank=True, default="", max_length=40)
+
+
+class CheckInBodySerializer(serializers.Serializer):
+    lat = serializers.FloatField(required=False, allow_null=True, default=None)
+    lng = serializers.FloatField(required=False, allow_null=True, default=None)
+    accuracy_m = serializers.FloatField(required=False, allow_null=True, default=None)
+
+
+class JobStateSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    status = serializers.CharField()
+
+
+class ReportBodySerializer(serializers.Serializer):
+    text = serializers.CharField(allow_blank=True, trim_whitespace=False, max_length=2000)
+    dispute = serializers.BooleanField(default=False)
+
+
+class ReportReceiptSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    kind = serializers.CharField()
+    booking_status = serializers.CharField()
+
+
+class ReviewBodySerializer(serializers.Serializer):
+    stars = serializers.IntegerField()
+    comment = serializers.CharField(required=False, allow_blank=True, default="", max_length=2000)
+
+
+class ReviewItemSerializer(serializers.Serializer):
+    stars = serializers.IntegerField()
+    comment = serializers.CharField(allow_blank=True)
+
+
+class ReviewStateSerializer(serializers.Serializer):
+    mine = ReviewItemSerializer(allow_null=True)
+    theirs = ReviewItemSerializer(allow_null=True)

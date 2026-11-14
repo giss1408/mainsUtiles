@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import jobber_views, payments_views, staff_views, views
+from . import jobber_views, jobs_views, payments_views, staff_views, views
 
 urlpatterns = [
     path("offers/<uuid:pk>/apply", jobber_views.ApplyView.as_view()),
@@ -15,6 +15,13 @@ urlpatterns = [
     path("my-offers/<uuid:pk>/booking/cancel", payments_views.CancelView.as_view()),
     path("my-bookings/<uuid:pk>/address", payments_views.AddressView.as_view()),
     path("my-bookings/<uuid:pk>/cancel", payments_views.JobberCancelView.as_view()),
+    path("my-bookings/<uuid:pk>/check-in", jobs_views.CheckInView.as_view()),
+    path("my-bookings/<uuid:pk>/check-out", jobs_views.CheckOutView.as_view()),
+    path("my-bookings/<uuid:pk>/report", jobs_views.JobberReportView.as_view()),
+    path("my-bookings/<uuid:pk>/review", jobs_views.JobberReviewView.as_view()),
+    path("my-offers/<uuid:pk>/booking/confirm", jobs_views.ConfirmView.as_view()),
+    path("my-offers/<uuid:pk>/booking/report", jobs_views.HouseholderReportView.as_view()),
+    path("my-offers/<uuid:pk>/booking/review", jobs_views.HouseholderReviewView.as_view()),
     path("staff/payments", staff_views.PaymentQueueView.as_view()),
     path("staff/payments/<uuid:pk>", staff_views.PaymentDetailView.as_view()),
     path("staff/payments/<uuid:pk>/proof", staff_views.PaymentProofView.as_view()),

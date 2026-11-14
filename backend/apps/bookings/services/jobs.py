@@ -51,6 +51,11 @@ def _home_pin(booking: Booking):
     return float(decrypt_text(place.latitude)), float(decrypt_text(place.longitude))
 
 
+def checkin_from(booking: Booking):
+    """The earliest moment the jobber may say they arrived."""
+    return booking.starts_at - timedelta(minutes=settings.CHECKIN_EARLY_MINUTES)
+
+
 def check_in(user, booking_id, *, lat, lng, accuracy_m=None) -> Booking:
     """The jobber says they arrived. The position, when the phone gave one, is compared with the
     home pin and only recorded: a far check-in is flagged for staff, never refused."""
@@ -60,7 +65,7 @@ def check_in(user, booking_id, *, lat, lng, accuracy_m=None) -> Booking:
         booking = Booking.objects.select_for_update().get(pk=booking.pk)
         if booking.status not in (Booking.Status.CONFIRMED, Booking.Status.ADDRESS_RELEASED):
             raise BookingError("invalid_state")
-        if now < booking.starts_at - timedelta(minutes=settings.CHECKIN_EARLY_MINUTES):
+        if now < checkin_from(booking):
             raise BookingError("checkin_too_early")
         if now >= booking.starts_at + timedelta(minutes=booking.duration_minutes):
             raise BookingError("checkin_closed")

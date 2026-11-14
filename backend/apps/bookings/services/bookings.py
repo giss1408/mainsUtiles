@@ -96,6 +96,7 @@ KNOWN_AFTER_PAYMENT = (
     Booking.Status.ADDRESS_RELEASED,
     Booking.Status.CHECKED_IN,
     Booking.Status.COMPLETION_PENDING,
+    Booking.Status.DISPUTED,
     Booking.Status.COMPLETED,
 )
 
@@ -192,12 +193,42 @@ def live_booking(user, offer_id) -> Booking:
     return booking
 
 
+def offer_booking(user, offer_id) -> Booking:
+    """The offer's live booking or, once the job is over, its completed one."""
+    try:
+        return live_booking(user, offer_id)
+    except BookingError:
+        done = (
+            Booking.objects.filter(offer_id=offer_id, householder=user, status=Booking.Status.COMPLETED)
+            .order_by("-created_at")
+            .first()
+        )
+        if done is None:
+            raise
+        return done
+
+
+def auto_confirm_at(booking: Booking):
+    """When a job waiting for the householder's confirmation completes by itself."""
+    if booking.status != Booking.Status.COMPLETION_PENDING or booking.checked_out_at is None:
+        return None
+    return booking.checked_out_at + timedelta(hours=settings.RELEASE_TIMEOUT_HOURS)
+
+
+def payout_state(booking: Booking) -> str:
+    """`none`, `due` or `paid`: what the jobber may know about their pay."""
+    from apps.bookings.models import Payout
+
+    payout = Payout.objects.filter(booking=booking).first()
+    return "none" if payout is None else payout.status
+
+
 def householder_view(user, offer_id) -> dict:
     """The booking of one of the householder's offers, with what they need to pay and follow it."""
-    from . import payments
+    from . import payments, reviews
     from .applications import first_names
 
-    booking = live_booking(user, offer_id)
+    booking = offer_booking(user, offer_id)
     amount, fee = payments.payment_amount(booking)
     last = booking.payments.order_by("-submitted_at").first()
     if booking.status in KNOWN_AFTER_PAYMENT:
@@ -214,6 +245,11 @@ def householder_view(user, offer_id) -> dict:
         "payment": {"status": last.status, "reason": last.reason} if last else None,
         "jobber": jobber,
         "cancellable": booking.status in CANCELLABLE,
+        "checked_in_at": booking.checked_in_at,
+        "checked_out_at": booking.checked_out_at,
+        "auto_confirm_at": auto_confirm_at(booking),
+        "reviewable": reviews.reviewable(booking, user),
+        "jobber_rating": reviews.rating_of(booking.jobber)["average"],
     }
 
 
@@ -227,4 +263,4 @@ def jobber_payment_state(booking: Booking) -> str:
 
 
 def householder_photo(user, offer_id) -> bytes:
-    return jobber_photo(user, live_booking(user, offer_id).pk)
+    return jobber_photo(user, offer_booking(user, offer_id).pk)
