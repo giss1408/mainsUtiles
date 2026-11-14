@@ -109,7 +109,7 @@ def test_proof_is_no_store_and_audited(api, cashier, paid, jpeg):
     _, payment = paid
     response = api.get(f"{BASE}/{payment.pk}/proof")
     assert response.status_code == 200 and response["Content-Type"] == "image/jpeg"
-    assert "no-store" in response["Cache-Control"] and response.content == jpeg(7)
+    assert "no-store" in response["Cache-Control"] and response.content == jpeg(7, size=333)
     assert AdminAction.objects.filter(action="booking.payment.view_proof", actor=cashier).exists()
 
 

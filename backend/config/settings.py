@@ -123,6 +123,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.bookings.tasks.expire_unpaid_bookings",
         "schedule": 3600.0,
     },
+    "complete-overdue-bookings": {
+        "task": "apps.bookings.tasks.complete_overdue_bookings",
+        "schedule": 3600.0,
+    },
+    "close-no-show-bookings": {
+        "task": "apps.bookings.tasks.close_no_show_bookings",
+        "schedule": 3600.0,
+    },
+    "flag-unclosed-bookings": {
+        "task": "apps.bookings.tasks.flag_unclosed_bookings",
+        "schedule": 3600.0,
+    },
     "close-stale-applications": {
         "task": "apps.bookings.tasks.close_stale_applications",
         "schedule": 3600.0,

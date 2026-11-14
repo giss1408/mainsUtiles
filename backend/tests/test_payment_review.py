@@ -124,7 +124,7 @@ def test_without_the_permission_nothing_works(paid, staff_user, verified_househo
 
 def test_every_proof_view_is_audited(paid, cashier, jpeg):
     _, payment = paid
-    assert payments.read_proof(payment, staff=cashier) == jpeg(7)
+    assert payments.read_proof(payment, staff=cashier) == jpeg(7, size=333)
     assert AdminAction.objects.filter(action="booking.payment.view_proof", actor=cashier).count() == 1
 
 

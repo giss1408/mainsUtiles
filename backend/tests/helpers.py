@@ -93,7 +93,8 @@ def paid_booking(householder, jpeg, verifier, reference="WAVE-123456", days=2, s
         booking.pk,
         method_id=method.pk,
         reference=reference,
-        screenshot=jpeg(seed),
+        # A size of its own, so a screenshot never matches a fake identity photo made by the same generator.
+        screenshot=jpeg(seed, size=333),
         captured_at=timezone.now(),
     )
     booking.refresh_from_db()
