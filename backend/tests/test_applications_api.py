@@ -99,6 +99,12 @@ def test_my_bookings_shows_the_accepted_booking_without_address(
         "quartier",
         "address_available_from",
         "payment",
+        "checkin_from",
+        "checked_in_at",
+        "checked_out_at",
+        "auto_confirm_at",
+        "payout",
+        "reviewable",
     }
     listed = call(api_client, jobber, "get", "/api/v1/my-applications").json()["results"][0]
     assert listed["booking"]["status"] == "accepted" and listed["status"] == "accepted"

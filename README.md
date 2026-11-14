@@ -326,3 +326,52 @@ console. Nothing is kept on the phone after the screen closes. Routes: `GET staf
 **What staff must know.** A screenshot is easy to fake: confirm against the platform account's own
 history, not the picture. The console warns when the same image was sent for another payment. Holding
 customers' money may need a licence or a partner; get a legal review before launch.
+
+## The job and after
+
+A paid booking is carried out and closed in the apps; staff pay the jobber by hand and settle
+disputes in the console.
+
+**The flow.** From `CHECKIN_EARLY_MINUTES` (30) before the start until the end, the jobber taps
+"Je suis arrivé(e)" (`checked_in`). The phone's position is read once and compared with the
+householder's confirmed home pin: the distance is recorded, and a check-in further than
+`CHECKIN_FLAG_METERS` (500) is flagged for staff, never refused. A refused or missing position still
+checks in, without a distance. "J'ai terminé" makes the booking `completion_pending`. The householder
+taps "Confirmer que c'est fait", or after `RELEASE_TIMEOUT_HOURS` (24) the job completes by itself.
+A completed booking creates one payout of `pay_xof`.
+
+**Paying the jobber (console "Paiements aux jobbers", group `payment_agent`).** The queue "À verser"
+lists payouts oldest first. The payout page shows the amount and the jobber's account phone (shown
+only to holders of `make_payout`, audited at every view, never cached). Staff send the money from the
+platform account and record the transfer's reference (4 to 40 letters, digits, spaces, dots or
+dashes). A payout is recorded once, and never for a booking refunded in full.
+
+**Problems.** From check-in on, either side can use "Signaler un problème": a **dispute** (only while
+`checked_in` or `completion_pending`) makes the booking `disputed`, so nothing is paid until staff
+decide; a **private remark** changes nothing and is never shown to the other side. A second dispute
+on the same booking is kept as a remark. In the console, "Signalements" lists "Litiges ouverts"; the
+page shows both first names, the text, the check-in time and distance and the payment state, and the
+decision form: pay the jobber (payout of `pay_xof`), refund the householder (booking cancelled, a line
+in "Remboursements à faire"), or share (a payout for the jobber's part, a refund for the rest). A
+reason is required and the decision is audited.
+
+**Nobody closes the job.** Hourly tasks: `complete-overdue-bookings` (the householder never
+confirmed), `close-no-show-bookings` (a paid booking whose end passed with no check-in is cancelled
+with reason `no_show` and becomes a refund to make), `flag-unclosed-bookings` (a jobber who never
+checked out, `CHECKOUT_GRACE_HOURS` (6) after the end, ends in a dispute, not a payout).
+
+**Reviews.** After completion each side gives 1 to 5 stars and a comment of up to
+`REVIEW_COMMENT_MAX` (300) characters, with no number or contact. A review stays hidden until the
+other side's is in, or `REVIEW_WINDOW_DAYS` (7) pass (hourly task `publish-due-reviews`). The average
+of published reviews is the rating on the applicant card and on the householder's trust line.
+
+**Routes.** Jobber: `POST my-bookings/<id>/check-in` `{lat?, lng?, accuracy_m?}`, `/check-out`,
+`/report` `{text, dispute}`, `GET/POST my-bookings/<id>/review`. Householder:
+`POST my-offers/<id>/booking/confirm`, `/report`, `GET/POST my-offers/<id>/booking/review`. The
+householder's booking detail stays available after completion, for the review.
+
+**Not built yet.** Payouts and disputes in the staff app (console only), push or SMS, a payout number
+other than the account phone, strikes for repeated cancellations.
+
+**What staff must know.** Pay only from the "À verser" queue and record the reference straight away.
+The jobber app now asks for the location permission, once, at the first check-in.
