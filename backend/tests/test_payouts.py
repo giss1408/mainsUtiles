@@ -1,6 +1,5 @@
 import pytest
 from django.contrib.auth.models import Group
-from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.models import AdminAction

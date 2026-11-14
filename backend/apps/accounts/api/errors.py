@@ -70,6 +70,12 @@ STATUS = {
     "checkin_too_early": 409,
     "checkin_closed": 409,
     "reason_required": 400,
+    "report_invalid": 400,
+    "split_invalid": 400,
+    "outcome_invalid": 400,
+    "already_reviewed": 409,
+    "review_closed": 409,
+    "stars_invalid": 400,
 }
 
 MESSAGES = {
@@ -150,6 +156,12 @@ MESSAGES = {
     "address_closed": "L'adresse n'est plus disponible.",
     "checkin_too_early": "Tu pourras confirmer ton arrivée peu avant le début.",
     "checkin_closed": "Le job est déjà terminé.",
+    "report_invalid": "Le message doit faire entre 3 et 500 caractères.",
+    "split_invalid": "Le montant du jobber doit être entre 1 FCFA et le prix du job, sans les atteindre.",
+    "outcome_invalid": "Choisissez une décision.",
+    "already_reviewed": "Un avis a déjà été envoyé pour ce job.",
+    "review_closed": "Le délai pour donner un avis est dépassé.",
+    "stars_invalid": "Choisissez une note de 1 à 5 étoiles.",
 }
 
 

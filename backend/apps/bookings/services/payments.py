@@ -222,8 +222,15 @@ def record_refund(payment: Payment, *, staff, reference: str) -> None:
         row.refunded_by = staff
         row.refunded_at = timezone.now()
         row.save(update_fields=["status", "refund_reference", "refunded_by", "refunded_at"])
-        audit(staff, "booking.payment.refund", row, booking=str(row.booking_id))
+        audit(
+            staff, "booking.payment.refund", row, booking=str(row.booking_id), amount_xof=refund_amount(row)
+        )
     payment.refresh_from_db()
+
+
+def refund_amount(payment: Payment) -> int:
+    """What staff send back: the part decided in a split dispute, otherwise everything paid."""
+    return payment.refund_xof if payment.refund_xof is not None else payment.amount_xof
 
 
 def check_queue():

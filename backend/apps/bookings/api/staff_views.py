@@ -61,7 +61,7 @@ def _item(payment: Payment, action: str) -> dict:
         "id": payment.pk,
         "category_name": payment.booking.category_name,
         "starts_at": payment.booking.starts_at,
-        "amount_xof": payment.amount_xof,
+        "amount_xof": payments.refund_amount(payment) if action == "refund" else payment.amount_xof,
         "method_label": payment.method.get_provider_display(),
         "submitted_at": payment.submitted_at,
         "late": payments.is_late(payment),

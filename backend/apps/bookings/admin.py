@@ -214,6 +214,7 @@ class PaymentAdmin(admin.ModelAdmin):
                 proof_url=reverse("admin:bookings_payment_proof", args=[record.pk]),
                 can_decide=record.status == Payment.Status.SUBMITTED,
                 refund_due=record.status == Payment.Status.REFUND_DUE,
+                refund_amount=payments.refund_amount(record),
             )
         response = super().change_view(request, object_id, form_url, context)
         # The page shows a reference: it must never be cached.

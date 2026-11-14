@@ -29,7 +29,7 @@
 {% elif refund_due %}
 <div class="module" style="padding:12px">
   <h2>Remboursement à faire</h2>
-  <p>Renvoyez {{ amount }} FCFA à la personne depuis le compte de la plateforme, puis notez la référence du transfert.</p>
+  <p>Renvoyez {{ refund_amount }} FCFA à la personne depuis le compte de la plateforme, puis notez la référence du transfert.</p>
   <form method="post" action="{% url 'admin:bookings_payment_refund' original.pk %}" style="margin:10px 0">
     {% csrf_token %}
     <p><label>Référence du remboursement :<br><input type="text" name="reference" size="40" maxlength="40"></label></p>
