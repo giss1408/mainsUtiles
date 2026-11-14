@@ -19,3 +19,4 @@ mobile/**/local.properties
 mobile/**/.gradle/
 mobile/**/*.iml
 mobile/**/.idea/
+dist/
