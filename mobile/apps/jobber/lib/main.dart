@@ -5,7 +5,8 @@ import 'package:petitgombo_core/petitgombo_core.dart';
 import 'device_capture.dart';
 
 /// The jobber app. Its screens live in petitgombo_core; the camera, which only the apps with
-/// verification photos need, is supplied here. It reads no GPS position.
+/// verification photos need, is supplied here, and the GPS position, read once when the jobber
+/// says "Je suis arrivé(e)".
 PetitGomboApp buildApp({
   DeviceDescription device = const DeviceDescription.unknown(),
   List<Override> overrides = const [],
@@ -13,7 +14,11 @@ PetitGomboApp buildApp({
     PetitGomboApp(
       role: AppRole.jobber,
       device: device,
-      overrides: [photoCaptureProvider.overrideWithValue(CameraPhotoCapture()), ...overrides],
+      overrides: [
+        photoCaptureProvider.overrideWithValue(CameraPhotoCapture()),
+        positionReaderProvider.overrideWithValue(GeolocatorPositionReader()),
+        ...overrides,
+      ],
     );
 
 Future<void> main() async {

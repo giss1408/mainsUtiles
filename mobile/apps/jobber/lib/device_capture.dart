@@ -217,3 +217,46 @@ class _CameraPageState extends State<_CameraPage> {
     );
   }
 }
+
+/// The phone's GPS position, read once on request.
+class GeolocatorPositionReader implements PositionReader {
+  @override
+  Future<DevicePosition> current() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw const CaptureException(CaptureFailure.unavailable);
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        throw const CaptureException(CaptureFailure.permissionDeniedForever);
+      }
+      if (permission == LocationPermission.denied) {
+        throw const CaptureException(CaptureFailure.permissionDenied);
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+      return DevicePosition(
+        lat: position.latitude,
+        lng: position.longitude,
+        accuracyM: position.accuracy,
+        mocked: position.isMocked,
+        capturedAt: DateTime.now(),
+      );
+    } on CaptureException {
+      rethrow;
+    } catch (_) {
+      // Timeout, location switched off meanwhile, or a platform error.
+      throw const CaptureException(CaptureFailure.unavailable);
+    }
+  }
+
+  @override
+  Future<void> openSettings() => Geolocator.openAppSettings();
+}

@@ -3,6 +3,10 @@
     <!-- Verification: identity and guarantor photos are taken in the app. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- The job: the position is read once, when the jobber says they arrived. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
     <application
         android:label="petitGombo Jobber"
         android:name="${applicationName}"

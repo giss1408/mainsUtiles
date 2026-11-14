@@ -24,4 +24,13 @@ void main() {
     final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first));
     expect(container.read(photoCaptureProvider), isA<CameraPhotoCapture>());
   });
+
+  testWidgets('the jobber app reads the position for the check-in', (tester) async {
+    await tester.pumpWidget(
+      buildApp(overrides: [keyValueStoreProvider.overrideWithValue(InMemoryKeyValueStore())]),
+    );
+    await tester.pump();
+    final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first));
+    expect(container.read(positionReaderProvider), isA<GeolocatorPositionReader>());
+  });
 }

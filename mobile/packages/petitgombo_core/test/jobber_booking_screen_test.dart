@@ -51,7 +51,15 @@ void main() {
         'results': [
           {...jobberBookingJson(), 'id': 'b-1', 'payment': 'pending'},
           {...jobberBookingJson(), 'id': 'b-2', 'status': 'payment_review', 'payment': 'review'},
-          {...jobberBookingJson(), 'id': 'b-3', 'status': 'confirmed', 'payment': 'confirmed'},
+          {
+            ...jobberBookingJson(),
+            'id': 'b-3',
+            'status': 'confirmed',
+            'payment': 'confirmed',
+            // Far ahead of the real clock, which this list reads.
+            'starts_at': '2099-01-02T08:00:00Z',
+            'address_available_from': '2099-01-02T05:00:00Z',
+          },
           {...jobberBookingJson(), 'id': 'b-4', 'status': 'cancelled', 'payment': 'pending'},
         ]
       });

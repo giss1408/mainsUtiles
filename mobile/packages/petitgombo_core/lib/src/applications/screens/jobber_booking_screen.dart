@@ -10,6 +10,9 @@ import '../../widgets/ui_kit.dart';
 import '../application_copy.dart';
 import '../application_models.dart';
 import '../applications_controller.dart';
+import '../job_target.dart';
+import 'report_screen.dart';
+import 'review_screen.dart';
 
 /// One job of the jobber: where and when, and once the window opens, the exact pin.
 class JobberBookingScreen extends ConsumerStatefulWidget {
@@ -31,7 +34,51 @@ class _JobberBookingScreenState extends ConsumerState<JobberBookingScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(applicationsControllerProvider.notifier).clearError());
+    Future.microtask(() {
+      final controller = ref.read(applicationsControllerProvider.notifier)..clearError();
+      if (widget.booking.status == 'completed') controller.loadReview(widget.booking.id);
+    });
+  }
+
+  /// The freshest copy of the job: the list reloads after each change.
+  JobberBooking _current(ApplicationsState state) {
+    for (final row in state.bookings ?? const <JobberBooking>[]) {
+      if (row.id == widget.booking.id) return row;
+    }
+    return widget.booking;
+  }
+
+  Future<void> _checkIn() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome =
+        await ref.read(applicationsControllerProvider.notifier).checkIn(widget.booking.id);
+    if (outcome == CheckInOutcome.withoutPosition && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text(ApplicationCopy.arrivedWithoutPosition)),
+      );
+    }
+  }
+
+  Future<void> _checkOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(ApplicationCopy.finishedTitle),
+        content: const Text(ApplicationCopy.finishedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(ApplicationCopy.notYet),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(ApplicationCopy.finished),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(applicationsControllerProvider.notifier).checkOut(widget.booking.id);
   }
 
   Future<void> _showAddress() async {
@@ -73,13 +120,25 @@ class _JobberBookingScreenState extends ConsumerState<JobberBookingScreen> {
     if (done && mounted) Navigator.of(context).pop();
   }
 
+  IconData _icon(String status) => switch (status) {
+        'checked_in' => Icons.play_circle_outline,
+        'completed' => Icons.check_circle_outline,
+        'disputed' => Icons.report_problem_outlined,
+        'cancelled' || 'expired' => Icons.cancel_outlined,
+        _ => Icons.schedule,
+      };
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = ref.watch(applicationsControllerProvider);
-    final booking = widget.booking;
+    final booking = _current(state);
     final now = widget.now ?? DateTime.now();
-    final open = booking.payment == 'confirmed' && !now.isBefore(booking.addressAvailableFrom);
+    final beforeJob = booking.status == 'confirmed' || booking.status == 'address_released';
+    final open =
+        beforeJob && booking.payment == 'confirmed' && !now.isBefore(booking.addressAvailableFrom);
+    final canCheckIn = ApplicationCopy.canCheckIn(booking, now);
+    final payout = ApplicationCopy.payoutLine(booking);
     final address = _address;
     return FlowScaffold(
       title: ApplicationCopy.jobTitle,
@@ -88,7 +147,7 @@ class _JobberBookingScreenState extends ConsumerState<JobberBookingScreen> {
         Align(
           alignment: Alignment.centerLeft,
           child: StatusPill(
-            icon: open ? Icons.place_outlined : Icons.schedule,
+            icon: open ? Icons.place_outlined : _icon(booking.status),
             label: ApplicationCopy.jobStatus(booking, now),
             strong: open,
           ),
@@ -134,12 +193,61 @@ class _JobberBookingScreenState extends ConsumerState<JobberBookingScreen> {
               ],
             ),
           )
+        else if (open && canCheckIn)
+          // Arriving is the main action now; the address stays one tap away.
+          OutlinedButton(
+            onPressed: state.sending ? null : _showAddress,
+            child: const Text(ApplicationCopy.seeAddress),
+          )
         else if (open)
           FilledButton(
             onPressed: state.sending ? null : _showAddress,
             child: const Text(ApplicationCopy.seeAddress),
           ),
         const SizedBox(height: Gaps.md),
+        if (canCheckIn) ...[
+          BusyButton(
+            label: ApplicationCopy.arrived,
+            onPressed: _checkIn,
+            busy: state.sending,
+          ),
+          const SizedBox(height: Gaps.md),
+        ],
+        if (booking.status == 'checked_in') ...[
+          BusyButton(
+            label: ApplicationCopy.finished,
+            onPressed: _checkOut,
+            busy: state.sending,
+          ),
+          const SizedBox(height: Gaps.md),
+        ],
+        if (payout != null)
+          AppCard(
+            child: Row(
+              children: [
+                Icon(booking.payout == 'paid' ? Icons.check_circle_outline : Icons.schedule),
+                const SizedBox(width: Gaps.md),
+                Expanded(child: Text(payout, style: theme.textTheme.titleMedium)),
+              ],
+            ),
+          ),
+        if (booking.status == 'completed')
+          ReviewSection(target: JobTarget.jobber(booking.id), reviewable: booking.reviewable),
+        if (ApplicationCopy.jobReportable(booking)) ...[
+          OutlinedButton(
+            onPressed: () => Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => ReportScreen(
+                  target: JobTarget.jobber(booking.id),
+                  canDispute:
+                      booking.status == 'checked_in' || booking.status == 'completion_pending',
+                ),
+              ),
+            ),
+            child: const Text(ApplicationCopy.reportProblem),
+          ),
+          const SizedBox(height: Gaps.md),
+        ],
         if (ApplicationCopy.jobCancellable(booking))
           OutlinedButton(
             onPressed: state.sending ? null : _cancel,
