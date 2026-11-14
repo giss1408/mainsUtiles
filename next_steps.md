@@ -1,6 +1,8 @@
 # Next steps
 
-Updated 2026-11-14. Branch `feat/jobber-verification` is pushed up to 684169f.
+Updated 2026-11-14 (end of day). Branch `feat/jobber-verification` is pushed up to 4104c10. Four more
+commits are local and **not pushed**: the stage 3 plan (dd3967b) and stage 3 Tasks 1 to 3 (077f3e1,
+f729e06, 3091d45).
 
 ## What is built
 
@@ -11,11 +13,35 @@ Updated 2026-11-14. Branch `feat/jobber-verification` is pushed up to 684169f.
 | Applications (stage 1): J1 jobbers apply, the householder accepts one | Done |
 | Payment and address release (stage 2): manual payment checked by staff, cancel, refund, exact pin, jobber name and photo | Done |
 | Staff app payments queue (check a payment, record a refund) | Done |
-| **Stage 3: the job and after** (check-in/out, confirmation, payout, disputes, reviews) | **Not started: next** |
+| **Stage 3: the job and after** (check-in/out, confirmation, payout, disputes, reviews) | **In progress: backend Tasks 1 to 3 of 12 written** (see below) |
 
 Everything is covered by automated tests and the debug APKs build. **Nothing has been tried on a real
 phone.** Jobber verification 3a/3b and the applications stage went through a `/code-review`; the
 payment stage and the staff payments queue have had a self-review only.
+
+## Where stage 3 stopped (resume here)
+
+Plan: `docs/superpowers/plans/2026-11-14-job-and-after.md` (12 tasks). Ledger:
+`.superpowers/sdd/2026-11-14-job-and-after/progress.md` (git-ignored, read it first).
+
+| Task | State |
+|------|-------|
+| 1. Models, settings, permissions (`Payout`, `Report`, `Review`, job fields) | Done, full suite green, recorded |
+| 2. Check-in and check-out (`services/jobs.py`) | Done and committed; its tests pass; recorded in the ledger only after Task 3's run |
+| 3. Confirmation, timeout, no-show and unclosed sweeps | Done and committed; its tests pass; **the full-suite run was still in progress when work stopped**, so it is not recorded |
+| 4. Paying the jobber (`services/payouts.py`) | Not started. Tests were drafted in the session scratchpad only (lost); rewrite them from the plan |
+| 5 to 8. Disputes, reviews and ratings, API, console | Not started |
+| 9 to 11. Flutter models, householder screens, jobber screens | Not started |
+| 12. Docs and whole verification | Not started |
+
+To resume: run the full backend suite once (`cd backend && .venv/bin/python -m pytest -q`). If it is
+green, append `Task 2: complete` and `Task 3: complete` to the ledger, then start Task 4. If it
+fails, the failure is in Task 3 or in the test-helper change that gave payment screenshots their own
+size (`tests/helpers.py`, `paid_booking`). Never edit files or add a test file while the full suite is
+running: the earlier runs were spoiled that way twice.
+
+Two things learned on the way, worth keeping: one threaded test only (two tests that restore the
+migrated data clash), and fake identity photos and fake screenshots must not share a generator size.
 
 ## Before merging
 
@@ -53,8 +79,8 @@ payment stage and the staff payments queue have had a self-review only.
 
 ## Build next
 
-**Stage 3 of piece 4: the job and after** (design:
-`docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`). Needs its own plan. It covers:
+**Finish stage 3 of piece 4: the job and after** (design:
+`docs/superpowers/specs/2026-11-13-applications-and-bookings-design.md`; plan and progress above). It covers:
 
 - the jobber's check-in ("Je suis arrivé(e)") and check-out ("J'ai terminé"), with the position recorded;
 - the householder's confirmation, or an automatic one after `RELEASE_TIMEOUT_HOURS` (24);
