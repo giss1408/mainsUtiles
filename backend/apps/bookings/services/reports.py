@@ -76,6 +76,53 @@ def report_problem(user, booking_id, *, text: str, dispute: bool) -> Report:
     return report
 
 
+def dispute_queue():
+    """Open disputes, oldest first."""
+    return (
+        Report.objects.filter(kind=Report.Kind.DISPUTE, status=Report.Status.OPEN)
+        .select_related("booking")
+        .order_by("created_at", "pk")
+    )
+
+
+def is_late(report: Report, now=None) -> bool:
+    """An open dispute waiting longer than DISPUTE_LATE_HOURS: the money is frozen meanwhile."""
+    now = now or timezone.now()
+    open_dispute = report.kind == Report.Kind.DISPUTE and report.status == Report.Status.OPEN
+    return open_dispute and now - report.created_at > timedelta(hours=settings.DISPUTE_LATE_HOURS)
+
+
+def report_details(report: Report, *, staff) -> dict:
+    """What staff read to decide: the words, who wrote them, first names only, the times and the
+    distance of the check-in, the state of the payment. Every view is audited."""
+    from .applications import first_names
+    from .jobs import needs_a_look
+
+    allowed = staff and staff.is_active and staff.is_staff
+    if not (allowed and (staff.has_perm(RESOLVE) or staff.has_perm("bookings.view_report"))):
+        raise BookingError("forbidden")
+    booking = report.booking
+    audit(staff, "booking.report.view", report, booking=str(booking.pk))
+    names = first_names([booking.jobber_id, booking.householder_id])
+    payment = booking.payments.exclude(status=Payment.Status.REFUSED).order_by("-submitted_at").first()
+    return {
+        "category_name": booking.category_name,
+        "starts_at": booking.starts_at,
+        "pay_xof": booking.pay_xof,
+        "booking_status": booking.get_status_display(),
+        "jobber_name": names.get(booking.jobber_id, "(inconnu)"),
+        "householder_name": names.get(booking.householder_id, "(inconnu)"),
+        "author_side": "jobber" if report.author_id == booking.jobber_id else "householder",
+        "text": report.text,
+        "note": report.note,
+        "checked_in_at": booking.checked_in_at,
+        "checked_out_at": booking.checked_out_at,
+        "distance_m": booking.checkin_distance_m,
+        "far": needs_a_look(booking),
+        "payment_state": payment.get_status_display() if payment else "Aucun paiement",
+    }
+
+
 def resolve_dispute(report: Report, *, staff, outcome: str, note: str, jobber_xof: int | None = None) -> None:
     """Staff decide a dispute: pay the jobber, refund the householder, or share the price."""
     _require_staff(staff, RESOLVE)

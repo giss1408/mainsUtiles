@@ -2,7 +2,9 @@
 and never for a booking whose payment was refunded or is waiting to be."""
 
 import re
+from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -48,6 +50,13 @@ def payable(payout: Payout) -> bool:
         .first()
     )
     return payment is not None and _payable(payment)
+
+
+def is_late(payout: Payout, now=None) -> bool:
+    """A payout the jobber has waited for longer than PAYOUT_LATE_HOURS."""
+    now = now or timezone.now()
+    waited = now - payout.due_at
+    return payout.status == Payout.Status.DUE and waited > timedelta(hours=settings.PAYOUT_LATE_HOURS)
 
 
 def payout_queue(*, staff):

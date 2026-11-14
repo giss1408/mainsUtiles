@@ -258,6 +258,7 @@ def accept(user, application_id, *, offer_id=None) -> Booking:
         offer.status = Offer.Status.BOOKED
         offer.save(update_fields=["status", "updated_at"])
         audit(user, "booking.accept", booking)
+        messages.retire(messages.K.APPLICANT, offer_id=offer.pk)  # the householder has chosen
         messages.queue(messages.K.ACCEPTED, booking=booking, to=booking.jobber)
     return booking
 

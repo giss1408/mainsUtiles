@@ -12,9 +12,8 @@ from apps.audit.services import record as audit
 from apps.verification.services.encryption import decrypt_text
 
 from . import console_views
-from .models import Application, Booking, Payment, PaymentMethod, Payout, Report
-from .services import jobs, payments, payouts
-from .services.applications import first_names
+from .models import Application, Booking, Message, Payment, PaymentMethod, Payout, Report
+from .services import payments, payouts, reports
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -349,27 +348,11 @@ class ReportAdmin(_WorkedOnItsPage):
         record = self.get_object(request, object_id)
         context = dict(extra_context or {})
         if record is not None and request.method == "GET" and self.has_view_permission(request, record):
-            booking = record.booking
-            audit(request.user, "booking.report.view", record, booking=str(booking.pk))
-            names = first_names([booking.jobber_id, booking.householder_id])
-            payment = (
-                booking.payments.exclude(status=Payment.Status.REFUSED).order_by("-submitted_at").first()
-            )
+            details = reports.report_details(record, staff=request.user)  # audited there
             context.update(
-                category=booking.category_name,
-                starts_at=booking.starts_at,
-                pay_xof=booking.pay_xof,
-                booking_status=booking.get_status_display(),
-                jobber_name=names.get(booking.jobber_id, "(inconnu)"),
-                householder_name=names.get(booking.householder_id, "(inconnu)"),
-                author_side="le jobber" if record.author_id == booking.jobber_id else "le ménage",
-                text=record.text,
-                note=record.note,
-                checked_in_at=booking.checked_in_at,
-                checked_out_at=booking.checked_out_at,
-                distance_m=booking.checkin_distance_m,
-                far=jobs.needs_a_look(booking),
-                payment_state=payment.get_status_display() if payment else "Aucun paiement",
+                details,
+                category=details["category_name"],
+                author_side="le jobber" if details["author_side"] == "jobber" else "le ménage",
                 is_dispute=record.kind == Report.Kind.DISPUTE,
                 can_resolve=(
                     record.kind == Report.Kind.DISPUTE
@@ -382,3 +365,20 @@ class ReportAdmin(_WorkedOnItsPage):
         # The page shows what a person wrote: it must never be cached.
         patch_cache_control(response, no_store=True)
         return response
+
+
+@admin.register(Message)
+class MessageAdmin(_WorkedOnItsPage):
+    """The messages staff send on WhatsApp from the staff app. Read only: for oversight."""
+
+    list_display = ("created_at", "kind", "recipient_role", "urgent", "status", "sent_at", "sent_by")
+    list_filter = ("status", "kind", "urgent")
+    ordering = ("-created_at",)
+    list_select_related = ("recipient", "sent_by")
+    # Never the recipient's number: the role is enough to follow the queue.
+    fields = ("offer", "booking", "kind", "urgent", "status", "created_at", "sent_at", "sent_by")
+    readonly_fields = fields
+
+    @admin.display(description="destinataire")
+    def recipient_role(self, obj):
+        return "Ménage" if obj.recipient.role == "householder" else "Jobber"

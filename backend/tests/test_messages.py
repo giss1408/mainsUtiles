@@ -64,7 +64,9 @@ def working(booking):
 
 def test_one_pending_message_per_offer_recipient_and_kind(accepted):
     with pytest.raises(IntegrityError), transaction.atomic():
-        Message.objects.create(offer=accepted.offer, booking=accepted, recipient=accepted.jobber, kind=K.ACCEPTED)
+        Message.objects.create(
+            offer=accepted.offer, booking=accepted, recipient=accepted.jobber, kind=K.ACCEPTED
+        )
 
 
 def test_a_sent_message_allows_a_new_one(accepted):
@@ -174,7 +176,13 @@ def test_first_application_tells_the_householder_once(verified_householder, jpeg
     message = one(K.APPLICANT, verified_householder)
     assert message.booking is None and message.offer == offer
     assert "vous avez un candidat" in messages.text_of(message)
-    assert kinds() == ["applicant"]
+    assert kinds() == ["applicant"] and messages.still_true(message)
+    second = j1_jobber(jpeg, verifier)
+    applications.apply(second, offer.pk, "")
+    assert kinds() == ["applicant"]  # one message, however many candidates
+    applications.accept(verified_householder, offer.applications.first().pk)
+    message.refresh_from_db()
+    assert message.status == Message.Status.DROPPED  # the householder has already chosen
 
 
 def test_accept_tells_the_jobber(accepted):
@@ -187,7 +195,9 @@ def test_confirm_tells_both_and_refuse_tells_the_householder(verified_householde
     assert "payment_refused" in kinds(recipient=verified_householder)
     booking.refresh_from_db()
     assert messages.still_true(one(K.PAYMENT_REFUSED, verified_householder))
-    confirmed = confirmed_booking(verified_householder, jpeg, verifier, days=4, seed=11, reference="WAVE-999000")
+    confirmed = confirmed_booking(
+        verified_householder, jpeg, verifier, days=4, seed=11, reference="WAVE-999000"
+    )
     assert "payment_confirmed" in kinds(booking=confirmed, recipient=verified_householder)
     assert "job_confirmed" in kinds(booking=confirmed, recipient=confirmed.jobber)
 
@@ -272,7 +282,10 @@ def test_an_unclosed_job_tells_both(confirmed):
 def test_reminder_and_address_sweeps_queue_once(verified_householder, jpeg, verifier, settings):
     unpaid = accepted_booking(verified_householder, jpeg, verifier)
     deadline = payments.pay_deadline(unpaid)
-    assert messages.queue_pay_reminders(deadline - timedelta(hours=settings.PAYMENT_REMINDER_HOURS, minutes=5)) == 0
+    assert (
+        messages.queue_pay_reminders(deadline - timedelta(hours=settings.PAYMENT_REMINDER_HOURS, minutes=5))
+        == 0
+    )
     soon = deadline - timedelta(hours=1)
     assert messages.queue_pay_reminders(soon) == 1 and messages.queue_pay_reminders(soon) == 0
     reminder = one(K.PAY_REMINDER, verified_householder)

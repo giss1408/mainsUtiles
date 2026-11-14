@@ -134,6 +134,13 @@ def queue(kind, *, to, booking: Booking | None = None, offer: Offer | None = Non
         ).first()
 
 
+def retire(kind, *, offer_id) -> int:
+    """Withdraws the waiting messages of a kind once the person has already acted on them."""
+    return Message.objects.filter(offer_id=offer_id, kind=kind, status=Message.Status.PENDING).update(
+        status=Message.Status.DROPPED
+    )
+
+
 def text_of(message: Message) -> str:
     return "petitGombo : " + _TEXTS[(message.kind, message.recipient.role)].format(job=_job(message))
 
@@ -143,7 +150,10 @@ def still_true(message: Message, now=None) -> bool:
     now = now or timezone.now()
     kind = message.kind
     if kind == K.APPLICANT:
-        return message.offer.status == Offer.Status.PUBLISHED
+        from apps.bookings.models import Application
+
+        waiting = Application.objects.filter(offer=message.offer, status=Application.Status.PENDING)
+        return message.offer.status == Offer.Status.PUBLISHED and waiting.exists()
     booking = message.booking
     if booking is None:
         return False

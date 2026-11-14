@@ -206,3 +206,88 @@ class ReviewItemSerializer(serializers.Serializer):
 class ReviewStateSerializer(serializers.Serializer):
     mine = ReviewItemSerializer(allow_null=True)
     theirs = ReviewItemSerializer(allow_null=True)
+
+
+class WhatsAppLinkSerializer(serializers.Serializer):
+    whatsapp_url = serializers.CharField()
+
+
+class MessageItemSerializer(serializers.Serializer):
+    """A message waiting for staff. Never its text, a name or a number."""
+
+    id = serializers.UUIDField()
+    kind = serializers.CharField()
+    kind_label = serializers.CharField()
+    recipient_role = serializers.CharField()
+    urgent = serializers.BooleanField()
+    late = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+
+
+class MessageDetailSerializer(MessageItemSerializer):
+    text = serializers.CharField()
+    category_name = serializers.CharField()
+
+
+class PayoutItemSerializer(serializers.Serializer):
+    """A payout in the staff queue. Never the jobber's phone or a reference."""
+
+    id = serializers.UUIDField()
+    category_name = serializers.CharField()
+    amount_xof = serializers.IntegerField()
+    due_at = serializers.DateTimeField()
+    late = serializers.BooleanField()
+
+
+class PayoutDetailSerializer(PayoutItemSerializer):
+    jobber_phone = serializers.CharField()
+    completed_at = serializers.DateTimeField(allow_null=True)
+    payable = serializers.BooleanField()
+
+
+class PayBodySerializer(serializers.Serializer):
+    reference = serializers.CharField(allow_blank=True, trim_whitespace=False, max_length=200)
+
+
+class DisputeItemSerializer(serializers.Serializer):
+    """An open dispute in the staff queue. Never what was written."""
+
+    id = serializers.UUIDField()
+    category_name = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    late = serializers.BooleanField()
+
+
+class DisputeDetailSerializer(DisputeItemSerializer):
+    text = serializers.CharField()
+    author_side = serializers.CharField()
+    jobber_name = serializers.CharField()
+    householder_name = serializers.CharField()
+    starts_at = serializers.DateTimeField()
+    pay_xof = serializers.IntegerField()
+    checked_in_at = serializers.DateTimeField(allow_null=True)
+    checked_out_at = serializers.DateTimeField(allow_null=True)
+    distance_m = serializers.IntegerField(allow_null=True)
+    far = serializers.BooleanField()
+    payment_state = serializers.CharField()
+
+
+class ResolveBodySerializer(serializers.Serializer):
+    outcome = serializers.CharField(allow_blank=True)
+    note = serializers.CharField(allow_blank=True, trim_whitespace=False, max_length=500)
+    jobber_xof = serializers.IntegerField(required=False, allow_null=True, default=None)
+
+
+class AlertsSerializer(serializers.Serializer):
+    """Counts of what waits. A key is absent when the caller may not work that queue."""
+
+    payments_waiting = serializers.IntegerField(required=False)
+    payments_late = serializers.IntegerField(required=False)
+    refunds_waiting = serializers.IntegerField(required=False)
+    payouts_waiting = serializers.IntegerField(required=False)
+    payouts_late = serializers.IntegerField(required=False)
+    disputes_open = serializers.IntegerField(required=False)
+    disputes_late = serializers.IntegerField(required=False)
+    far_checkins = serializers.IntegerField(required=False)
+    messages_waiting = serializers.IntegerField(required=False)
+    messages_late = serializers.IntegerField(required=False)

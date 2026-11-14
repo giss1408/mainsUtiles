@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import jobber_views, jobs_views, payments_views, staff_views, views
+from . import jobber_views, jobs_views, payments_views, staff_ops_views, staff_views, views
 
 urlpatterns = [
     path("offers/<uuid:pk>/apply", jobber_views.ApplyView.as_view()),
@@ -28,4 +28,14 @@ urlpatterns = [
     path("staff/payments/<uuid:pk>/confirm", staff_views.PaymentConfirmView.as_view()),
     path("staff/payments/<uuid:pk>/refuse", staff_views.PaymentRefuseView.as_view()),
     path("staff/payments/<uuid:pk>/refund", staff_views.PaymentRefundView.as_view()),
+    path("staff/messages", staff_ops_views.MessageQueueView.as_view()),
+    path("staff/messages/<uuid:pk>", staff_ops_views.MessageDetailView.as_view()),
+    path("staff/messages/<uuid:pk>/send", staff_ops_views.MessageSendView.as_view()),
+    path("staff/payouts", staff_ops_views.PayoutQueueView.as_view()),
+    path("staff/payouts/<uuid:pk>", staff_ops_views.PayoutDetailView.as_view()),
+    path("staff/payouts/<uuid:pk>/pay", staff_ops_views.PayoutPayView.as_view()),
+    path("staff/disputes", staff_ops_views.DisputeQueueView.as_view()),
+    path("staff/disputes/<uuid:pk>", staff_ops_views.DisputeDetailView.as_view()),
+    path("staff/disputes/<uuid:pk>/resolve", staff_ops_views.DisputeResolveView.as_view()),
+    path("staff/alerts", staff_ops_views.AlertsView.as_view()),
 ]
