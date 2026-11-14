@@ -16,7 +16,7 @@ from apps.listings.models import Offer
 from apps.listings.services.screening import contact_in
 from apps.verification.services.tiers import jobber_tier
 
-from . import payments
+from . import payments, reviews
 from .errors import BookingError  # noqa: F401 - re-exported for the callers
 
 
@@ -174,13 +174,14 @@ def applicants(user, offer_id) -> list[dict]:
     ids = {application.jobber_id for application in pending}
     names = first_names(ids)
     done = _jobs_done_by(ids)
+    ratings = reviews.ratings_of(ids)
     return [
         {
             "id": application.pk,
             "first_name": names[application.jobber_id],
             "tier": "J1",
             "jobs_done": done.get(application.jobber_id, 0),
-            "rating": None,
+            "rating": ratings.get(application.jobber_id),
             "message": application.message,
             "created_at": application.created_at,
         }
@@ -196,7 +197,7 @@ def householder_trust(householder) -> dict:
     return {
         "tier": householder_tier(householder),
         "jobs_done": _jobs_done(householder=householder),
-        "rating": None,
+        "rating": reviews.rating_of(householder)["average"],
     }
 
 

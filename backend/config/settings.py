@@ -135,6 +135,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.bookings.tasks.flag_unclosed_bookings",
         "schedule": 3600.0,
     },
+    "publish-due-reviews": {
+        "task": "apps.bookings.tasks.publish_due_reviews",
+        "schedule": 3600.0,
+    },
     "close-stale-applications": {
         "task": "apps.bookings.tasks.close_stale_applications",
         "schedule": 3600.0,
