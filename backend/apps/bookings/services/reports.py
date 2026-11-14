@@ -12,8 +12,9 @@ from apps.audit.services import record as audit
 from apps.bookings.models import Booking, Payment, Payout, Report
 from apps.listings.models import Offer
 
+from . import messages
 from .errors import BookingError
-from .jobs import _complete
+from .jobs import _complete, invite_reviews
 from .payments import _require_staff
 
 RESOLVE = "bookings.resolve_dispute"
@@ -69,6 +70,8 @@ def report_problem(user, booking_id, *, text: str, dispute: bool) -> Report:
         if kind == Report.Kind.DISPUTE:
             booking.status = Booking.Status.DISPUTED
             booking.save(update_fields=["status"])
+            other = booking.jobber if user.pk == booking.householder_id else booking.householder
+            messages.queue(messages.K.DISPUTE_OPENED, booking=booking, to=other)
         audit(user, "booking.report", report, booking=str(booking.pk), kind=kind)
     return report
 
@@ -120,6 +123,7 @@ def resolve_dispute(report: Report, *, staff, outcome: str, note: str, jobber_xo
                 status=Payment.Status.REFUND_DUE, refund_xof=booking.pay_xof - share
             )
             audit(staff, "booking.complete", booking, how="staff")
+            invite_reviews(booking)
         row.status = Report.Status.RESOLVED
         row.outcome = outcome
         row.jobber_xof = share
@@ -130,4 +134,6 @@ def resolve_dispute(report: Report, *, staff, outcome: str, note: str, jobber_xo
         audit(
             staff, "booking.dispute.resolve", row, booking=str(booking.pk), outcome=outcome, jobber_xof=share
         )
+        messages.queue(messages.K.DISPUTE_RESOLVED, booking=booking, to=booking.householder)
+        messages.queue(messages.K.DISPUTE_RESOLVED, booking=booking, to=booking.jobber)
     report.refresh_from_db()

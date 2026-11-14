@@ -16,6 +16,7 @@ from apps.verification.models import VerificationPhoto
 from apps.verification.services import submissions
 from apps.verification.services.encryption import encrypt_text, keyed_hash
 
+from . import messages
 from .errors import BookingError
 
 REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .\-]{2,38}[A-Za-z0-9]$")
@@ -169,6 +170,8 @@ def confirm_payment(payment: Payment, *, staff, amount_matches: bool, reference_
             booking.status = Booking.Status.CONFIRMED
             booking.save(update_fields=["status"])
             audit(staff, "booking.payment.confirm", row, booking=str(booking.pk))
+            messages.queue(messages.K.PAYMENT_CONFIRMED, booking=booking, to=booking.householder)
+            messages.queue(messages.K.JOB_CONFIRMED, booking=booking, to=booking.jobber)
     except IntegrityError as exc:
         raise BookingError("reference_used") from exc
     payment.refresh_from_db()
@@ -191,6 +194,7 @@ def refuse_payment(payment: Payment, *, staff, reason: str) -> None:
         booking.status = Booking.Status.ACCEPTED
         booking.save(update_fields=["status"])
         audit(staff, "booking.payment.refuse", row, booking=str(booking.pk), reason=text)
+        messages.queue(messages.K.PAYMENT_REFUSED, booking=booking, to=booking.householder)
     payment.refresh_from_db()
 
 
@@ -225,6 +229,7 @@ def record_refund(payment: Payment, *, staff, reference: str) -> None:
         audit(
             staff, "booking.payment.refund", row, booking=str(row.booking_id), amount_xof=refund_amount(row)
         )
+        messages.queue(messages.K.REFUNDED, booking=row.booking, to=row.booking.householder)
     payment.refresh_from_db()
 
 

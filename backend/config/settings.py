@@ -135,6 +135,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.bookings.tasks.flag_unclosed_bookings",
         "schedule": 3600.0,
     },
+    "queue-due-messages": {
+        "task": "apps.bookings.tasks.queue_due_messages",
+        "schedule": 900.0,
+    },
     "publish-due-reviews": {
         "task": "apps.bookings.tasks.publish_due_reviews",
         "schedule": 3600.0,
@@ -308,6 +312,12 @@ ADDRESS_RELEASE_HOURS = env.int("ADDRESS_RELEASE_HOURS", default=3)
 PLATFORM_FEE_PERCENT = env.int("PLATFORM_FEE_PERCENT", default=0)
 CANCEL_FREE_HOURS = env.int("CANCEL_FREE_HOURS", default=24)
 PAYMENT_REVIEW_LATE_HOURS = env.int("PAYMENT_REVIEW_LATE_HOURS", default=2)
+# Stage 4: messages sent by staff on WhatsApp, and what counts as late in the staff queues.
+PAYMENT_REMINDER_HOURS = env.int("PAYMENT_REMINDER_HOURS", default=4)
+MESSAGE_LATE_MINUTES = env.int("MESSAGE_LATE_MINUTES", default=60)
+MESSAGE_URGENT_LATE_MINUTES = env.int("MESSAGE_URGENT_LATE_MINUTES", default=15)
+PAYOUT_LATE_HOURS = env.int("PAYOUT_LATE_HOURS", default=24)
+DISPUTE_LATE_HOURS = env.int("DISPUTE_LATE_HOURS", default=24)
 
 # The job and after: the householder's time to confirm, how early the jobber may check in, how far
 # from the home pin a check-in is flagged, the grace before an unfinished job goes to staff, and the

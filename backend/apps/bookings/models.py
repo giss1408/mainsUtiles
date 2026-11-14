@@ -311,3 +311,63 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.stars}/5 ({self.booking_id})"
+
+
+class Message(models.Model):
+    """Something a user must be told about their offer or booking. Staff send it on WhatsApp from
+    the staff app. No text and no number is stored: both are produced when staff send it."""
+
+    class Kind(models.TextChoices):
+        APPLICANT = "applicant", "Nouveau candidat"
+        ACCEPTED = "accepted", "Candidature acceptée"
+        PAY_REMINDER = "pay_reminder", "Rappel de paiement"
+        PAYMENT_CONFIRMED = "payment_confirmed", "Paiement confirmé"
+        PAYMENT_REFUSED = "payment_refused", "Paiement refusé"
+        JOB_CONFIRMED = "job_confirmed", "Job confirmé"
+        ADDRESS_AVAILABLE = "address_available", "Adresse disponible"
+        CONFIRM_JOB = "confirm_job", "Job à confirmer"
+        PAID = "paid", "Jobber payé"
+        CANCELLED = "cancelled", "Réservation annulée"
+        NO_SHOW = "no_show", "Jobber absent"
+        EXPIRED = "expired", "Réservation expirée"
+        REFUNDED = "refunded", "Remboursement envoyé"
+        DISPUTE_OPENED = "dispute_opened", "Litige ouvert"
+        DISPUTE_RESOLVED = "dispute_resolved", "Litige tranché"
+        REVIEW_INVITE = "review_invite", "Invitation à donner un avis"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "À envoyer"
+        SENT = "sent", "Envoyé"
+        DROPPED = "dropped", "Retiré"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    offer = models.ForeignKey("listings.Offer", on_delete=models.PROTECT, related_name="+")
+    booking = models.ForeignKey(
+        Booking, null=True, blank=True, on_delete=models.PROTECT, related_name="messages"
+    )
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    urgent = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "message"
+        verbose_name_plural = "messages"
+        ordering = ["-urgent", "created_at"]
+        permissions = [("send_message", "Peut envoyer un message par WhatsApp")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["offer", "recipient", "kind"],
+                condition=Q(status="pending"),
+                name="one_pending_message_per_kind",
+            )
+        ]
+        indexes = [models.Index(fields=["status", "urgent", "created_at"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} ({self.get_status_display()})"

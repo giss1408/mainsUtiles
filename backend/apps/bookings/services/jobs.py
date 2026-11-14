@@ -15,6 +15,7 @@ from apps.verification.models import HomeLocation, Status
 from apps.verification.services.encryption import decrypt_text
 from apps.verification.services.tiers import current_record
 
+from . import messages
 from .bookings import _booking_of
 from .errors import BookingError
 
@@ -92,6 +93,7 @@ def check_out(user, booking_id) -> Booking:
         booking.checked_out_at = timezone.now()
         booking.save(update_fields=["status", "checked_out_at"])
         audit(user, "booking.check_out", booking)
+        messages.queue(messages.K.CONFIRM_JOB, booking=booking, to=booking.householder)
     return booking
 
 
@@ -106,6 +108,13 @@ def _complete(booking: Booking, *, how: str, actor) -> None:
     booking.save(update_fields=["status", "completed_at", "completion"])
     Payout.objects.get_or_create(booking=booking, defaults={"amount_xof": booking.pay_xof})
     audit(actor, "booking.complete", booking, how=how)
+    invite_reviews(booking)
+
+
+def invite_reviews(booking: Booking) -> None:
+    """Both sides are asked for a review once the job is completed."""
+    messages.queue(messages.K.REVIEW_INVITE, booking=booking, to=booking.householder)
+    messages.queue(messages.K.REVIEW_INVITE, booking=booking, to=booking.jobber)
 
 
 def confirm_done(user, booking_id) -> Booking:
@@ -161,6 +170,7 @@ def close_no_shows(now=None) -> int:
                 status=Offer.Status.CLOSED, updated_at=now
             )
             audit(None, "booking.no_show", booking)
+            messages.queue(messages.K.NO_SHOW, booking=booking, to=booking.householder)
             count += 1
     return count
 
@@ -186,5 +196,7 @@ def flag_unclosed(now=None) -> int:
                 defaults={"author": booking.jobber, "text": "Pas de départ enregistré"},
             )
             audit(None, "booking.unclosed", booking)
+            messages.queue(messages.K.DISPUTE_OPENED, booking=booking, to=booking.householder)
+            messages.queue(messages.K.DISPUTE_OPENED, booking=booking, to=booking.jobber)
             count += 1
     return count

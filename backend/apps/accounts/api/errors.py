@@ -76,6 +76,7 @@ STATUS = {
     "already_reviewed": 409,
     "review_closed": 409,
     "stars_invalid": 400,
+    "message_stale": 409,
 }
 
 MESSAGES = {
@@ -162,6 +163,7 @@ MESSAGES = {
     "already_reviewed": "Un avis a déjà été envoyé pour ce job.",
     "review_closed": "Le délai pour donner un avis est dépassé.",
     "stars_invalid": "Choisissez une note de 1 à 5 étoiles.",
+    "message_stale": "Ce message n'est plus d'actualité : il a été retiré.",
 }
 
 

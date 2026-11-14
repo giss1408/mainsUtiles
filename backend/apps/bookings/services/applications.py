@@ -16,7 +16,7 @@ from apps.listings.models import Offer
 from apps.listings.services.screening import contact_in
 from apps.verification.services.tiers import jobber_tier
 
-from . import payments, reviews
+from . import messages, payments, reviews
 from .errors import BookingError  # noqa: F401 - re-exported for the callers
 
 
@@ -88,6 +88,8 @@ def apply(user, offer_id, message: str) -> Application:
         _free(user, offer)
         application = Application.objects.create(offer=offer, jobber=user, message=text)
         audit(user, "booking.application.apply", application)
+        if pending.filter(offer=offer).count() == 1:
+            messages.queue(messages.K.APPLICANT, offer=offer, to=offer.author)
     return application
 
 
@@ -256,6 +258,7 @@ def accept(user, application_id, *, offer_id=None) -> Booking:
         offer.status = Offer.Status.BOOKED
         offer.save(update_fields=["status", "updated_at"])
         audit(user, "booking.accept", booking)
+        messages.queue(messages.K.ACCEPTED, booking=booking, to=booking.jobber)
     return booking
 
 

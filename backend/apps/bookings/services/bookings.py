@@ -16,6 +16,7 @@ from apps.verification.services.encryption import decrypt_text
 from apps.verification.services.submissions import read_photo_bytes
 from apps.verification.services.tiers import current_record
 
+from . import messages
 from .errors import BookingError
 
 CANCELLABLE = (
@@ -61,6 +62,8 @@ def cancel(user, booking_id, *, reason: str = "") -> Booking:
         ).update(status=Payment.Status.REFUND_DUE)
         _reopen_or_close(booking.offer_id, now)
         audit(user, "booking.cancel", booking, reason=booking.cancel_reason)
+        other = booking.jobber if user.pk == booking.householder_id else booking.householder
+        messages.queue(messages.K.CANCELLED, booking=booking, to=other)
     return booking
 
 
@@ -84,6 +87,7 @@ def expire_unpaid(now=None) -> int:
             booking.save(update_fields=["status"])
             _reopen_or_close(booking.offer_id, now)
             audit(None, "booking.expire", booking)
+            messages.queue(messages.K.EXPIRED, booking=booking, to=booking.jobber)
             count += 1
     return count
 

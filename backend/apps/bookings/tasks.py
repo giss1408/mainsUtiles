@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from apps.bookings.services import applications, bookings, jobs, reviews
+from apps.bookings.services import applications, bookings, jobs, messages, reviews
 
 
 @shared_task
@@ -37,3 +37,9 @@ def flag_unclosed_bookings() -> int:
 def publish_due_reviews() -> int:
     """Publish the reviews whose window ended without the other side's."""
     return reviews.publish_due()
+
+
+@shared_task
+def queue_due_messages() -> int:
+    """Queue the messages that time brings about: pay reminders and "the address is available"."""
+    return messages.queue_due()

@@ -10,6 +10,7 @@ from apps.audit.services import record as audit
 from apps.bookings.models import Payment, Payout
 from apps.verification.services.encryption import encrypt_text
 
+from . import messages
 from .errors import BookingError
 from .payments import _require_staff
 
@@ -87,4 +88,5 @@ def record_payout(payout: Payout, *, staff, reference: str) -> None:
         row.paid_at = timezone.now()
         row.save(update_fields=["status", "reference", "paid_by", "paid_at"])
         audit(staff, "booking.payout.pay", row, booking=str(row.booking_id))
+        messages.queue(messages.K.PAID, booking=row.booking, to=row.booking.jobber)
     payout.refresh_from_db()
