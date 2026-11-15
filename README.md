@@ -105,7 +105,8 @@ flutter analyze
 ### Staff app
 
 The staff app shows the enrolment queue (approve, refuse, hold, send the confirmation number by
-WhatsApp), the payments queue (see "Payment and address release") and, for staff with the right `verification.send_contact_code`, the trusted contacts queue
+WhatsApp), the payments queue (see "Payment and address release"), the messages to send and the
+payouts and disputes (see "Messages and alerts") and, for staff with the right `verification.send_contact_code`, the trusted contacts queue
 ("À envoyer": send a code; "À prévenir": warn an old number). Both are sent by WhatsApp from this
 app, on the phone that holds the official number; the contact's number is only ever inside the
 one-time link, never shown or stored. It is distributed privately to the operations team, never through a public store, and it
@@ -372,7 +373,9 @@ of published reviews is the rating on the applicant card and on the householder'
 `POST my-offers/<id>/booking/confirm`, `/report`, `GET/POST my-offers/<id>/booking/review`. The
 householder's booking detail stays available after completion, for the review.
 
-**Not built yet.** Payouts and disputes in the staff app (console only), push or SMS, a payout number
+Payouts and disputes are also worked in the staff app (see "Messages and alerts").
+
+**Not built yet.** Push or SMS, a payout number
 other than the account phone, strikes for repeated cancellations.
 
 **What staff must know.** Pay only from the "À verser" queue and record the reference straight away.
@@ -386,12 +389,24 @@ to a householder or a jobber goes through the **staff app** and is sent by a sta
 confirmation numbers and trusted-contact codes are sent today. Alerts for staff (something waiting
 too long, something that needs a human) are shown in the staff app too.
 
-**How it will work (stage 4, not built yet).** When something happens that a person must hear about,
-the backend adds a line to a queue "Messages à envoyer" in the staff app. The staff member opens the
-line and taps "Ouvrir WhatsApp": the message is already written, the number is only inside the
-one-time link, never shown, stored on the phone or logged, and the line is marked sent. The same
-rules as the existing WhatsApp sends apply: the right holder only, every send audited, the response
-never cached, screenshots blocked.
+**How it works (stage 4, built).** When something happens that a person must hear about, the
+backend adds a line to the queue "Messages" in the staff app (`apps/bookings/services/messages.py`).
+The staff member opens the line and taps "Ouvrir WhatsApp": the message is already written, the
+number is only inside the one-time link, never shown, stored on the phone or logged, and the line is
+marked sent. The same rules as the existing WhatsApp sends apply: the right holder only
+(`bookings.send_message`, held by `payment_agent` and `enrolment_agent`), every view and send
+audited (`booking.message.view`, `.send`, `.drop`), the response never cached, screenshots blocked.
+
+- **No text is stored.** A message is a kind, a recipient and a booking; the text is written from
+  the kind when staff open or send it.
+- **One message per event.** At most one pending message per offer, recipient and kind, so a retry
+  or a sweep run twice adds nothing.
+- **A message that is no longer true is not sent.** When staff tap send on a message whose booking
+  moved on (cancelled meanwhile, already paid...), it is withdrawn, the app says so and no link is
+  returned (409 `message_stale`). If two staff tap the same message, the second is refused.
+- **Urgent first.** "Paiement à envoyer" and "L'adresse est disponible" are urgent and listed first;
+  the others oldest first. Two sweeps queue them (task `queue_due_messages`, every 15 minutes).
+- If the phone has no connection when staff tap send, the message stays in the queue.
 
 | Message | To | When |
 |---------|----|------|
@@ -410,12 +425,33 @@ never cached, screenshots blocked.
 A private remark never produces a message to the other side. A message never contains an address, a
 full name, the other side's number, or a payment reference.
 
-**Alerts for staff (stage 4).** In the staff app, as counts on the home screen and markers in the
-queues: a payment waiting more than `PAYMENT_REVIEW_LATE_HOURS`, a payout or a refund waiting too
-long, an open dispute, a check-in far from the home pin, a message not sent after some time.
+**Alerts for staff.** The section bar of the staff app shows a count on "Paiements", "Messages"
+and "Jobs", red when something is late; each line that is late carries the marker "En retard". Late
+means: a payment waiting more than `PAYMENT_REVIEW_LATE_HOURS` (2), a message more than
+`MESSAGE_LATE_MINUTES` (60) or `MESSAGE_URGENT_LATE_MINUTES` (15) when urgent, a payout more than
+`PAYOUT_LATE_HOURS` (24), a dispute more than `DISPUTE_LATE_HOURS` (24). A check-in far from the home
+pin while the job runs shows a banner on "Jobs"; the booking itself is looked at in the console. The
+counts are refreshed with each queue. A staff member only gets the counts of the queues they may work.
 
-**Until stage 4 is built** the apps only show a state when opened or refreshed, and staff tell people
-by hand.
+**Payouts and disputes in the staff app.** The section "Jobs" has two tabs. "À verser"
+(`make_payout`): the amount and, on the detail only, the jobber's number (each view audited); staff
+send the money and record the transfer reference. A booking refunded in full shows no form.
+"Litiges" (`resolve_dispute`): what was written and by which side, first names, the price, arrival
+and departure times, the distance at arrival, the state of the householder's payment; then one of
+the three decisions with a required reason, and the jobber's share for a split. The rules are those
+of the console (`services/payouts.py`, `services/reports.py`); nothing is kept on the phone after the
+screen closes. A private remark (concern) is not in the app.
+
+**Routes** (staff device session, all `no-store`): `GET staff/messages`, `GET staff/messages/<id>`,
+`POST staff/messages/<id>/send`; `GET staff/payouts`, `GET staff/payouts/<id>`,
+`POST staff/payouts/<id>/pay {reference}`; `GET staff/disputes`, `GET staff/disputes/<id>`,
+`POST staff/disputes/<id>/resolve {outcome, note, jobber_xof?}`; `GET staff/alerts`.
+
+**Console.** "Messages" is a read-only list (kind, recipient's role, state, dates), for oversight.
+
+**Not built.** Who is on duty and when, night rules, the limit WhatsApp puts on one number, a
+person's agreement to be written to on WhatsApp, editing a message. Withdrawing an offer that
+already has a booking cancels it without a message to the jobber.
 
 **Limits to keep in mind.** Every message costs staff time and depends on someone being on duty with
 the official phone; a message can be late or missed at night. WhatsApp may restrict a number that
