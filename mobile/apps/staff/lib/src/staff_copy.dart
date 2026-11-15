@@ -31,6 +31,9 @@ abstract final class StaffCopy {
     'send_contact_code': 'Envoyer les codes aux personnes de confiance',
     'verify_payment': 'Vérifier les paiements',
     'make_refund': 'Enregistrer les remboursements',
+    'send_message': 'Envoyer les messages par WhatsApp',
+    'make_payout': 'Payer les jobbers',
+    'resolve_dispute': 'Trancher les litiges',
   };
   static String permission(String value) => _permissions[value] ?? value;
   static const empty = 'Aucune demande.';
@@ -43,6 +46,8 @@ abstract final class StaffCopy {
 
   static const enrolmentsTitle = 'Enrôlements';
   static const contactsTitle = 'Personnes de confiance';
+  static String waiting(String section, int count, {required bool late}) =>
+      '$section : $count en attente${late ? ', dont en retard' : ''}';
   static const contactsEmpty = 'Aucune personne de confiance à traiter.';
   static const contactTabs = [
     ('send', 'À envoyer'),
@@ -87,6 +92,63 @@ abstract final class StaffCopy {
   static const refundReference = 'Référence du remboursement';
   static const late = 'En retard';
   static const proofMissing = "L'image n'a pas pu être affichée.";
+
+  // Messages sent on WhatsApp
+  static const messagesTitle = 'Messages';
+  static const messagesEmpty = 'Aucun message à envoyer.';
+  static const messageDetailTitle = 'Message à envoyer';
+  static const urgent = 'Urgent';
+  static const openWhatsApp = 'Ouvrir WhatsApp';
+  static const messageReady = 'Le message est déjà écrit. Ne le modifiez pas.';
+  static const fieldMessage = 'Message';
+  static const fieldJob = 'Réservation';
+  static const fieldWaiting = 'En attente depuis';
+  static String recipient(String role) =>
+      role == 'householder' ? 'Pour le ménage' : 'Pour le jobber';
+
+  // Payouts and disputes
+  static const jobsTitle = 'Jobs';
+  static const jobsTabs = [
+    ('payouts', 'À verser'),
+    ('disputes', 'Litiges'),
+  ];
+  static const payoutsEmpty = 'Aucun paiement à verser.';
+  static const disputesEmpty = 'Aucun litige ouvert.';
+  static const payoutDetailTitle = 'Paiement au jobber';
+  static const fieldPayoutAmount = 'Montant à envoyer';
+  static const fieldJobberPhone = 'Numéro du jobber';
+  static const fieldCompleted = 'Job terminé';
+  static const payoutHow =
+      'Envoyez ce montant au jobber depuis le compte de la plateforme, puis notez la référence du transfert.';
+  static const payoutReference = 'Référence du transfert';
+  static const recordPayout = 'Enregistrer le versement';
+  static const notPayable = 'Ne versez rien : cette réservation a été remboursée.';
+  static const disputeDetailTitle = 'Litige';
+  static const fieldWrittenBy = 'Écrit par';
+  static const fieldPeople = 'Ménage et jobber';
+  static const fieldPrice = 'Prix du job';
+  static const fieldArrival = 'Arrivée';
+  static const fieldDeparture = 'Départ';
+  static const fieldDistance = "Distance à l'arrivée";
+  static const fieldHouseholdPayment = 'Paiement du ménage';
+  static const notRecorded = 'non enregistré';
+  static const farFromHome = 'loin du domicile';
+  static const decision = 'Décision';
+  static const outcomes = [
+    ('release', 'Payer le jobber'),
+    ('refund', 'Rembourser le ménage'),
+    ('split', 'Partager'),
+  ];
+  static const jobberShare = 'Part du jobber (FCFA)';
+  static const decisionNote = 'Motif de la décision';
+  static const resolve = 'Trancher le litige';
+  static const resolveTitle = 'Confirmer la décision ?';
+  static const resolveBody =
+      'Elle est définitive : le paiement ou le remboursement devient à faire.';
+  static String side(String? value) => value == 'jobber' ? 'le jobber' : 'le ménage';
+  static String farCheckins(int count) => count == 1
+      ? '1 arrivée loin du domicile en ce moment. Regardez la réservation dans la console.'
+      : '$count arrivées loin du domicile en ce moment. Regardez les réservations dans la console.';
 
   static const detailTitle = 'Demande';
   static const back = 'Retour';
