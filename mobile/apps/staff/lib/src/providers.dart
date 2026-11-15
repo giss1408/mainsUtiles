@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:petitgombo_core/petitgombo_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'ops_controller.dart';
 import 'staff_api.dart';
 import 'staff_controller.dart';
 import 'staff_session.dart';
@@ -35,5 +36,12 @@ final staffControllerProvider = StateNotifierProvider<StaffController, StaffStat
   (ref) => StaffController(
     api: ref.watch(staffApiProvider),
     session: ref.watch(staffSessionProvider),
+  ),
+);
+
+final opsControllerProvider = StateNotifierProvider<OpsController, OpsState>(
+  (ref) => OpsController(
+    api: ref.watch(staffApiProvider),
+    staff: ref.watch(staffControllerProvider.notifier),
   ),
 );

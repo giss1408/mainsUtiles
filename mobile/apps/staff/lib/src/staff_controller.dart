@@ -10,7 +10,8 @@ import 'staff_session.dart';
 enum StaffStage { login, devicePending, queue }
 
 /// Which queue the agent is working.
-enum StaffSection { enrolments, contacts, payments }
+/// `messages` and `jobs` (payouts and disputes) are driven by the OpsController.
+enum StaffSection { enrolments, contacts, payments, messages, jobs }
 
 const _keep = Object();
 
@@ -129,12 +130,18 @@ class StaffController extends StateNotifier<StaffState> {
     state = const StaffState(busy: true);
     try {
       final me = await _session.signIn(username, password);
-      // An agent starts on the first queue they may work: enrolments, contacts, then payments.
-      final section = !me.can('review_enrolment') && me.can('send_contact_code')
-          ? StaffSection.contacts
-          : !me.can('review_enrolment') && _worksPayments(me)
-              ? StaffSection.payments
-              : StaffSection.enrolments;
+      // An agent starts on the first queue they may work, in the order of the section bar.
+      final section = me.can('review_enrolment')
+          ? StaffSection.enrolments
+          : me.can('send_contact_code')
+              ? StaffSection.contacts
+              : _worksPayments(me)
+                  ? StaffSection.payments
+                  : me.can('send_message')
+                      ? StaffSection.messages
+                      : me.can('make_payout') || me.can('resolve_dispute')
+                          ? StaffSection.jobs
+                          : StaffSection.enrolments;
       state = StaffState(
         stage: StaffStage.queue,
         me: me,
@@ -162,6 +169,8 @@ class StaffController extends StateNotifier<StaffState> {
         StaffSection.contacts => refreshContacts(),
         StaffSection.payments => refreshPayments(),
         StaffSection.enrolments => refresh(),
+        // Loaded by the OpsController, which follows the section.
+        StaffSection.messages || StaffSection.jobs => Future<void>.value(),
       };
 
   Future<void> selectSection(StaffSection section) async {
@@ -174,6 +183,8 @@ class StaffController extends StateNotifier<StaffState> {
         state = state.copyWith(payments: null);
       case StaffSection.enrolments:
         state = state.copyWith(items: null);
+      case StaffSection.messages || StaffSection.jobs:
+        break;
     }
     await _refreshSection();
   }
@@ -186,7 +197,7 @@ class StaffController extends StateNotifier<StaffState> {
 
   Future<void> refreshPayments() async {
     final tab = state.paymentTab;
-    final rows = await _guard((access) => _api.payments(access, file: tab), onError: (message) {
+    final rows = await guard((access) => _api.payments(access, file: tab), onError: (message) {
       if (state.paymentTab == tab) {
         state = state.copyWith(payments: state.payments ?? const [], listError: message);
       }
@@ -200,10 +211,10 @@ class StaffController extends StateNotifier<StaffState> {
   /// Both are dropped by [closePayment] and never written anywhere.
   Future<void> openPayment(PaymentItem item) async {
     state = state.copyWith(paymentSelected: item, proof: null, error: null);
-    final detail = await _guard((access) => _api.payment(access, item.id), onError: (_) {});
+    final detail = await guard((access) => _api.payment(access, item.id), onError: (_) {});
     if (detail == null || state.paymentSelected?.id != item.id) return;
     state = state.copyWith(paymentSelected: detail);
-    final proof = await _guard((access) => _api.paymentProof(access, item.id), onError: (_) {});
+    final proof = await guard((access) => _api.paymentProof(access, item.id), onError: (_) {});
     if (proof != null && state.paymentSelected?.id == item.id) state = state.copyWith(proof: proof);
   }
 
@@ -230,7 +241,7 @@ class StaffController extends StateNotifier<StaffState> {
     if (selected == null || state.busy) return false;
     state = state.copyWith(busy: true, error: null);
     String? failure;
-    final done = await _guard<bool>((access) async {
+    final done = await guard<bool>((access) async {
       await call(access, selected.id);
       return true;
     }, onError: (message) => failure = message);
@@ -260,7 +271,7 @@ class StaffController extends StateNotifier<StaffState> {
 
   Future<void> refreshContacts() async {
     final tab = state.contactTab;
-    final rows = await _guard((access) => _api.contacts(access, file: tab), onError: (message) {
+    final rows = await guard((access) => _api.contacts(access, file: tab), onError: (message) {
       if (state.contactTab == tab) {
         state = state.copyWith(contacts: state.contacts ?? const [], listError: message);
       }
@@ -273,7 +284,7 @@ class StaffController extends StateNotifier<StaffState> {
   /// Opens a contact and loads the names the list does not carry (the server audits it).
   Future<void> openContact(ContactItem item) async {
     state = state.copyWith(contactSelected: item, error: null);
-    final detail = await _guard((access) => _api.contact(access, item.id), onError: (_) {});
+    final detail = await guard((access) => _api.contact(access, item.id), onError: (_) {});
     if (detail != null && state.contactSelected?.id == item.id) {
       state = state.copyWith(contactSelected: detail);
     }
@@ -292,7 +303,7 @@ class StaffController extends StateNotifier<StaffState> {
     final selected = state.contactSelected;
     if (selected == null || state.busy) return null;
     state = state.copyWith(busy: true, error: null);
-    final uri = await _guard((access) => call(access, selected.id), onError: _actionFailed);
+    final uri = await guard((access) => call(access, selected.id), onError: _actionFailed);
     if (uri != null) {
       // Done: the contact leaves this queue.
       state = state.copyWith(
@@ -311,8 +322,7 @@ class StaffController extends StateNotifier<StaffState> {
 
   Future<void> refresh() async {
     final tab = state.tab;
-    final items =
-        await _guard((access) => _api.enrolments(access, status: tab), onError: (message) {
+    final items = await guard((access) => _api.enrolments(access, status: tab), onError: (message) {
       if (state.tab == tab) {
         state = state.copyWith(items: state.items ?? const [], listError: message);
       }
@@ -325,7 +335,7 @@ class StaffController extends StateNotifier<StaffState> {
   /// Opens the detail screen and loads the fields the list does not carry.
   Future<void> open(EnrolmentItem item) async {
     state = state.copyWith(selected: item, error: null);
-    final detail = await _guard((access) => _api.enrolment(access, item.id), onError: (_) {});
+    final detail = await guard((access) => _api.enrolment(access, item.id), onError: (_) {});
     if (detail != null && state.selected?.id == item.id) {
       state = state.copyWith(selected: detail);
     }
@@ -345,7 +355,7 @@ class StaffController extends StateNotifier<StaffState> {
     final selected = state.selected;
     if (selected == null || state.busy) return null;
     state = state.copyWith(busy: true, error: null);
-    final uri = await _guard((access) => _api.send(access, selected.id), onError: _actionFailed);
+    final uri = await guard((access) => _api.send(access, selected.id), onError: _actionFailed);
     if (uri != null) _applied(selected.withStatus('code_sent'));
     return uri;
   }
@@ -354,7 +364,7 @@ class StaffController extends StateNotifier<StaffState> {
     final selected = state.selected;
     if (selected == null || state.busy) return;
     state = state.copyWith(busy: true, error: null);
-    final updated = await _guard((access) => call(access, selected.id), onError: _actionFailed);
+    final updated = await guard((access) => call(access, selected.id), onError: _actionFailed);
     if (updated != null) _applied(updated);
   }
 
@@ -377,7 +387,7 @@ class StaffController extends StateNotifier<StaffState> {
   /// the call retried; if the session cannot be renewed the app returns to the
   /// login screen. Any other failure is reported through [onError]. Returns
   /// null on failure.
-  Future<T?> _guard<T>(
+  Future<T?> guard<T>(
     Future<T> Function(String access) call, {
     required void Function(String message) onError,
   }) async {

@@ -146,6 +146,171 @@ class PaymentItem {
   final bool? seenBefore;
 }
 
+DateTime? _when(Object? value) => value is String ? DateTime.parse(value).toLocal() : null;
+
+/// A message waiting to be sent on WhatsApp. The list carries no text; the recipient's number is
+/// never part of it: it only travels inside the link the server returns on send.
+class MessageItem {
+  const MessageItem({
+    required this.id,
+    required this.kind,
+    required this.kindLabel,
+    required this.recipientRole,
+    required this.urgent,
+    required this.late,
+    required this.createdAt,
+    this.text,
+    this.categoryName,
+  });
+
+  factory MessageItem.fromJson(Map<String, dynamic> json) => MessageItem(
+        id: json['id'] as String,
+        kind: (json['kind'] as String?) ?? '',
+        kindLabel: (json['kind_label'] as String?) ?? '',
+        recipientRole: (json['recipient_role'] as String?) ?? '',
+        urgent: json['urgent'] == true,
+        late: json['late'] == true,
+        createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+        text: json['text'] as String?,
+        categoryName: json['category_name'] as String?,
+      );
+
+  final String id;
+  final String kind;
+  final String kindLabel;
+
+  /// `householder` or `jobber`.
+  final String recipientRole;
+  final bool urgent;
+  final bool late;
+  final DateTime createdAt;
+
+  /// Only on the detail.
+  final String? text;
+  final String? categoryName;
+}
+
+/// What the platform owes a jobber. The list carries no phone; the detail does.
+class PayoutItem {
+  const PayoutItem({
+    required this.id,
+    required this.categoryName,
+    required this.amountXof,
+    required this.dueAt,
+    required this.late,
+    this.jobberPhone,
+    this.completedAt,
+    this.payable,
+  });
+
+  factory PayoutItem.fromJson(Map<String, dynamic> json) => PayoutItem(
+        id: json['id'] as String,
+        categoryName: (json['category_name'] as String?) ?? '',
+        amountXof: (json['amount_xof'] as num).toInt(),
+        dueAt: DateTime.parse(json['due_at'] as String).toLocal(),
+        late: json['late'] == true,
+        jobberPhone: json['jobber_phone'] as String?,
+        completedAt: _when(json['completed_at']),
+        payable: json['payable'] as bool?,
+      );
+
+  final String id;
+  final String categoryName;
+  final int amountXof;
+  final DateTime dueAt;
+  final bool late;
+
+  /// Only on the detail.
+  final String? jobberPhone;
+  final DateTime? completedAt;
+
+  /// False when the booking was refunded in full: nothing must be sent.
+  final bool? payable;
+}
+
+/// An open dispute. The list carries no text; the detail does.
+class DisputeItem {
+  const DisputeItem({
+    required this.id,
+    required this.categoryName,
+    required this.createdAt,
+    required this.late,
+    this.text,
+    this.authorSide,
+    this.jobberName,
+    this.householderName,
+    this.startsAt,
+    this.payXof,
+    this.checkedInAt,
+    this.checkedOutAt,
+    this.distanceM,
+    this.far = false,
+    this.paymentState,
+  });
+
+  factory DisputeItem.fromJson(Map<String, dynamic> json) => DisputeItem(
+        id: json['id'] as String,
+        categoryName: (json['category_name'] as String?) ?? '',
+        createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+        late: json['late'] == true,
+        text: json['text'] as String?,
+        authorSide: json['author_side'] as String?,
+        jobberName: json['jobber_name'] as String?,
+        householderName: json['householder_name'] as String?,
+        startsAt: _when(json['starts_at']),
+        payXof: (json['pay_xof'] as num?)?.toInt(),
+        checkedInAt: _when(json['checked_in_at']),
+        checkedOutAt: _when(json['checked_out_at']),
+        distanceM: (json['distance_m'] as num?)?.toInt(),
+        far: json['far'] == true,
+        paymentState: json['payment_state'] as String?,
+      );
+
+  final String id;
+  final String categoryName;
+  final DateTime createdAt;
+  final bool late;
+
+  /// Only on the detail.
+  final String? text;
+
+  /// `householder` or `jobber`: who raised the dispute.
+  final String? authorSide;
+  final String? jobberName;
+  final String? householderName;
+  final DateTime? startsAt;
+  final int? payXof;
+  final DateTime? checkedInAt;
+  final DateTime? checkedOutAt;
+  final int? distanceM;
+  final bool far;
+  final String? paymentState;
+}
+
+/// Counts of what waits. A count is null when this staff member may not work that queue.
+class StaffAlerts {
+  const StaffAlerts(this._counts);
+
+  factory StaffAlerts.fromJson(Map<String, dynamic> json) => StaffAlerts({
+        for (final entry in json.entries)
+          if (entry.value is num) entry.key: (entry.value as num).toInt(),
+      });
+
+  final Map<String, int> _counts;
+
+  int? operator [](String key) => _counts[key];
+
+  int get payments => (_counts['payments_waiting'] ?? 0) + (_counts['refunds_waiting'] ?? 0);
+  int get messages => _counts['messages_waiting'] ?? 0;
+  int get jobs => (_counts['payouts_waiting'] ?? 0) + (_counts['disputes_open'] ?? 0);
+  int get farCheckins => _counts['far_checkins'] ?? 0;
+
+  /// Something has waited longer than it should.
+  bool get paymentsLate => (_counts['payments_late'] ?? 0) > 0;
+  bool get messagesLate => (_counts['messages_late'] ?? 0) > 0;
+  bool get jobsLate => (_counts['payouts_late'] ?? 0) + (_counts['disputes_late'] ?? 0) > 0;
+}
+
 class StaffMe {
   const StaffMe({required this.id, required this.username, required this.permissions});
 
@@ -376,5 +541,86 @@ class StaffApi {
           data: {'reference': reference},
           options: _bearer(access),
         );
+      });
+
+  List<T> _results<T>(Response<dynamic> response, T Function(Map<String, dynamic>) parse) =>
+      ((_json(response)['results'] as List?) ?? const [])
+          .map((row) => parse(Map<String, dynamic>.from(row as Map)))
+          .toList();
+
+  static const _messages = '$_base/staff/messages';
+
+  /// The messages waiting to be sent, urgent first (first page). No text, no number.
+  Future<List<MessageItem>> messages(String access) => guardApi(() async {
+        final response = await _dio.get<dynamic>(_messages, options: _bearer(access));
+        return _results(response, MessageItem.fromJson);
+      });
+
+  /// The text that will be sent. Opening it is audited by the server.
+  Future<MessageItem> message(String access, String id) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_messages/$id', options: _bearer(access));
+        return MessageItem.fromJson(_json(response));
+      });
+
+  /// Marks the message sent and returns the WhatsApp link carrying it.
+  Future<Uri> sendMessage(String access, String id) => guardApi(() async {
+        final response = await _dio.post<dynamic>('$_messages/$id/send', options: _bearer(access));
+        return Uri.parse(_json(response)['whatsapp_url'] as String);
+      });
+
+  static const _payouts = '$_base/staff/payouts';
+
+  /// The payouts to make, oldest first (first page). No phone.
+  Future<List<PayoutItem>> payouts(String access) => guardApi(() async {
+        final response = await _dio.get<dynamic>(_payouts, options: _bearer(access));
+        return _results(response, PayoutItem.fromJson);
+      });
+
+  /// The jobber's phone to send the money to. Opening it is audited by the server.
+  Future<PayoutItem> payout(String access, String id) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_payouts/$id', options: _bearer(access));
+        return PayoutItem.fromJson(_json(response));
+      });
+
+  Future<void> payPayout(String access, String id, String reference) => guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_payouts/$id/pay',
+          data: {'reference': reference},
+          options: _bearer(access),
+        );
+      });
+
+  static const _disputes = '$_base/staff/disputes';
+
+  /// The open disputes, oldest first (first page). No text.
+  Future<List<DisputeItem>> disputes(String access) => guardApi(() async {
+        final response = await _dio.get<dynamic>(_disputes, options: _bearer(access));
+        return _results(response, DisputeItem.fromJson);
+      });
+
+  /// What was written and what happened. Opening it is audited by the server.
+  Future<DisputeItem> dispute(String access, String id) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_disputes/$id', options: _bearer(access));
+        return DisputeItem.fromJson(_json(response));
+      });
+
+  Future<void> resolveDispute(
+    String access,
+    String id, {
+    required String outcome,
+    required String note,
+    int? jobberXof,
+  }) =>
+      guardApi(() async {
+        await _dio.post<dynamic>(
+          '$_disputes/$id/resolve',
+          data: {'outcome': outcome, 'note': note, 'jobber_xof': jobberXof},
+          options: _bearer(access),
+        );
+      });
+
+  Future<StaffAlerts> alerts(String access) => guardApi(() async {
+        final response = await _dio.get<dynamic>('$_base/staff/alerts', options: _bearer(access));
+        return StaffAlerts.fromJson(_json(response));
       });
 }

@@ -134,3 +134,77 @@ Map<String, dynamic> paymentJson({
     };
 
 const paymentPermissions = ['verify_payment', 'make_refund'];
+
+Map<String, dynamic> messageJson({
+  String id = 'm1',
+  String kind = 'accepted',
+  String label = 'Candidature acceptée',
+  String role = 'jobber',
+  bool urgent = false,
+  bool late = false,
+  bool detail = false,
+}) =>
+    {
+      'id': id,
+      'kind': kind,
+      'kind_label': label,
+      'recipient_role': role,
+      'urgent': urgent,
+      'late': late,
+      'created_at': '2026-11-13T10:00:00Z',
+      if (detail) ...{
+        'text': 'petitGombo : tu as été accepté(e) pour le job Ménage du 14/11 à 08:00.',
+        'category_name': 'Ménage',
+      },
+    };
+
+Map<String, dynamic> payoutJson({
+  String id = 'po1',
+  bool late = false,
+  bool detail = false,
+  bool payable = true,
+}) =>
+    {
+      'id': id,
+      'category_name': 'Ménage',
+      'amount_xof': 3500,
+      'due_at': '2026-11-13T10:00:00Z',
+      'late': late,
+      if (detail) ...{
+        'jobber_phone': '+2250708091011',
+        'completed_at': '2026-11-13T10:00:00Z',
+        'payable': payable,
+      },
+    };
+
+Map<String, dynamic> disputeJson({String id = 'd1', bool late = false, bool detail = false}) => {
+      'id': id,
+      'category_name': 'Ménage',
+      'created_at': '2026-11-13T10:00:00Z',
+      'late': late,
+      if (detail) ...{
+        'text': 'Le salon reste sale',
+        'author_side': 'householder',
+        'jobber_name': 'Awa',
+        'householder_name': 'Koffi',
+        'starts_at': '2026-11-13T08:00:00Z',
+        'pay_xof': 3500,
+        'checked_in_at': '2026-11-13T08:05:00Z',
+        'checked_out_at': null,
+        'distance_m': 900,
+        'far': true,
+        'payment_state': 'Confirmé',
+      },
+    };
+
+const opsPermissions = ['send_message', 'make_payout', 'resolve_dispute'];
+
+Map<String, dynamic> alertsJson({int messages = 0, int payouts = 0, int disputes = 0}) => {
+      'messages_waiting': messages,
+      'messages_late': 0,
+      'payouts_waiting': payouts,
+      'payouts_late': 0,
+      'disputes_open': disputes,
+      'disputes_late': 0,
+      'far_checkins': 0,
+    };
